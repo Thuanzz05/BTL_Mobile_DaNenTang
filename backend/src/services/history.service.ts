@@ -1,52 +1,81 @@
-import { prisma } from '../config/database';
+import { query } from '../config/database';
 
-export const getHistory = async (nguoiDungId: string, limit: number = 20, page: number = 1) => {
-  const skip = (page - 1) * limit;
-
-  const [total, sessions] = await Promise.all([
-    prisma.phienHocTap.count({ where: { nguoiDungId } }),
-    prisma.phienHocTap.findMany({
-      where: { nguoiDungId },
-      orderBy: { batDauLuc: 'desc' },
-      skip,
-      take: limit,
-      include: {
-        chuDe: { select: { ten: true } },
-        ketQuaHoc: { select: { trangThai: true } }
-      }
-    })
-  ]);
-
-  const history = sessions.map(session => {
-    const daNho = session.ketQuaHoc.filter(k => k.trangThai === 'da_nho').length;
-    const chuaChac = session.ketQuaHoc.filter(k => k.trangThai === 'chua_chac').length;
-    const chuaNho = session.ketQuaHoc.filter(k => k.trangThai === 'chua_nho').length;
-
+export class HistoryService {
+  static async getUserHistory(userId: string, page: number = 1, limit: number = 20) {
+    const offset = (page - 1) * limit;
+    
+    const sql = `
+      SELECT 
+        p.*,
+        c.ten as topic_name,
+        c.hinh_anh as topic_image,
+        COUNT(k.id) as total_results,
+        SUM(CASE WHEN k.trang_thai = 'da-nho' THEN 1 ELSE 0 END) as remembered_count,
+        SUM(CASE WHEN k.trang_thai = 'chua-chac' THEN 1 ELSE 0 END) as uncertain_count,
+        SUM(CASE WHEN k.trang_thai = 'chua-nho' THEN 1 ELSE 0 END) as forgotten_count
+      FROM phien_hoc_tap p
+      INNER JOIN chu_de c ON p.chu_de_id = c.id
+      LEFT JOIN ket_qua_hoc k ON p.id = k.phien_hoc_tap_id
+      WHERE p.nguoi_dung_id = ?
+      GROUP BY p.id
+      ORDER BY p.bat_dau_luc DESC
+      LIMIT ? OFFSET ?
+    `;
+    
+    const sessions: any = await query(sql, [userId, limit, offset]);
+    
+    // Get total count
+    const countSql = `SELECT COUNT(*) as total FROM phien_hoc_tap WHERE nguoi_dung_id = ?`;
+    const countResult: any = await query(countSql, [userId]);
+    const total = countResult[0]?.total || 0;
+    
     return {
-      id: session.id,
-      chuDe: session.chuDe.ten,
-      batDauLuc: session.batDauLuc,
-      ketThucLuc: session.ketThucLuc,
-      trangThai: session.trangThai,
-      tongSoTu: session.tongSoTu,
-      ketQua: { daNho, chuaChac, chuaNho }
-    };
-  });
-
-  return { total, page, limit, data: history };
-};
-
-export const getSessionDetail = async (phienHocTapId: string) => {
-  const session = await prisma.phienHocTap.findUnique({
-    where: { id: phienHocTapId },
-    include: {
-      chuDe: true,
-      ketQuaHoc: {
-        include: { tuVung: true }
+      sessions,
+      pagination: {
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit)
       }
-    }
-  });
+    };
+  }
 
-  if (!session) throw new Error('Phiên học không tồn tại');
-  return session;
-};
+  static async getSessionDetail(sessionId: string, userId: string) {
+    const sessionSql = `
+      SELECT 
+        p.*,
+        c.ten as topic_name,
+        c.hinh_anh as topic_image
+      FROM phien_hoc_tap p
+      INNER JOIN chu_de c ON p.chu_de_id = c.id
+      WHERE p.id = ? AND p.nguoi_dung_id = ?
+    `;
+    
+    const sessions: any = await query(sessionSql, [sessionId, userId]);
+    const session = sessions[0];
+    
+    if (!session) {
+      throw new Error('Phiên học không tồn tại hoặc không thuộc về người dùng này');
+    }
+    
+    const resultsSql = `
+      SELECT 
+        k.*,
+        t.tu_tieng_anh,
+        t.nghia_tieng_viet,
+        t.phien_am,
+        t.url_hinh_anh
+      FROM ket_qua_hoc k
+      INNER JOIN tu_vung t ON k.tu_vung_id = t.id
+      WHERE k.phien_hoc_tap_id = ?
+      ORDER BY k.ngay_tao
+    `;
+    
+    const results = await query(resultsSql, [sessionId]);
+    
+    return {
+      ...session,
+      results
+    };
+  }
+}

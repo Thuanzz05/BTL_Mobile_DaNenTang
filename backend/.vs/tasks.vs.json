@@ -1,0 +1,88 @@
+{
+  "version": "0.2.1",
+  "tasks": [
+    {
+      "taskLabel": "📦 Install Dependencies",
+      "appliesTo": "package.json",
+      "type": "launch",
+      "command": "npm",
+      "args": [
+        "install"
+      ],
+      "contextType": "build",
+      "output": "console"
+    },
+    {
+      "taskLabel": "🚀 Start Backend Dev",
+      "appliesTo": "package.json",
+      "type": "launch",
+      "command": "npm",
+      "args": [
+        "run",
+        "dev"
+      ],
+      "contextType": "build",
+      "output": "console"
+    },
+    {
+      "taskLabel": "🏗️ Build Backend",
+      "appliesTo": "package.json",
+      "type": "launch",
+      "command": "npm",
+      "args": [
+        "run",
+        "build"
+      ],
+      "contextType": "build",
+      "output": "console"
+    },
+    {
+      "taskLabel": "🗄️ Create Database",
+      "appliesTo": "package.json",
+      "type": "launch",
+      "command": "npm",
+      "args": [
+        "run",
+        "db:create"
+      ],
+      "contextType": "build",
+      "output": "console"
+    },
+    {
+      "taskLabel": "📊 Run Migrations",
+      "appliesTo": "package.json",
+      "type": "launch",
+      "command": "npm",
+      "args": [
+        "run",
+        "db:migrate"
+      ],
+      "contextType": "build",
+      "output": "console"
+    },
+    {
+      "taskLabel": "🌱 Seed Database",
+      "appliesTo": "package.json",
+      "type": "launch",
+      "command": "npm",
+      "args": [
+        "run",
+        "db:seed"
+      ],
+      "contextType": "build",
+      "output": "console"
+    },
+    {
+      "taskLabel": "🧹 Clean Build",
+      "appliesTo": "package.json",
+      "type": "launch",
+      "command": "cmd",
+      "args": [
+        "/c",
+        "if exist dist rmdir /s /q dist"
+      ],
+      "contextType": "build",
+      "output": "console"
+    }
+  ]
+}

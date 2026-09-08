@@ -1,65 +1,71 @@
-import { prisma } from '../config/database';
+import { query } from '../config/database';
 
-export const getOverall = async (nguoiDungId: string) => {
-  const progresses = await prisma.tienDoTuVung.findMany({
-    where: { nguoiDungId, daHoc: true }
-  });
+export class ProgressService {
+  static async getUserProgress(userId: string) {
+    const sql = `
+      SELECT 
+        COUNT(DISTINCT tu_vung_id) as total_learned,
+        SUM(CASE WHEN trang_thai_nho = 'thuoc-long' THEN 1 ELSE 0 END) as mastered,
+        SUM(CASE WHEN trang_thai_nho = 'da-nho' THEN 1 ELSE 0 END) as remembered,
+        SUM(CASE WHEN trang_thai_nho = 'chua-chac' THEN 1 ELSE 0 END) as uncertain,
+        SUM(CASE WHEN trang_thai_nho = 'chua-nho' THEN 1 ELSE 0 END) as forgotten,
+        SUM(CASE WHEN da_hoc = TRUE THEN 1 ELSE 0 END) as total_studied
+      FROM tien_do_tu_vung
+      WHERE nguoi_dung_id = ?
+    `;
+    
+    const results: any = await query(sql, [userId]);
+    return results[0] || {
+      total_learned: 0,
+      mastered: 0,
+      remembered: 0,
+      uncertain: 0,
+      forgotten: 0,
+      total_studied: 0
+    };
+  }
 
-  const tongSoTuDaHoc = progresses.length;
-  const daNho = progresses.filter(p => p.trangThaiNho === 'da_nho' || p.trangThaiNho === 'thuoc_long').length;
-  const chuaChac = progresses.filter(p => p.trangThaiNho === 'chua_chac').length;
-  const chuaNho = progresses.filter(p => p.trangThaiNho === 'chua_nho' || p.trangThaiNho === 'chua_hoc').length;
-
-  const tyLe = tongSoTuDaHoc > 0 ? (daNho / tongSoTuDaHoc) * 100 : 0;
-
-  const now = new Date();
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const todayEnd = new Date(todayStart);
-  todayEnd.setDate(todayEnd.getDate() + 1);
-
-  const homNay = await prisma.phienHocTap.count({
-    where: { nguoiDungId, trangThai: 'hoan_thanh', ketThucLuc: { gte: todayStart, lt: todayEnd } }
-  });
-
-  const weekStart = new Date(todayStart);
-  weekStart.setDate(weekStart.getDate() - 7);
-  const tuanNay = await prisma.phienHocTap.count({
-    where: { nguoiDungId, trangThai: 'hoan_thanh', ketThucLuc: { gte: weekStart } }
-  });
-
-  const monthStart = new Date(todayStart);
-  monthStart.setDate(monthStart.getDate() - 30);
-  const thangNay = await prisma.phienHocTap.count({
-    where: { nguoiDungId, trangThai: 'hoan_thanh', ketThucLuc: { gte: monthStart } }
-  });
-
-  return { tongSoTuDaHoc, daNho, chuaChac, chuaNho, tyLe, homNay, tuanNay, thangNay };
-};
-
-export const getToday = async (nguoiDungId: string) => {
-  const now = new Date();
-  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  
-  const resultsToday = await prisma.ketQuaHoc.findMany({
-    where: {
-      ngayTao: { gte: todayStart },
-      phienHocTap: { nguoiDungId }
+  static async getProgressByTopic(userId: string, topicId?: string) {
+    let sql = `
+      SELECT 
+        c.id as topic_id,
+        c.ten as topic_name,
+        COUNT(t.id) as total_words,
+        COUNT(CASE WHEN p.da_hoc = TRUE THEN 1 END) as learned_words,
+        COUNT(CASE WHEN p.trang_thai_nho = 'thuoc-long' THEN 1 END) as mastered_words
+      FROM chu_de c
+      INNER JOIN tu_vung t ON c.id = t.chu_de_id
+      LEFT JOIN tien_do_tu_vung p ON t.id = p.tu_vung_id AND p.nguoi_dung_id = ?
+    `;
+    
+    const params: any[] = [userId];
+    
+    if (topicId) {
+      sql += ` WHERE c.id = ?`;
+      params.push(topicId);
     }
-  });
+    
+    sql += ` GROUP BY c.id, c.ten ORDER BY c.thu_tu_hien_thi`;
+    
+    return await query(sql, params);
+  }
 
-  return { wordsLearnedToday: resultsToday.length };
-};
-
-export const getByTopic = async (nguoiDungId: string, chuDeId: string) => {
-  const progresses = await prisma.tienDoTuVung.findMany({
-    where: { nguoiDungId, daHoc: true, tuVung: { chuDeId } }
-  });
-
-  return { 
-    chuDeId,
-    tongSoTuDaHoc: progresses.length,
-    daNho: progresses.filter(p => p.trangThaiNho === 'da_nho' || p.trangThaiNho === 'thuoc_long').length,
-    chuaChac: progresses.filter(p => p.trangThaiNho === 'chua_chac').length,
-    chuaNho: progresses.filter(p => p.trangThaiNho === 'chua_nho' || p.trangThaiNho === 'chua_hoc').length
-  };
-};
+  static async getWordsToReview(userId: string, limit: number = 20) {
+    const sql = `
+      SELECT 
+        t.*,
+        p.trang_thai_nho,
+        p.so_lan_on_tap,
+        p.ngay_on_tap_tiep_theo
+      FROM tien_do_tu_vung p
+      INNER JOIN tu_vung t ON p.tu_vung_id = t.id
+      WHERE p.nguoi_dung_id = ? 
+        AND p.ngay_on_tap_tiep_theo <= NOW()
+        AND p.da_hoc = TRUE
+      ORDER BY p.ngay_on_tap_tiep_theo ASC
+      LIMIT ?
+    `;
+    
+    return await query(sql, [userId, limit]);
+  }
+}

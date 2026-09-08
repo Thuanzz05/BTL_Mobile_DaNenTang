@@ -1,154 +1,177 @@
-import { prisma } from '../config/database';
-import { calculateNextReviewDate, mapApiStatusToPrisma } from '../utils/srs.util';
+import { query } from '../config/database';
+import { UuidUtil } from '../utils/uuid.util';
 
-export const startSession = async (nguoiDungId: string, chuDeId: string, tongSoTu: number) => {
-  const words = await prisma.tuVung.findMany({
-    where: { chuDeId },
-    take: tongSoTu,
-    include: { viDu: true }
-  });
-
-  if (words.length === 0) {
-    throw new Error('Chủ đề này hiện chưa có từ vựng nào');
+export class LearningService {
+  static async startSession(userId: string, topicId: string, wordCount: number = 10) {
+    const sessionId = UuidUtil.generate();
+    
+    // Get random words from topic
+    const wordsSql = `
+      SELECT * FROM tu_vung
+      WHERE chu_de_id = ?
+      ORDER BY RAND()
+      LIMIT ?
+    `;
+    
+    const words: any = await query(wordsSql, [topicId, wordCount]);
+    
+    if (words.length === 0) {
+      throw new Error('Chủ đề này chưa có từ vựng');
+    }
+    
+    // Create session
+    const createSessionSql = `
+      INSERT INTO phien_hoc_tap (id, nguoi_dung_id, chu_de_id, tong_so_tu, trang_thai)
+      VALUES (?, ?, ?, ?, 'dang-hoc')
+    `;
+    
+    await query(createSessionSql, [sessionId, userId, topicId, words.length]);
+    
+    // Get session with topic info
+    const sessionSql = `
+      SELECT p.*, c.ten as topic_name
+      FROM phien_hoc_tap p
+      INNER JOIN chu_de c ON p.chu_de_id = c.id
+      WHERE p.id = ?
+    `;
+    
+    const sessions: any = await query(sessionSql, [sessionId]);
+    
+    return {
+      session: sessions[0],
+      words
+    };
   }
 
-  const session = await prisma.phienHocTap.create({
-    data: {
-      nguoiDungId,
-      chuDeId,
-      tongSoTu: words.length,
-      trangThai: 'dang_hoc'
+  static async submitResult(userId: string, sessionId: string, wordId: string, status: string) {
+    // Validate session belongs to user
+    const sessionSql = `SELECT * FROM phien_hoc_tap WHERE id = ? AND nguoi_dung_id = ?`;
+    const sessions: any = await query(sessionSql, [sessionId, userId]);
+    
+    if (sessions.length === 0) {
+      throw new Error('Phiên học không hợp lệ');
     }
-  });
-
-  return { session, words };
-};
-
-export const saveResult = async (data: { phienHocTapId: string; tuVungId: string; trangThai: string }) => {
-  const session = await prisma.phienHocTap.findUnique({
-    where: { id: data.phienHocTapId }
-  });
-
-  if (!session) throw new Error('Phiên học không tồn tại');
-  if (session.trangThai !== 'dang_hoc') throw new Error('Phiên học đã kết thúc');
-
-  const prismaStatus = mapApiStatusToPrisma(data.trangThai) as any;
-
-  const result = await prisma.ketQuaHoc.create({
-    data: {
-      phienHocTapId: data.phienHocTapId,
-      tuVungId: data.tuVungId,
-      trangThai: prismaStatus
+    
+    const session = sessions[0];
+    
+    if (session.trang_thai !== 'dang-hoc') {
+      throw new Error('Phiên học đã kết thúc');
     }
-  });
-
-  const currentProgress = await prisma.tienDoTuVung.findUnique({
-    where: { nguoiDungId_tuVungId: { nguoiDungId: session.nguoiDungId, tuVungId: data.tuVungId } }
-  });
-
-  const newReviewCount = (currentProgress?.soLanOnTap || 0) + 1;
-  const nextReviewDate = calculateNextReviewDate(prismaStatus, newReviewCount);
-
-  await prisma.tienDoTuVung.upsert({
-    where: { nguoiDungId_tuVungId: { nguoiDungId: session.nguoiDungId, tuVungId: data.tuVungId } },
-    update: {
-      daHoc: true,
-      soLanOnTap: newReviewCount,
-      trangThaiNho: prismaStatus,
-      ngayOnTapTiepTheo: nextReviewDate,
-      lanOnTapCuoi: new Date(),
-    },
-    create: {
-      nguoiDungId: session.nguoiDungId,
-      tuVungId: data.tuVungId,
-      daHoc: true,
-      soLanOnTap: 1,
-      trangThaiNho: prismaStatus,
-      ngayOnTapTiepTheo: nextReviewDate,
-      lanOnTapCuoi: new Date(),
-    }
-  });
-
-  return result;
-};
-
-export const completeSession = async (phienHocTapId: string, nguoiDungId: string) => {
-  const session = await prisma.phienHocTap.findUnique({ where: { id: phienHocTapId } });
-  if (!session || session.nguoiDungId !== nguoiDungId) {
-    throw new Error('Phiên học không hợp lệ');
+    
+    // Save result
+    const resultId = UuidUtil.generate();
+    const insertResultSql = `
+      INSERT INTO ket_qua_hoc (id, phien_hoc_tap_id, tu_vung_id, trang_thai)
+      VALUES (?, ?, ?, ?)
+    `;
+    
+    await query(insertResultSql, [resultId, sessionId, wordId, status]);
+    
+    // Update or create progress
+    await this.updateWordProgress(userId, wordId, status);
+    
+    return { success: true };
   }
 
-  const updatedSession = await prisma.phienHocTap.update({
-    where: { id: phienHocTapId },
-    data: {
-      trangThai: 'hoan_thanh',
-      ketThucLuc: new Date()
+  static async completeSession(userId: string, sessionId: string) {
+    // Validate session
+    const sessionSql = `SELECT * FROM phien_hoc_tap WHERE id = ? AND nguoi_dung_id = ?`;
+    const sessions: any = await query(sessionSql, [sessionId, userId]);
+    
+    if (sessions.length === 0) {
+      throw new Error('Phiên học không hợp lệ');
     }
-  });
+    
+    // Update session status
+    const updateSql = `
+      UPDATE phien_hoc_tap
+      SET trang_thai = 'hoan-thanh', ket_thuc_luc = NOW()
+      WHERE id = ?
+    `;
+    
+    await query(updateSql, [sessionId]);
+    
+    // Get statistics
+    const statsSql = `
+      SELECT 
+        COUNT(*) as total,
+        SUM(CASE WHEN trang_thai = 'da-nho' THEN 1 ELSE 0 END) as remembered,
+        SUM(CASE WHEN trang_thai = 'chua-chac' THEN 1 ELSE 0 END) as uncertain,
+        SUM(CASE WHEN trang_thai = 'chua-nho' THEN 1 ELSE 0 END) as forgotten
+      FROM ket_qua_hoc
+      WHERE phien_hoc_tap_id = ?
+    `;
+    
+    const stats: any = await query(statsSql, [sessionId]);
+    
+    return {
+      success: true,
+      statistics: stats[0]
+    };
+  }
 
-  await prisma.hoatDongHocTap.create({
-    data: {
-      nguoiDungId,
-      loaiHoatDong: 'hoan_thanh_phien',
-      moTa: `Hoàn thành phiên học chủ đề ID: ${session.chuDeId}`,
-      diemKinhNghiem: 10
+  private static async updateWordProgress(userId: string, wordId: string, status: string) {
+    // Check if progress exists
+    const checkSql = `
+      SELECT * FROM tien_do_tu_vung
+      WHERE nguoi_dung_id = ? AND tu_vung_id = ?
+    `;
+    
+    const existing: any = await query(checkSql, [userId, wordId]);
+    
+    // Calculate next review date based on SRS
+    const nextReviewDate = this.calculateNextReview(status, existing[0]?.so_lan_on_tap || 0);
+    
+    if (existing.length > 0) {
+      // Update existing progress
+      const updateSql = `
+        UPDATE tien_do_tu_vung
+        SET 
+          da_hoc = TRUE,
+          trang_thai_nho = ?,
+          so_lan_on_tap = so_lan_on_tap + 1,
+          lan_on_tap_cuoi = NOW(),
+          ngay_on_tap_tiep_theo = ?
+        WHERE nguoi_dung_id = ? AND tu_vung_id = ?
+      `;
+      
+      await query(updateSql, [status, nextReviewDate, userId, wordId]);
+    } else {
+      // Create new progress
+      const insertSql = `
+        INSERT INTO tien_do_tu_vung (
+          nguoi_dung_id, tu_vung_id, da_hoc, trang_thai_nho,
+          so_lan_on_tap, lan_on_tap_cuoi, ngay_on_tap_tiep_theo
+        ) VALUES (?, ?, TRUE, ?, 1, NOW(), ?)
+      `;
+      
+      await query(insertSql, [userId, wordId, status, nextReviewDate]);
     }
-  });
+  }
 
-  return updatedSession;
-};
-
-export const getSessionResult = async (phienHocTapId: string) => {
-  const session = await prisma.phienHocTap.findUnique({
-    where: { id: phienHocTapId },
-    include: { chuDe: true }
-  });
-
-  if (!session) throw new Error('Phiên học không tồn tại');
-
-  const results = await prisma.ketQuaHoc.findMany({
-    where: { phienHocTapId },
-    include: { tuVung: true }
-  });
-
-  const daNho = results.filter(r => r.trangThai === 'da_nho').length;
-  const chuaChac = results.filter(r => r.trangThai === 'chua_chac').length;
-  const chuaNho = results.filter(r => r.trangThai === 'chua_nho').length;
-  const tongSoTu = daNho + chuaChac + chuaNho;
-  const tyLe = tongSoTu > 0 ? (daNho / tongSoTu) * 100 : 0;
-
-  const danhSachTuChuaNho = results
-    .filter(r => r.trangThai === 'chua_nho')
-    .map(r => r.tuVung);
-
-  return {
-    tongSoTu,
-    daNho,
-    chuaChac,
-    chuaNho,
-    tyLe,
-    danhSachTuChuaNho
-  };
-};
-
-export const getReviewWords = async (nguoiDungId: string) => {
-  const reviews = await prisma.tienDoTuVung.findMany({
-    where: {
-      nguoiDungId,
-      trangThaiNho: { in: ['chua_nho', 'chua_chac'] as any[] },
-      ngayOnTapTiepTheo: { lte: new Date() }
-    },
-    include: {
-      tuVung: {
-        include: { viDu: true }
-      }
-    },
-    orderBy: { ngayOnTapTiepTheo: 'asc' },
-    take: 50
-  });
-
-  return {
-    soTuCanOn: reviews.length,
-    danhSachTu: reviews.map(r => r.tuVung)
-  };
-};
+  private static calculateNextReview(status: string, reviewCount: number): Date {
+    const now = new Date();
+    let daysToAdd = 1;
+    
+    // Simple SRS algorithm
+    switch (status) {
+      case 'chua-nho': // Forgotten - review tomorrow
+        daysToAdd = 1;
+        break;
+      case 'chua-chac': // Uncertain - review in 2 days
+        daysToAdd = 2;
+        break;
+      case 'da-nho': // Remembered - review based on count
+        daysToAdd = Math.min(Math.pow(2, reviewCount), 30); // Max 30 days
+        break;
+      case 'thuoc-long': // Mastered - review in 30 days
+        daysToAdd = 30;
+        break;
+      default:
+        daysToAdd = 1;
+    }
+    
+    now.setDate(now.getDate() + daysToAdd);
+    return now;
+  }
+}

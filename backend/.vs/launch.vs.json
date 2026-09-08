@@ -1,0 +1,46 @@
+{
+  "version": "0.2.1",
+  "defaults": {},
+  "configurations": [
+    {
+      "type": "node",
+      "project": "package.json",
+      "name": "🚀 Launch Backend Server",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev"
+      ],
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen",
+      "env": {
+        "NODE_ENV": "development"
+      }
+    },
+    {
+      "type": "node",
+      "project": "package.json",
+      "name": "🐛 Debug Backend Server",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/src/server.ts",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [
+        "--loader",
+        "tsx"
+      ],
+      "console": "integratedTerminal"
+    },
+    {
+      "type": "node",
+      "project": "package.json",
+      "name": "🗄️ Setup Database",
+      "request": "launch",
+      "cwd": "${workspaceFolder}",
+      "program": "${workspaceFolder}/scripts/create-database.js",
+      "console": "integratedTerminal"
+    }
+  ]
+}

@@ -1,0 +1,138 @@
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" ToolsVersion="4.0">
+  <PropertyGroup>
+    <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">14.0</VisualStudioVersion>
+    <VSToolsPath Condition="'$(VSToolsPath)' == ''">$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)</VSToolsPath>
+    <Name>backend</Name>
+    <RootNamespace>backend</RootNamespace>
+    <SaveNodeJsSettingsInProjectFile>True</SaveNodeJsSettingsInProjectFile>
+  </PropertyGroup>
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>8bb2217d-0f2d-451b-81cc-7adc824e998c</ProjectGuid>
+    <ProjectHome>.</ProjectHome>
+    <StartupFile>src\server.ts</StartupFile>
+    <SearchPath>
+    </SearchPath>
+    <WorkingDirectory>.</WorkingDirectory>
+    <OutputPath>.</OutputPath>
+    <TargetFrameworkVersion>v4.0</TargetFrameworkVersion>
+    <ProjectTypeGuids>{3AF33F2E-1136-4D97-BBB7-1795711AC8B8};{349c5851-65df-11da-9384-00065b846f21};{9092AA53-FB77-4645-B42D-1CCCA6BD08BD}</ProjectTypeGuids>
+    <NodejsPort>5000</NodejsPort>
+    <TypeScriptSourceMap>true</TypeScriptSourceMap>
+    <TypeScriptModuleKind>CommonJS</TypeScriptModuleKind>
+    <TypeScriptToolsVersion>Latest</TypeScriptToolsVersion>
+    <EnableTypeScript>true</EnableTypeScript>
+    <StartWebBrowser>True</StartWebBrowser>
+    <ScriptArguments>run dev</ScriptArguments>
+    <NodeExePath>npm</NodeExePath>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Debug' ">
+    <DebugSymbols>true</DebugSymbols>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">
+    <DebugSymbols>true</DebugSymbols>
+  </PropertyGroup>
+  <ItemGroup>
+    <Content Include=".editorconfig" />
+    <Content Include=".env" />
+    <Content Include=".env.example" />
+    <Content Include=".gitignore" />
+    <Content Include=".prettierignore" />
+    <Content Include=".prettierrc" />
+    <Content Include=".vsconfig" />
+    <Content Include="database_schema.sql" />
+    <Content Include="database_seed.sql" />
+    <Content Include="DATABASE_DESIGN.md" />
+    <Content Include="package.json" />
+    <Content Include="package-lock.json" />
+    <Content Include="README.md" />
+    <Content Include="SETUP.md" />
+    <Content Include="START_HERE.md" />
+    <Content Include="VS_QUICK_START.md" />
+    <Content Include="QUICK_START.md" />
+    <Content Include="CHANGES.md" />
+    <Content Include="tsconfig.json" />
+    <Content Include="prisma\schema.prisma" />
+  </ItemGroup>
+  <ItemGroup>
+    <TypeScriptCompile Include="src\app.ts" />
+    <TypeScriptCompile Include="src\server.ts" />
+    <TypeScriptCompile Include="src\config\database.ts" />
+    <TypeScriptCompile Include="src\middlewares\admin.middleware.ts" />
+    <TypeScriptCompile Include="src\middlewares\auth.middleware.ts" />
+    <TypeScriptCompile Include="src\middlewares\error.middleware.ts" />
+    <TypeScriptCompile Include="src\services\auth.service.ts" />
+    <TypeScriptCompile Include="src\services\favorite.service.ts" />
+    <TypeScriptCompile Include="src\services\history.service.ts" />
+    <TypeScriptCompile Include="src\services\learning.service.ts" />
+    <TypeScriptCompile Include="src\services\progress.service.ts" />
+    <TypeScriptCompile Include="src\services\statistics.service.ts" />
+    <TypeScriptCompile Include="src\services\topic.service.ts" />
+    <TypeScriptCompile Include="src\services\word.service.ts" />
+    <TypeScriptCompile Include="src\types\express.d.ts" />
+    <TypeScriptCompile Include="src\types\models.ts" />
+    <TypeScriptCompile Include="src\utils\jwt.util.ts" />
+    <TypeScriptCompile Include="src\utils\password.util.ts" />
+    <TypeScriptCompile Include="src\utils\response.util.ts" />
+    <TypeScriptCompile Include="src\utils\uuid.util.ts" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="src\" />
+    <Folder Include="src\config\" />
+    <Folder Include="src\middlewares\" />
+    <Folder Include="src\services\" />
+    <Folder Include="src\types\" />
+    <Folder Include="src\utils\" />
+    <Folder Include="scripts\" />
+    <Folder Include="prisma\" />
+    <Folder Include="uploads\" />
+    <Folder Include="uploads\audio\" />
+    <Folder Include="uploads\images\" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="scripts\create-database.js" />
+    <Compile Include="scripts\run-migrations.js" />
+    <Compile Include="scripts\seed-database.js" />
+  </ItemGroup>
+  <Import Project="$(VSToolsPath)\Node.js Tools\Microsoft.NodejsToolsV2.targets" />
+  <ProjectExtensions>
+    <VisualStudio>
+      <FlavorProperties GUID="{349c5851-65df-11da-9384-00065b846f21}">
+        <WebProjectProperties>
+          <UseIIS>False</UseIIS>
+          <AutoAssignPort>True</AutoAssignPort>
+          <DevelopmentServerPort>5000</DevelopmentServerPort>
+          <DevelopmentServerVPath>/</DevelopmentServerVPath>
+          <IISUrl>http://localhost:48022/</IISUrl>
+          <NTLMAuthentication>False</NTLMAuthentication>
+          <UseCustomServer>True</UseCustomServer>
+          <CustomServerUrl>http://localhost:5000</CustomServerUrl>
+          <SaveServerSettingsInUserFile>False</SaveServerSettingsInUserFile>
+        </WebProjectProperties>
+      </FlavorProperties>
+      <FlavorProperties GUID="{349c5851-65df-11da-9384-00065b846f21}" User="">
+        <WebProjectProperties>
+          <StartPageUrl>
+          </StartPageUrl>
+          <StartAction>CurrentPage</StartAction>
+          <AspNetDebugging>True</AspNetDebugging>
+          <SilverlightDebugging>False</SilverlightDebugging>
+          <NativeDebugging>False</NativeDebugging>
+          <SQLDebugging>False</SQLDebugging>
+          <ExternalProgram>
+          </ExternalProgram>
+          <StartExternalURL>
+          </StartExternalURL>
+          <StartCmdLineArguments>
+          </StartCmdLineArguments>
+          <StartWorkingDirectory>
+          </StartWorkingDirectory>
+          <EnableENC>False</EnableENC>
+          <AlwaysStartWebServerOnDebug>False</AlwaysStartWebServerOnDebug>
+        </WebProjectProperties>
+      </FlavorProperties>
+    </VisualStudio>
+  </ProjectExtensions>
+</Project>
