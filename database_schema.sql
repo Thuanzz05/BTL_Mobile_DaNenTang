@@ -1,10 +1,7 @@
--- ==========================================
 -- ỨNG DỤNG HỌC TỪ VỰNG TIẾNG ANH QUA FLASHCARD
--- DATABASE SCHEMA - PHIÊN BẢN TỐI ƯU
--- Chỉ bao gồm các bảng cần thiết cho học qua Flashcard
--- ==========================================
+-- DATABASE SCHEMA - 
 
-CREATE DATABASE IF NOT EXISTS hoc_tu_vung 
+CREATE DATABASE IF NOT EXISTS hoc_tu_vung
 CHARACTER SET utf8mb4 
 COLLATE utf8mb4_unicode_ci;
 
@@ -233,19 +230,4 @@ CREATE TABLE thanh_tich_nguoi_dung (
     INDEX idx_nguoi_dung_id (nguoi_dung_id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- ==========================================
--- KẾT THÚC SCHEMA
--- ==========================================
 
--- TỔNG KẾT: 11 BẢNG
--- 1. nguoi_dung          - Users & Admin
--- 2. token_lam_moi       - JWT tokens
--- 3. chu_de              - Topics (Gia đình, Đồ ăn,...)
--- 4. tu_vung             - Vocabulary words
--- 5. vi_du               - Examples
--- 6. yeu_thich           - Favorites
--- 7. phien_hoc_tap       - Learning sessions (Flashcard)
--- 8. ket_qua_hoc         - Flashcard results (Đã nhớ/Chưa nhớ)
--- 9. tien_do_tu_vung     - Progress + Spaced Repetition (ÔN TẬP THÔNG MINH)
--- 10. hoat_dong_hoc_tap  - Activity log (Dashboard)
--- 11. thanh_tich         - Achievements (Gamification)

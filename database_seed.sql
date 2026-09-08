@@ -4,7 +4,6 @@ USE hoc_tu_vung;
 -- DỮ LIỆU MẪU - FLASHCARD APP
 -- ==========================================
 
--- XÓA DỮ LIỆU CŨ
 SET FOREIGN_KEY_CHECKS = 0;
 
 TRUNCATE TABLE thanh_tich_nguoi_dung;
