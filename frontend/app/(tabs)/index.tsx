@@ -83,6 +83,9 @@ export default function HomeScreen() {
               </ThemedText>
             </TouchableOpacity>
           </View>
+
+          {/* Footer */}
+          <Footer />
         </ThemedView>
       </ScrollView>
     </ThemedView>
