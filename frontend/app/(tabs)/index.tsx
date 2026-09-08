@@ -1,8 +1,10 @@
+import { Footer } from '@/components/footer';
 import { Header } from '@/components/header';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Ionicons } from '@expo/vector-icons';
+import { Link } from 'expo-router';
 import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 export default function HomeScreen() {
@@ -15,9 +17,11 @@ export default function HomeScreen() {
       <Header 
         title="Trang chủ"
         rightElement={
-          <TouchableOpacity>
-            <Ionicons name="notifications-outline" size={24} color={iconColor} />
-          </TouchableOpacity>
+          <Link href="/login" asChild>
+            <TouchableOpacity>
+              <Ionicons name="person-circle-outline" size={28} color={iconColor} />
+            </TouchableOpacity>
+          </Link>
         }
       />
 
@@ -27,11 +31,29 @@ export default function HomeScreen() {
           {/* Greeting Section */}
           <View style={styles.greetingSection}>
             <ThemedText type="title" style={styles.greeting}>
-              Xin chào, Thuấn 👋
+              Xin chào 👋
             </ThemedText>
             <ThemedText style={styles.subtitle}>
-              Hôm nay bạn muốn học gì?
+              Đăng nhập để bắt đầu học từ vựng
             </ThemedText>
+          </View>
+
+          {/* Auth Buttons */}
+          <View style={styles.authButtons}>
+            <Link href="/login" asChild>
+              <TouchableOpacity style={styles.loginBtn}>
+                <ThemedText style={styles.loginBtnText}>
+                  Đăng nhập
+                </ThemedText>
+              </TouchableOpacity>
+            </Link>
+            <Link href="/register" asChild>
+              <TouchableOpacity style={styles.registerBtn}>
+                <ThemedText style={styles.registerBtnText}>
+                  Đăng ký
+                </ThemedText>
+              </TouchableOpacity>
+            </Link>
           </View>
 
           {/* Quick Start Button */}
@@ -113,6 +135,36 @@ const styles = StyleSheet.create({
   subtitle: {
     fontSize: 16,
     opacity: 0.7,
+  },
+  authButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  loginBtn: {
+    flex: 1,
+    backgroundColor: '#007AFF',
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  loginBtnText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  registerBtn: {
+    flex: 1,
+    backgroundColor: 'transparent',
+    padding: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#007AFF',
+  },
+  registerBtnText: {
+    color: '#007AFF',
+    fontSize: 16,
+    fontWeight: '600',
   },
   startButton: {
     backgroundColor: '#007AFF',
