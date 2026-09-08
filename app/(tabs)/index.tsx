@@ -1,98 +1,196 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
-
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
+import { Header } from '@/components/header';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+import { useColorScheme } from '@/hooks/use-color-scheme';
+import { Ionicons } from '@expo/vector-icons';
+import { ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 
 export default function HomeScreen() {
-  return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+  const colorScheme = useColorScheme();
+  const iconColor = colorScheme === 'dark' ? '#fff' : '#000';
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+  return (
+    <ThemedView style={styles.container}>
+      {/* Header */}
+      <Header 
+        title="Trang chủ"
+        rightElement={
+          <TouchableOpacity>
+            <Ionicons name="notifications-outline" size={24} color={iconColor} />
+          </TouchableOpacity>
+        }
+      />
+
+      {/* Content */}
+      <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
+        <ThemedView style={styles.content}>
+          {/* Greeting Section */}
+          <View style={styles.greetingSection}>
+            <ThemedText type="title" style={styles.greeting}>
+              Xin chào, Thuấn 👋
+            </ThemedText>
+            <ThemedText style={styles.subtitle}>
+              Hôm nay bạn muốn học gì?
+            </ThemedText>
+          </View>
+
+          {/* Quick Start Button */}
+          <TouchableOpacity style={styles.startButton}>
+            <ThemedText style={styles.startButtonText}>
+              Bắt đầu học
+            </ThemedText>
+          </TouchableOpacity>
+
+          {/* Daily Progress */}
+          <View style={styles.card}>
+            <ThemedText type="subtitle" style={styles.cardTitle}>
+              Tiến độ hôm nay
+            </ThemedText>
+            <View style={styles.progressInfo}>
+              <ThemedText style={styles.progressText}>12 / 20 từ</ThemedText>
+              <ThemedText style={styles.progressPercent}>60%</ThemedText>
+            </View>
+            <View style={styles.progressBar}>
+              <View style={[styles.progressFill, { width: '60%' }]} />
+            </View>
+          </View>
+
+          {/* Popular Topics */}
+          <View style={styles.section}>
+            <ThemedText type="subtitle" style={styles.sectionTitle}>
+              Chủ đề phổ biến
+            </ThemedText>
+            <View style={styles.topicsGrid}>
+              {['Giao tiếp', 'Gia đình', 'Đồ ăn', 'Trường học'].map((topic) => (
+                <TouchableOpacity key={topic} style={styles.topicCard}>
+                  <ThemedText style={styles.topicText}>{topic}</ThemedText>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          {/* Review Section */}
+          <View style={styles.card}>
+            <ThemedText type="subtitle" style={styles.cardTitle}>
+              Ôn tập
+            </ThemedText>
+            <ThemedText style={styles.reviewText}>
+              Bạn có 5 từ cần ôn lại.
+            </ThemedText>
+            <TouchableOpacity style={styles.reviewButton}>
+              <ThemedText style={styles.reviewButtonText}>
+                Ôn tập ngay
+              </ThemedText>
+            </TouchableOpacity>
+          </View>
+        </ThemedView>
+      </ScrollView>
+    </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
+  container: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  content: {
+    padding: 16,
+    gap: 20,
+  },
+  greetingSection: {
+    marginTop: 8,
+    gap: 4,
+  },
+  greeting: {
+    fontSize: 28,
+  },
+  subtitle: {
+    fontSize: 16,
+    opacity: 0.7,
+  },
+  startButton: {
+    backgroundColor: '#007AFF',
+    padding: 16,
+    borderRadius: 12,
     alignItems: 'center',
-    gap: 8,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  startButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  card: {
+    padding: 16,
+    borderRadius: 12,
+    backgroundColor: 'rgba(0, 122, 255, 0.1)',
+    gap: 12,
+  },
+  cardTitle: {
+    fontSize: 18,
+  },
+  progressInfo: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  progressText: {
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  progressPercent: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#007AFF',
+  },
+  progressBar: {
+    height: 8,
+    backgroundColor: 'rgba(0, 0, 0, 0.1)',
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: '100%',
+    backgroundColor: '#007AFF',
+  },
+  section: {
+    gap: 12,
+  },
+  sectionTitle: {
+    fontSize: 18,
+  },
+  topicsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  topicCard: {
+    flex: 1,
+    minWidth: '45%',
+    padding: 16,
+    borderRadius: 12,
+    backgroundColor: 'rgba(0, 122, 255, 0.1)',
+    alignItems: 'center',
+  },
+  topicText: {
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  reviewText: {
+    fontSize: 14,
+    opacity: 0.8,
+  },
+  reviewButton: {
+    backgroundColor: '#34C759',
+    padding: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  reviewButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '600',
   },
 });
