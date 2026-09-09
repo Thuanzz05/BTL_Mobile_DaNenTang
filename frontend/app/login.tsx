@@ -46,18 +46,10 @@ export default function LoginScreen() {
     setIsLoading(true);
 
     try {
-      // TODO: Gọi API đăng nhập
-      // const response = await fetch('API_URL/auth/login', {
-      //   method: 'POST',
-      //   headers: { 'Content-Type': 'application/json' },
-      //   body: JSON.stringify({ email, password })
-      // });
       
       // Giả lập API call
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // TODO: Lưu token vào AsyncStorage
-      // await AsyncStorage.setItem('token', response.token);
       
       // Chuyển đến trang chủ
       router.replace('/(tabs)');
@@ -204,11 +196,15 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
+    minHeight: '100%',
   },
   content: {
     flex: 1,
     padding: 24,
     justifyContent: 'center',
+    maxWidth: 480,
+    width: '100%',
+    alignSelf: 'center',
   },
   header: {
     alignItems: 'center',

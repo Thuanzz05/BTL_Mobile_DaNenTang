@@ -145,7 +145,7 @@ CREATE TABLE ket_qua_hoc (
     id CHAR(36) PRIMARY KEY,
     phien_hoc_tap_id CHAR(36) NOT NULL,
     tu_vung_id CHAR(36) NOT NULL,
-    trang_thai ENUM('da-nho', 'chua-chac', 'chua-nho') NOT NULL COMMENT 'Đánh giá của user: 😄 Đã nhớ / 😐 Chưa chắc / 😟 Chưa nhớ',
+    trang_thai ENUM('da-nho', 'chua-chac', 'chua-nho') NOT NULL COMMENT 'Đánh giá của user: Đã nhớ / Chưa chắc / Chưa nhớ',
     ngay_tao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     
     FOREIGN KEY (phien_hoc_tap_id) REFERENCES phien_hoc_tap(id) ON DELETE CASCADE,

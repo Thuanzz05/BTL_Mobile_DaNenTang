@@ -231,11 +231,16 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
+    minHeight: '100%',
   },
   content: {
     flex: 1,
     padding: 24,
     paddingTop: 60,
+    maxWidth: 480,
+    width: '100%',
+    alignSelf: 'center',
+    position: 'relative',
   },
   backButton: {
     position: 'absolute',
