@@ -8,6 +8,7 @@
     "scheme": "englishvocabulary",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
+    "sdkVersion": "57.0.0",
     "ios": {
       "supportsTablet": true
     },

@@ -72,8 +72,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   rightSection: {
-    width: 40,
+    minWidth: 120,
     alignItems: 'flex-end',
+    justifyContent: 'center',
   },
   backButton: {
     padding: 4,
