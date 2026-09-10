@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { WordController } from '../controllers/word.controller';
 import { adminMiddleware } from '../middlewares/admin.middleware';
 import { authMiddleware } from '../middlewares/auth.middleware';
 
@@ -8,33 +9,40 @@ const router = Router();
  * @swagger
  * /api/words:
  *   get:
- *     summary: Get all words
+ *     summary: Lấy danh sách từ vựng
  *     tags: [Words]
  *     parameters:
  *       - in: query
  *         name: topicId
  *         schema:
  *           type: string
- *         description: Filter by topic ID
+ *         description: Lọc theo chủ đề
  *       - in: query
- *         name: level
+ *         name: search
  *         schema:
  *           type: string
- *           enum: [beginner, intermediate, advanced]
- *         description: Filter by difficulty level
+ *         description: Tìm kiếm theo từ hoặc nghĩa
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 20
  *     responses:
  *       200:
- *         description: List of words
+ *         description: Danh sách từ vựng
  */
-router.get('/', (req, res) => {
-  res.json({ success: true, data: [], message: 'Get words - Coming soon' });
-});
+router.get('/', WordController.getAll);
 
 /**
  * @swagger
  * /api/words/{id}:
  *   get:
- *     summary: Get word by ID
+ *     summary: Lấy chi tiết từ vựng kèm ví dụ
  *     tags: [Words]
  *     parameters:
  *       - in: path
@@ -44,17 +52,17 @@ router.get('/', (req, res) => {
  *           type: string
  *     responses:
  *       200:
- *         description: Word details with examples
+ *         description: Chi tiết từ vựng
+ *       404:
+ *         description: Không tìm thấy từ
  */
-router.get('/:id', (req, res) => {
-  res.json({ success: true, data: {}, message: 'Get word detail - Coming soon' });
-});
+router.get('/:id', WordController.getById);
 
 /**
  * @swagger
  * /api/words:
  *   post:
- *     summary: Create new word (Admin only)
+ *     summary: Tạo từ vựng mới (Admin)
  *     tags: [Words]
  *     security:
  *       - bearerAuth: []
@@ -65,34 +73,80 @@ router.get('/:id', (req, res) => {
  *           schema:
  *             type: object
  *             required:
- *               - topicId
- *               - word
- *               - vietnameseMeaning
- *               - partOfSpeech
+ *               - chu_de_id
+ *               - tu_tieng_anh
+ *               - nghia_tieng_viet
+ *               - loai_tu
  *             properties:
- *               topicId:
+ *               chu_de_id:
  *                 type: string
- *               word:
+ *               tu_tieng_anh:
  *                 type: string
- *                 example: cat
- *               pronunciation:
+ *                 example: Apple
+ *               phien_am:
  *                 type: string
- *                 example: /kæt/
- *               vietnameseMeaning:
+ *                 example: "/ˈæpəl/"
+ *               loai_tu:
  *                 type: string
- *                 example: con mèo
- *               partOfSpeech:
+ *                 enum: [danh-tu, dong-tu, tinh-tu, trang-tu, gioi-tu, lien-tu, dai-tu, tham-tu]
+ *               nghia_tieng_viet:
  *                 type: string
- *                 enum: [noun, verb, adjective, adverb]
- *               level:
- *                 type: string
- *                 enum: [beginner, intermediate, advanced]
+ *                 example: Quả táo
+ *               thu_tu_hien_thi:
+ *                 type: integer
+ *               vi_du:
+ *                 type: array
+ *                 items:
+ *                   type: object
+ *                   properties:
+ *                     cau_tieng_anh:
+ *                       type: string
+ *                     cau_tieng_viet:
+ *                       type: string
  *     responses:
  *       201:
- *         description: Word created successfully
+ *         description: Tạo thành công
  */
-router.post('/', authMiddleware, adminMiddleware, (req, res) => {
-  res.status(201).json({ success: true, data: {}, message: 'Create word - Coming soon' });
-});
+router.post('/', authMiddleware, adminMiddleware, WordController.create);
+
+/**
+ * @swagger
+ * /api/words/{id}:
+ *   put:
+ *     summary: Cập nhật từ vựng (Admin)
+ *     tags: [Words]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Cập nhật thành công
+ */
+router.put('/:id', authMiddleware, adminMiddleware, WordController.update);
+
+/**
+ * @swagger
+ * /api/words/{id}:
+ *   delete:
+ *     summary: Xóa từ vựng (Admin)
+ *     tags: [Words]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Xóa thành công
+ */
+router.delete('/:id', authMiddleware, adminMiddleware, WordController.delete);
 
 export default router;
