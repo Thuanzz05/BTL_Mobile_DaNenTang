@@ -18,10 +18,21 @@ export interface LoginDto {
 export class AuthService {
   // Đăng ký
   static async register(data: RegisterDto) {
+    // Validate
+    if (!data.ho_ten || data.ho_ten.trim().length < 2) {
+      throw new Error('Họ tên phải có ít nhất 2 ký tự');
+    }
+    if (!data.email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) {
+      throw new Error('Email không hợp lệ');
+    }
+    if (!data.mat_khau || data.mat_khau.length < 6) {
+      throw new Error('Mật khẩu phải có ít nhất 6 ký tự');
+    }
+
     // Kiểm tra email đã tồn tại
     const existingUser = await query<NguoiDung[]>(
       'SELECT id FROM nguoi_dung WHERE email = ?',
-      [data.email]
+      [data.email.toLowerCase().trim()]
     );
 
     if (existingUser.length > 0) {
@@ -36,13 +47,13 @@ export class AuthService {
     await query(
       `INSERT INTO nguoi_dung (id, ho_ten, email, mat_khau_hash, phuong_thuc_dang_nhap, vai_tro, trang_thai)
        VALUES (?, ?, ?, ?, 'local', 'user', 'active')`,
-      [id, data.ho_ten, data.email, mat_khau_hash]
+      [id, data.ho_ten.trim(), data.email.toLowerCase().trim(), mat_khau_hash]
     );
 
     return {
       id,
-      ho_ten: data.ho_ten,
-      email: data.email,
+      ho_ten: data.ho_ten.trim(),
+      email: data.email.toLowerCase().trim(),
     };
   }
 
@@ -51,7 +62,7 @@ export class AuthService {
     // Tìm user theo email
     const users = await query<NguoiDung[]>(
       'SELECT * FROM nguoi_dung WHERE email = ?',
-      [data.email]
+      [data.email.toLowerCase().trim()]
     );
 
     if (users.length === 0) {
@@ -62,7 +73,7 @@ export class AuthService {
 
     // Kiểm tra trạng thái
     if (user.trang_thai === 'locked') {
-      throw new Error('Tài khoản đã bị khóa');
+      throw new Error('Tài khoản đã bị khóa. Vui lòng liên hệ hỗ trợ');
     }
 
     if (user.trang_thai === 'inactive') {
@@ -71,7 +82,7 @@ export class AuthService {
 
     // Verify password
     if (!user.mat_khau_hash) {
-      throw new Error('Tài khoản này sử dụng phương thức đăng nhập khác');
+      throw new Error('Tài khoản này sử dụng phương thức đăng nhập khác (Google)');
     }
 
     const isValidPassword = await PasswordUtil.verify(data.mat_khau, user.mat_khau_hash);
@@ -149,23 +160,79 @@ export class AuthService {
 
   // Đăng xuất
   static async logout(refreshToken: string) {
-    await query(
-      'UPDATE token_lam_moi SET da_thu_hoi = TRUE WHERE token = ?',
-      [refreshToken]
-    );
+    if (refreshToken) {
+      await query(
+        'UPDATE token_lam_moi SET da_thu_hoi = TRUE WHERE token = ?',
+        [refreshToken]
+      );
+    }
   }
 
-  // Lấy thông tin user hiện tại
-  static async getMe(userId: string) {
+  // Lấy thông tin user theo ID
+  static async getUserById(userId: string) {
     const users = await query<NguoiDung[]>(
-      'SELECT id, ho_ten, email, anh_dai_dien, vai_tro, trang_thai FROM nguoi_dung WHERE id = ?',
+      'SELECT id, ho_ten, email, anh_dai_dien, vai_tro, trang_thai, ngay_tao FROM nguoi_dung WHERE id = ?',
       [userId]
     );
 
     if (users.length === 0) {
-      throw new Error('Không tìm thấy người dùng');
+      return null;
     }
 
     return users[0];
+  }
+
+  // Lấy thông tin user hiện tại (alias)
+  static async getMe(userId: string) {
+    return await this.getUserById(userId);
+  }
+
+  // Cập nhật hồ sơ
+  static async updateProfile(userId: string, data: { ho_ten?: string; anh_dai_dien?: string }) {
+    const fields: string[] = [];
+    const values: any[] = [];
+
+    if (data.ho_ten) {
+      if (data.ho_ten.trim().length < 2) throw new Error('Họ tên phải có ít nhất 2 ký tự');
+      fields.push('ho_ten = ?');
+      values.push(data.ho_ten.trim());
+    }
+    if (data.anh_dai_dien !== undefined) {
+      fields.push('anh_dai_dien = ?');
+      values.push(data.anh_dai_dien);
+    }
+
+    if (fields.length === 0) {
+      return await this.getUserById(userId);
+    }
+
+    values.push(userId);
+    await query(`UPDATE nguoi_dung SET ${fields.join(', ')} WHERE id = ?`, values);
+    return await this.getUserById(userId);
+  }
+
+  // Đổi mật khẩu
+  static async changePassword(userId: string, mat_khau_cu: string, mat_khau_moi: string) {
+    if (!mat_khau_moi || mat_khau_moi.length < 6) {
+      throw new Error('Mật khẩu mới phải có ít nhất 6 ký tự');
+    }
+
+    const users = await query<NguoiDung[]>(
+      'SELECT mat_khau_hash FROM nguoi_dung WHERE id = ?',
+      [userId]
+    );
+
+    if (users.length === 0) throw new Error('Không tìm thấy người dùng');
+
+    const user = users[0];
+    if (!user.mat_khau_hash) throw new Error('Tài khoản không sử dụng mật khẩu');
+
+    const isValid = await PasswordUtil.verify(mat_khau_cu, user.mat_khau_hash);
+    if (!isValid) throw new Error('Mật khẩu cũ không chính xác');
+
+    const newHash = await PasswordUtil.hash(mat_khau_moi);
+    await query('UPDATE nguoi_dung SET mat_khau_hash = ? WHERE id = ?', [newHash, userId]);
+
+    return { success: true };
   }
 }
