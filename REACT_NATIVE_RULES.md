@@ -283,7 +283,7 @@ useEffect(() => {
 ❌ Hardcode values
 ❌ Quá nhiều logic trong component
 ❌ Không dùng TypeScript
-❌ Component quá lớn (> 200 lines)
+❌ Component quá lớn 
 ❌ Không tách reusable components
 ❌ Không optimize FlatList
 ❌ Quên cleanup trong useEffect
