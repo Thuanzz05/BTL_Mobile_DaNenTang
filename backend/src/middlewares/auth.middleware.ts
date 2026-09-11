@@ -6,7 +6,7 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction) 
   try {
     // Lấy token từ header
     const authHeader = req.headers.authorization;
-    
+
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return ResponseUtil.unauthorized(res, 'Vui lòng đăng nhập');
     }
@@ -20,8 +20,13 @@ export const authMiddleware = (req: Request, res: Response, next: NextFunction) 
       return ResponseUtil.unauthorized(res, 'Token không hợp lệ hoặc đã hết hạn');
     }
 
-    // Gán user vào request
-    req.user = payload;
+    // Gán user vào request (payload.id từ JwtUtil)
+    req.user = {
+      id: payload.id,
+      email: payload.email,
+      vai_tro: payload.vai_tro,
+    };
+
     next();
   } catch (error) {
     return ResponseUtil.unauthorized(res, 'Xác thực thất bại');

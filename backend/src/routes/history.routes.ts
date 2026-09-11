@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { HistoryController } from '../controllers/history.controller';
 import { authMiddleware } from '../middlewares/auth.middleware';
 
 const router = Router();
@@ -7,7 +8,7 @@ const router = Router();
  * @swagger
  * /api/history:
  *   get:
- *     summary: Get user's learning history
+ *     summary: Lấy lịch sử học tập
  *     tags: [Learning]
  *     security:
  *       - bearerAuth: []
@@ -22,44 +23,17 @@ const router = Router();
  *         schema:
  *           type: integer
  *           default: 20
- *       - in: query
- *         name: topicId
- *         schema:
- *           type: string
- *         description: Filter by topic
  *     responses:
  *       200:
- *         description: Learning history with sessions
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 data:
- *                   type: object
- *                   properties:
- *                     sessions:
- *                       type: array
- *                       items:
- *                         type: object
- *                     pagination:
- *                       type: object
+ *         description: Lịch sử học tập với phân trang
  */
-router.get('/', authMiddleware, (req, res) => {
-  res.json({ 
-    success: true, 
-    data: { sessions: [], pagination: {} }, 
-    message: 'History - Coming soon' 
-  });
-});
+router.get('/', authMiddleware, HistoryController.getHistory);
 
 /**
  * @swagger
  * /api/history/{sessionId}:
  *   get:
- *     summary: Get detailed session history
+ *     summary: Lấy chi tiết phiên học
  *     tags: [Learning]
  *     security:
  *       - bearerAuth: []
@@ -71,10 +45,8 @@ router.get('/', authMiddleware, (req, res) => {
  *           type: string
  *     responses:
  *       200:
- *         description: Session details with all results
+ *         description: Chi tiết phiên học kèm kết quả từng từ
  */
-router.get('/:sessionId', authMiddleware, (req, res) => {
-  res.json({ success: true, data: {}, message: 'Session detail - Coming soon' });
-});
+router.get('/:sessionId', authMiddleware, HistoryController.getSessionDetail);
 
 export default router;

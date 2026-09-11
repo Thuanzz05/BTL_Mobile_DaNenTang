@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { LearningController } from '../controllers/learning.controller';
 import { authMiddleware } from '../middlewares/auth.middleware';
 
 const router = Router();
@@ -7,7 +8,7 @@ const router = Router();
  * @swagger
  * /api/learning/start:
  *   post:
- *     summary: Start a new learning session
+ *     summary: Bắt đầu phiên học mới
  *     tags: [Learning]
  *     security:
  *       - bearerAuth: []
@@ -18,48 +19,28 @@ const router = Router();
  *           schema:
  *             type: object
  *             required:
- *               - topicId
+ *               - chu_de_id
  *             properties:
- *               topicId:
+ *               chu_de_id:
  *                 type: string
- *                 description: Topic ID to learn
- *               wordCount:
+ *                 description: ID chủ đề muốn học
+ *               tong_so_tu:
  *                 type: integer
- *                 default: 10
- *                 description: Number of words in session
+ *                 default: 20
+ *                 minimum: 5
+ *                 maximum: 50
+ *                 description: Số từ mỗi phiên (5-50)
  *     responses:
  *       201:
- *         description: Learning session started
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 data:
- *                   type: object
- *                   properties:
- *                     sessionId:
- *                       type: string
- *                     words:
- *                       type: array
- *                       items:
- *                         type: object
+ *         description: Tạo phiên học thành công
  */
-router.post('/start', authMiddleware, (req, res) => {
-  res.status(201).json({ 
-    success: true, 
-    data: { sessionId: '123', words: [] }, 
-    message: 'Start learning - Coming soon' 
-  });
-});
+router.post('/start', authMiddleware, LearningController.startSession);
 
 /**
  * @swagger
  * /api/learning/result:
  *   post:
- *     summary: Submit learning result for a word
+ *     summary: Nộp kết quả học từng từ
  *     tags: [Learning]
  *     security:
  *       - bearerAuth: []
@@ -70,53 +51,103 @@ router.post('/start', authMiddleware, (req, res) => {
  *           schema:
  *             type: object
  *             required:
- *               - sessionId
- *               - wordId
- *               - status
+ *               - phien_hoc_tap_id
+ *               - tu_vung_id
+ *               - trang_thai
  *             properties:
- *               sessionId:
+ *               phien_hoc_tap_id:
  *                 type: string
- *               wordId:
+ *               tu_vung_id:
  *                 type: string
- *               status:
+ *               trang_thai:
  *                 type: string
- *                 enum: [forgotten, uncertain, remembered, mastered]
+ *                 enum: [da-nho, chua-chac, chua-nho]
  *     responses:
  *       200:
- *         description: Result recorded
+ *         description: Lưu kết quả thành công
  */
-router.post('/result', authMiddleware, (req, res) => {
-  res.json({ success: true, message: 'Submit result - Coming soon' });
-});
+router.post('/result', authMiddleware, LearningController.submitResult);
 
 /**
  * @swagger
- * /api/learning/progress:
+ * /api/learning/complete:
+ *   post:
+ *     summary: Hoàn thành phiên học
+ *     tags: [Learning]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - phien_hoc_tap_id
+ *             properties:
+ *               phien_hoc_tap_id:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Hoàn thành phiên học, trả về tóm tắt kết quả
+ */
+router.post('/complete', authMiddleware, LearningController.completeSession);
+
+/**
+ * @swagger
+ * /api/learning/result/{sessionId}:
  *   get:
- *     summary: Get user learning progress
+ *     summary: Lấy kết quả chi tiết phiên học
+ *     tags: [Learning]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: sessionId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Kết quả chi tiết phiên học
+ */
+router.get('/result/:sessionId', authMiddleware, LearningController.getSessionResult);
+
+/**
+ * @swagger
+ * /api/learning/review:
+ *   get:
+ *     summary: Lấy danh sách từ cần ôn tập hôm nay (SRS)
  *     tags: [Learning]
  *     security:
  *       - bearerAuth: []
  *     parameters:
  *       - in: query
- *         name: topicId
+ *         name: limit
  *         schema:
- *           type: string
- *         description: Filter by topic
+ *           type: integer
+ *           default: 50
+ *           maximum: 50
  *     responses:
  *       200:
- *         description: Learning progress statistics
+ *         description: Danh sách từ cần ôn
+ */
+router.get('/review', authMiddleware, LearningController.getReviewWords);
+
+/**
+ * @swagger
+ * /api/learning/progress:
+ *   get:
+ *     summary: Lấy tiến độ học tập
+ *     tags: [Learning]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Tiến độ học tập
  */
 router.get('/progress', authMiddleware, (req, res) => {
-  res.json({ 
-    success: true, 
-    data: { 
-      totalWords: 0, 
-      mastered: 0, 
-      learning: 0 
-    }, 
-    message: 'Get progress - Coming soon' 
-  });
+  res.json({ success: true, message: 'Xem /api/progress thay thế' });
 });
 
 export default router;
