@@ -1,3 +1,5 @@
+import { useAuth } from "@/contexts/auth-context";
+import { HomeProgress } from "@/components/home-progress";
 import { Ionicons } from "@expo/vector-icons";
 import { Link } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
@@ -19,6 +21,8 @@ import { palette as c } from "@/constants/palette";
 import { getTopics, Topic } from "@/services/catalog";
 
 export default function HomeScreen() {
+  const { user, ready } = useAuth();
+  const [revision, setRevision] = useState(0);
   const [topics, setTopics] = useState<Topic[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -29,6 +33,7 @@ export default function HomeScreen() {
     setError("");
     try {
       setTopics(await getTopics());
+      setRevision((v) => v + 1);
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -81,9 +86,9 @@ export default function HomeScreen() {
               Wordleaf<Text style={s.brandDot}>.</Text>
             </Text>
           </View>
-          <Link href="/login" asChild>
+          <Link href={user ? "/(tabs)/account" : "/login"} asChild>
             <Pressable accessibilityRole="button" style={s.login}>
-              <Text style={s.link}>Đăng nhập</Text>
+              <Text style={s.link}>{user ? "Tài khoản" : "Đăng nhập"}</Text>
               <Ionicons name="arrow-forward" size={16} color={c.green} />
             </Pressable>
           </Link>
@@ -98,6 +103,8 @@ export default function HomeScreen() {
             flashcard.
           </Text>
         </View>
+        {!ready && <ActivityIndicator color={c.green} />}
+        {ready && user && <HomeProgress key={`${user.id}-${revision}`} />}
         <View style={s.hero}>
           <View style={s.row}>
             <View style={s.badge}>
@@ -184,26 +191,34 @@ export default function HomeScreen() {
             ))
           )}
         </View>
-        <View style={s.join}>
-          <View style={s.joinIcon}>
-            <Ionicons name="bookmark-outline" size={24} color={c.green} />
+        {!user && ready && (
+          <View style={s.join}>
+            <View style={s.joinIcon}>
+              <Ionicons name="bookmark-outline" size={24} color={c.green} />
+            </View>
+            <View style={s.spacer}>
+              <Text style={s.joinTitle}>Lưu lại từng bước tiến</Text>
+              <Text style={s.body}>
+                Tạo tài khoản để lưu từ yêu thích và theo dõi tiến độ học tập.
+              </Text>
+              <Link href="/register" asChild>
+                <Pressable accessibilityRole="button" style={s.register}>
+                  <Text style={s.link}>Tạo tài khoản miễn phí</Text>
+                  <Ionicons name="arrow-forward" size={17} color={c.green} />
+                </Pressable>
+              </Link>
+            </View>
           </View>
-          <View style={s.spacer}>
-            <Text style={s.joinTitle}>Lưu lại từng bước tiến</Text>
-            <Text style={s.body}>
-              Tạo tài khoản để lưu từ yêu thích và theo dõi tiến độ học tập.
-            </Text>
-            <Link href="/register" asChild>
-              <Pressable accessibilityRole="button" style={s.register}>
-                <Text style={s.link}>Tạo tài khoản miễn phí</Text>
-                <Ionicons name="arrow-forward" size={17} color={c.green} />
-              </Pressable>
-            </Link>
-          </View>
-        </View>
+        )}
         <Text style={s.bottom}>Học một chút. Nhớ lâu hơn.</Text>
       </ScrollView>
-      <FlashcardPreview topic={selected} onClose={() => setSelected(null)} />
+      {selected && (
+        <FlashcardPreview
+          key={selected.id}
+          topic={selected}
+          onClose={() => setSelected(null)}
+        />
+      )}
     </SafeAreaView>
   );
 }
