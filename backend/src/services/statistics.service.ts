@@ -44,7 +44,7 @@ export class StatisticsService {
       totalLearned,
       totalSessions,
       totalFavorites,
-      wordsToReview
+      wordsToReview,
     };
   }
 
@@ -57,27 +57,27 @@ export class StatisticsService {
       ORDER BY date DESC
       LIMIT 30
     `;
-    
+
     const results: any = await query(sql, [userId]);
-    
+
     // Calculate streak
     let streak = 0;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     for (const row of results) {
       const date = new Date(row.date);
       date.setHours(0, 0, 0, 0);
-      
+
       const diff = Math.floor((today.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
-      
+
       if (diff === streak) {
         streak++;
       } else {
         break;
       }
     }
-    
+
     return { streak, recentDates: results };
   }
 
@@ -87,7 +87,7 @@ export class StatisticsService {
       totalTopics: 0,
       totalWords: 0,
       totalSessions: 0,
-      activeSessions: 0
+      activeSessions: 0,
     };
 
     const usersSql = `SELECT COUNT(*) as count FROM nguoi_dung WHERE vai_tro = 'user'`;
