@@ -10,8 +10,10 @@
     "db:create": "node scripts/create-database.js",
     "db:migrate": "node scripts/run-migrations.js",
     "db:seed": "node scripts/seed-database.js",
-    "lint": "eslint . --ext .ts",
-    "format": "prettier --write \"src/**/*.ts\""
+    "lint": "eslint src scripts migrations tests",
+    "format": "prettier --write \"src/**/*.ts\"",
+    "test": "npm run build && node --test --test-isolation=none tests/*.test.cjs",
+    "format:check": "prettier --check \"src/**/*.ts\" \"scripts/**/*.js\" \"migrations/**/*.js\" \"tests/**/*.cjs\""
   },
   "keywords": [
     "flashcard",
@@ -57,5 +59,8 @@
     "prettier": "^3.3.3",
     "tsx": "^4.19.1",
     "typescript": "^5.6.2"
+  },
+  "engines": {
+    "node": ">=24"
   }
 }
