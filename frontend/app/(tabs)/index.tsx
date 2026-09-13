@@ -115,7 +115,7 @@ export default function HomeScreen() {
           </View>
           <Text style={s.heroTitle}>Một thẻ nhỏ.{"\n"}Một điều mới.</Text>
           <Text style={s.heroBody}>
-            Nhìn từ, lật thẻ, ghi nhớ.{"\n"}Học theo nhịp của riêng bạn.
+            Nhìn từ, chọn nghĩa, ghi nhớ.{"\n"}Học theo nhịp của riêng bạn.
           </Text>
           <Pressable
             accessibilityRole="button"
