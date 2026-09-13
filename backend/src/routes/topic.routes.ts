@@ -1,7 +1,9 @@
 import { Router } from 'express';
 import { TopicController } from '../controllers/topic.controller';
 import { adminMiddleware } from '../middlewares/admin.middleware';
-import { authMiddleware } from '../middlewares/auth.middleware';
+import { authMiddleware, optionalAuthMiddleware } from '../middlewares/auth.middleware';
+import { validate } from '../middlewares/validate.middleware';
+import { topicSchema } from '../validations/request.schemas';
 
 const router = Router();
 
@@ -33,7 +35,7 @@ const router = Router();
  *                   items:
  *                     type: object
  */
-router.get('/', TopicController.getAll);
+router.get('/', optionalAuthMiddleware, TopicController.getAll);
 
 /**
  * @swagger
@@ -54,7 +56,7 @@ router.get('/', TopicController.getAll);
  *       404:
  *         description: Topic not found
  */
-router.get('/:id', TopicController.getById);
+router.get('/:id', optionalAuthMiddleware, TopicController.getById);
 
 /**
  * @swagger
@@ -71,15 +73,15 @@ router.get('/:id', TopicController.getById);
  *           schema:
  *             type: object
  *             required:
- *               - name
+ *               - ten
  *             properties:
- *               name:
+ *               ten:
  *                 type: string
  *                 example: Animals
- *               description:
+ *               mo_ta:
  *                 type: string
  *                 example: Learn about animals vocabulary
- *               image:
+ *               hinh_anh:
  *                 type: string
  *                 example: /uploads/images/animals.jpg
  *     responses:
@@ -90,7 +92,7 @@ router.get('/:id', TopicController.getById);
  *       403:
  *         description: Forbidden - Admin only
  */
-router.post('/', authMiddleware, adminMiddleware, TopicController.create);
+router.post('/', authMiddleware, adminMiddleware, validate(topicSchema), TopicController.create);
 
 /**
  * @swagger
@@ -113,11 +115,11 @@ router.post('/', authMiddleware, adminMiddleware, TopicController.create);
  *           schema:
  *             type: object
  *             properties:
- *               name:
+ *               ten:
  *                 type: string
- *               description:
+ *               mo_ta:
  *                 type: string
- *               status:
+ *               trang_thai:
  *                 type: string
  *                 enum: [active, inactive]
  *     responses:
@@ -126,7 +128,13 @@ router.post('/', authMiddleware, adminMiddleware, TopicController.create);
  *       404:
  *         description: Topic not found
  */
-router.put('/:id', authMiddleware, adminMiddleware, TopicController.update);
+router.put(
+  '/:id',
+  authMiddleware,
+  adminMiddleware,
+  validate(topicSchema.partial()),
+  TopicController.update
+);
 
 /**
  * @swagger

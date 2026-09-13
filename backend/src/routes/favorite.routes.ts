@@ -61,4 +61,23 @@ router.post('/:wordId', authMiddleware, FavoriteController.toggle);
  */
 router.delete('/:wordId', authMiddleware, FavoriteController.remove);
 
+/**
+ * @swagger
+ * /api/favorites/{wordId}:
+ *   put:
+ *     summary: Thêm yêu thích, gửi lặp vẫn giữ trạng thái đã thêm
+ *     tags: [Favorites]
+ *     parameters:
+ *       - in: path
+ *         name: wordId
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Từ đã nằm trong danh sách yêu thích
+ *       404:
+ *         description: Không tìm thấy từ
+ */
+
 export default router;

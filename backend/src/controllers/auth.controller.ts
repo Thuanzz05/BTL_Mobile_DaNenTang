@@ -11,13 +11,18 @@ export class AuthController {
       const { ho_ten, email, mat_khau } = req.body;
 
       if (!ho_ten || !email || !mat_khau) {
-        return ResponseUtil.error(res, 'Thiếu thông tin bắt buộc: ho_ten, email, mat_khau', 'MISSING_FIELDS', 400);
+        return ResponseUtil.error(
+          res,
+          'Thiếu thông tin bắt buộc: ho_ten, email, mat_khau',
+          'MISSING_FIELDS',
+          400
+        );
       }
 
       const result = await AuthService.register({ ho_ten, email, mat_khau });
       return ResponseUtil.success(res, result, 'Đăng ký thành công', 201);
     } catch (error: any) {
-      next(error);
+      return next(error);
     }
   }
 
@@ -35,7 +40,7 @@ export class AuthController {
       const result = await AuthService.login({ email, mat_khau });
       return ResponseUtil.success(res, result, 'Đăng nhập thành công');
     } catch (error: any) {
-      next(error);
+      return next(error);
     }
   }
 
@@ -53,7 +58,7 @@ export class AuthController {
 
       return ResponseUtil.success(res, user, 'Lấy thông tin thành công');
     } catch (error: any) {
-      next(error);
+      return next(error);
     }
   }
 
@@ -68,7 +73,7 @@ export class AuthController {
       const updated = await AuthService.updateProfile(userId, { ho_ten, anh_dai_dien });
       return ResponseUtil.success(res, updated, 'Cập nhật hồ sơ thành công');
     } catch (error: any) {
-      next(error);
+      return next(error);
     }
   }
 
@@ -87,7 +92,7 @@ export class AuthController {
       const result = await AuthService.changePassword(userId, mat_khau_cu, mat_khau_moi);
       return ResponseUtil.success(res, result, 'Đổi mật khẩu thành công');
     } catch (error: any) {
-      next(error);
+      return next(error);
     }
   }
 
@@ -105,7 +110,7 @@ export class AuthController {
       const result = await AuthService.refreshToken(refreshToken);
       return ResponseUtil.success(res, result, 'Làm mới token thành công');
     } catch (error: any) {
-      next(error);
+      return next(error);
     }
   }
 
@@ -115,10 +120,10 @@ export class AuthController {
   static async logout(req: Request, res: Response, next: NextFunction) {
     try {
       const { refreshToken } = req.body;
-      await AuthService.logout(refreshToken);
+      await AuthService.logout(refreshToken, req.user!.id);
       return ResponseUtil.success(res, null, 'Đăng xuất thành công');
     } catch (error: any) {
-      next(error);
+      return next(error);
     }
   }
 }

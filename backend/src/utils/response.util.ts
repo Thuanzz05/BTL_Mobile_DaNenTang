@@ -11,7 +11,13 @@ export class ResponseUtil {
     return res.status(statusCode).json(response);
   }
 
-  static error(res: Response, message: string, code: string = 'ERROR', statusCode = 400, details?: any) {
+  static error(
+    res: Response,
+    message: string,
+    code: string = 'ERROR',
+    statusCode = 400,
+    details?: any
+  ) {
     const response: ApiResponse = {
       success: false,
       message,

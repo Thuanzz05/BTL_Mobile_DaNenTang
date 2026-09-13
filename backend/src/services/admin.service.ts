@@ -1,23 +1,19 @@
-import { query } from '../config/database';
+import { AppError } from '../utils/app-error';
+import { query, transaction } from '../config/database';
 
 export class AdminService {
   /**
    * Lấy thống kê dashboard admin
    */
   static async getDashboard() {
-    const [
-      usersResult,
-      topicsResult,
-      wordsResult,
-      sessionsResult,
-      activeSessionsResult,
-    ]: any[] = await Promise.all([
-      query<any[]>(`SELECT COUNT(*) as count FROM nguoi_dung WHERE vai_tro = 'user'`),
-      query<any[]>(`SELECT COUNT(*) as count FROM chu_de`),
-      query<any[]>(`SELECT COUNT(*) as count FROM tu_vung`),
-      query<any[]>(`SELECT COUNT(*) as count FROM phien_hoc_tap`),
-      query<any[]>(`SELECT COUNT(*) as count FROM phien_hoc_tap WHERE trang_thai = 'dang-hoc'`),
-    ]);
+    const [usersResult, topicsResult, wordsResult, sessionsResult, activeSessionsResult]: any[] =
+      await Promise.all([
+        query<any[]>(`SELECT COUNT(*) as count FROM nguoi_dung WHERE vai_tro = 'user'`),
+        query<any[]>(`SELECT COUNT(*) as count FROM chu_de`),
+        query<any[]>(`SELECT COUNT(*) as count FROM tu_vung`),
+        query<any[]>(`SELECT COUNT(*) as count FROM phien_hoc_tap`),
+        query<any[]>(`SELECT COUNT(*) as count FROM phien_hoc_tap WHERE trang_thai = 'dang-hoc'`),
+      ]);
 
     // Người dùng mới 7 ngày gần nhất
     const newUsers7Days: any[] = await query(
@@ -107,31 +103,36 @@ export class AdminService {
    * Cập nhật trạng thái người dùng (khóa/mở khóa)
    */
   static async updateUserStatus(userId: string, trang_thai: string) {
-    const validStatuses = ['active', 'locked', 'inactive'];
-    if (!validStatuses.includes(trang_thai)) {
-      throw new Error(`Trạng thái không hợp lệ. Phải là: ${validStatuses.join(', ')}`);
+    if (!['active', 'locked', 'inactive'].includes(trang_thai)) {
+      throw new AppError('Trạng thái không hợp lệ');
     }
-
-    // Không cho phép khóa admin
-    const users: any[] = await query(
-      `SELECT vai_tro FROM nguoi_dung WHERE id = ?`,
-      [userId]
-    );
-
-    if (users.length === 0) throw new Error('Không tìm thấy người dùng');
-    if (users[0].vai_tro === 'admin') throw new Error('Không thể thay đổi trạng thái tài khoản admin');
-
-    await query(
-      `UPDATE nguoi_dung SET trang_thai = ? WHERE id = ?`,
-      [trang_thai, userId]
-    );
-
-    const updated: any[] = await query(
-      `SELECT id, ho_ten, email, trang_thai FROM nguoi_dung WHERE id = ?`,
-      [userId]
-    );
-
-    return updated[0];
+    return transaction(async (connection) => {
+      const [users]: any = await connection.execute(
+        'SELECT vai_tro, trang_thai FROM nguoi_dung WHERE id = ? FOR UPDATE',
+        [userId]
+      );
+      if (!users.length) {
+        throw new AppError('Không tìm thấy người dùng', 404, 'USER_NOT_FOUND');
+      }
+      if (users[0].vai_tro === 'admin') {
+        throw new AppError('Không thể thay đổi trạng thái tài khoản admin', 403, 'ADMIN_PROTECTED');
+      }
+      if (users[0].trang_thai !== trang_thai) {
+        await connection.execute(
+          'UPDATE nguoi_dung SET trang_thai = ?, token_version = token_version + 1 WHERE id = ?',
+          [trang_thai, userId]
+        );
+        await connection.execute(
+          'UPDATE token_lam_moi SET da_thu_hoi = TRUE WHERE nguoi_dung_id = ?',
+          [userId]
+        );
+      }
+      const [updated]: any = await connection.execute(
+        'SELECT id, ho_ten, email, trang_thai FROM nguoi_dung WHERE id = ?',
+        [userId]
+      );
+      return updated[0];
+    });
   }
 
   /**

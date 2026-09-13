@@ -1,32 +1,13 @@
-const mysql = require('mysql2/promise');
-const fs = require('fs');
-const path = require('path');
-require('dotenv').config();
-
-async function runMigrations() {
-  const connection = await mysql.createConnection({
-    host: process.env.DB_HOST || 'localhost',
-    port: parseInt(process.env.DB_PORT || '3306'),
-    user: process.env.DB_USER || 'root',
-    password: process.env.DB_PASSWORD || '',
-    database: process.env.DB_NAME,
-    multipleStatements: true
-  });
-
+const { connect, migrate, databaseName } = require('./database-tools');
+(async () => {
+  const connection = await connect();
   try {
-    console.log('📝 Running migrations...');
-    
-    const schemaPath = path.join(__dirname, '../database_schema.sql');
-    const schema = fs.readFileSync(schemaPath, 'utf8');
-    
-    await connection.query(schema);
-    console.log('✅ Migrations completed successfully');
-  } catch (error) {
-    console.error('❌ Error running migrations:', error);
-    process.exit(1);
+    await migrate(connection, databaseName());
+    console.log('Đã tạo/nâng cấp database, giữ dữ liệu hiện có.');
   } finally {
     await connection.end();
   }
-}
-
-runMigrations();
+})().catch((error) => {
+  console.error(error.message);
+  process.exitCode = 1;
+});

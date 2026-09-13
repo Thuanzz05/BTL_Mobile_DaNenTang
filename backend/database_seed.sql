@@ -4,22 +4,8 @@ USE hoc_tu_vung;
 -- DỮ LIỆU MẪU - FLASHCARD APP
 -- ==========================================
 
-SET FOREIGN_KEY_CHECKS = 0;
 
-TRUNCATE TABLE thanh_tich_nguoi_dung;
-TRUNCATE TABLE thanh_tich;
-TRUNCATE TABLE hoat_dong_hoc_tap;
-TRUNCATE TABLE tien_do_tu_vung;
-TRUNCATE TABLE ket_qua_hoc;
-TRUNCATE TABLE phien_hoc_tap;
-TRUNCATE TABLE yeu_thich;
-TRUNCATE TABLE vi_du;
-TRUNCATE TABLE tu_vung;
-TRUNCATE TABLE chu_de;
-TRUNCATE TABLE token_lam_moi;
-TRUNCATE TABLE nguoi_dung;
 
-SET FOREIGN_KEY_CHECKS = 1;
 
 -- ==========================================
 -- 1. NGƯỜI DÙNG
@@ -27,12 +13,12 @@ SET FOREIGN_KEY_CHECKS = 1;
 
 -- Admin (password: admin123)
 INSERT INTO nguoi_dung (id, ho_ten, email, mat_khau_hash, phuong_thuc_dang_nhap, vai_tro) VALUES
-('admin001-0000-0000-0000-000000000001', 'Quản Trị Viên', 'admin@hoctuvung.vn', '$2b$10$Atg4B785eqXXtkdTzjnm9OAzDvwpgbbinjiIjjOIWdIxlNfucMP7q', 'local', 'admin');
+('admin001-0000-0000-0000-000000000001', 'Quản Trị Viên', 'admin@hoctuvung.vn', '$2b$10$bibz7uKOWMkkUMAPOgPhxuKUP/uPdv6dA6SVOFMrYgYuIFXjc6F.u', 'local', 'admin');
 
 -- Users (password: user123)
 INSERT INTO nguoi_dung (id, ho_ten, email, mat_khau_hash, phuong_thuc_dang_nhap, vai_tro) VALUES
-('user0001-0000-0000-0000-000000000001', 'Nguyễn Văn Thuấn', 'thuan@example.com', '$2b$10$Atg4B785eqXXtkdTzjnm9OAzDvwpgbbinjiIjjOIWdIxlNfucMP7q', 'local', 'user'),
-('user0002-0000-0000-0000-000000000002', 'Trần Thị Mai', 'mai@example.com', '$2b$10$Atg4B785eqXXtkdTzjnm9OAzDvwpgbbinjiIjjOIWdIxlNfucMP7q', 'local', 'user'),
+('user0001-0000-0000-0000-000000000001', 'Nguyễn Văn Thuấn', 'thuan@example.com', '$2b$10$6jSTa.qD2VMBPli4gpp5f.4VmOQO2dyiT08PBS7xxa1l7t/xOlip.', 'local', 'user'),
+('user0002-0000-0000-0000-000000000002', 'Trần Thị Mai', 'mai@example.com', '$2b$10$6jSTa.qD2VMBPli4gpp5f.4VmOQO2dyiT08PBS7xxa1l7t/xOlip.', 'local', 'user'),
 ('user0003-0000-0000-0000-000000000003', 'Lê Quang Hùng', 'hung@example.com', NULL, 'google', 'user');
 
 -- ==========================================
@@ -219,3 +205,17 @@ UNION ALL
 SELECT '', 'Thành tích:', COUNT(*) FROM thanh_tich
 UNION ALL
 SELECT '', 'Hoạt động:', COUNT(*) FROM hoat_dong_hoc_tap;
+
+-- Danh sách từ cố định cho các phiên học mẫu
+INSERT INTO phien_hoc_tu (phien_hoc_tap_id, tu_vung_id, thu_tu)
+SELECT phien_hoc_tap_id, tu_vung_id, ROW_NUMBER() OVER (PARTITION BY phien_hoc_tap_id ORDER BY ngay_tao, id) - 1
+FROM ket_qua_hoc;
+
+INSERT INTO phien_hoc_tu (phien_hoc_tap_id, tu_vung_id, thu_tu)
+SELECT id_phien, id_tu, thu_tu
+FROM (
+  SELECT p.id AS id_phien, t.id AS id_tu, p.tong_so_tu,
+    ROW_NUMBER() OVER (PARTITION BY p.id ORDER BY t.thu_tu_hien_thi, t.id) - 1 AS thu_tu
+  FROM phien_hoc_tap p JOIN tu_vung t ON t.chu_de_id = p.chu_de_id
+  WHERE p.trang_thai = 'dang-hoc'
+) AS danh_sach WHERE thu_tu < tong_so_tu;

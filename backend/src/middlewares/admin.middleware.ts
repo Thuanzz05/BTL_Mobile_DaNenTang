@@ -10,5 +10,5 @@ export const adminMiddleware = (req: Request, res: Response, next: NextFunction)
     return ResponseUtil.forbidden(res, 'Chỉ admin mới có quyền truy cập');
   }
 
-  next();
+  return next();
 };

@@ -12,7 +12,7 @@ export class AdminController {
       const data = await AdminService.getDashboard();
       return ResponseUtil.success(res, data, 'Lấy thống kê dashboard thành công');
     } catch (error: any) {
-      next(error);
+      return next(error);
     }
   }
 
@@ -40,7 +40,7 @@ export class AdminController {
         'Lấy danh sách người dùng thành công'
       );
     } catch (error: any) {
-      next(error);
+      return next(error);
     }
   }
 
@@ -60,7 +60,7 @@ export class AdminController {
       const result = await AdminService.updateUserStatus(userId, trang_thai);
       return ResponseUtil.success(res, result, 'Cập nhật trạng thái thành công');
     } catch (error: any) {
-      next(error);
+      return next(error);
     }
   }
 
@@ -73,7 +73,7 @@ export class AdminController {
       const data = await AdminService.getStatistics();
       return ResponseUtil.success(res, data, 'Lấy thống kê thành công');
     } catch (error: any) {
-      next(error);
+      return next(error);
     }
   }
 }

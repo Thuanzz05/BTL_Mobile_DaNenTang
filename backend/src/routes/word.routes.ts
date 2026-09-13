@@ -1,7 +1,9 @@
 import { Router } from 'express';
 import { WordController } from '../controllers/word.controller';
 import { adminMiddleware } from '../middlewares/admin.middleware';
-import { authMiddleware } from '../middlewares/auth.middleware';
+import { authMiddleware, optionalAuthMiddleware } from '../middlewares/auth.middleware';
+import { validate } from '../middlewares/validate.middleware';
+import { wordSchema } from '../validations/request.schemas';
 
 const router = Router();
 
@@ -36,7 +38,7 @@ const router = Router();
  *       200:
  *         description: Danh sách từ vựng
  */
-router.get('/', WordController.getAll);
+router.get('/', optionalAuthMiddleware, WordController.getAll);
 
 /**
  * @swagger
@@ -56,7 +58,7 @@ router.get('/', WordController.getAll);
  *       404:
  *         description: Không tìm thấy từ
  */
-router.get('/:id', WordController.getById);
+router.get('/:id', optionalAuthMiddleware, WordController.getById);
 
 /**
  * @swagger
@@ -107,7 +109,7 @@ router.get('/:id', WordController.getById);
  *       201:
  *         description: Tạo thành công
  */
-router.post('/', authMiddleware, adminMiddleware, WordController.create);
+router.post('/', authMiddleware, adminMiddleware, validate(wordSchema), WordController.create);
 
 /**
  * @swagger
@@ -127,7 +129,13 @@ router.post('/', authMiddleware, adminMiddleware, WordController.create);
  *       200:
  *         description: Cập nhật thành công
  */
-router.put('/:id', authMiddleware, adminMiddleware, WordController.update);
+router.put(
+  '/:id',
+  authMiddleware,
+  adminMiddleware,
+  validate(wordSchema.partial()),
+  WordController.update
+);
 
 /**
  * @swagger

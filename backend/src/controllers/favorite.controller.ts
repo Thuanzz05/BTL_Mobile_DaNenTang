@@ -3,6 +3,13 @@ import { FavoriteService } from '../services/favorite.service';
 import { ResponseUtil } from '../utils/response.util';
 
 export class FavoriteController {
+  static async add(req: Request, res: Response, next: NextFunction) {
+    try {
+      return ResponseUtil.success(res, await FavoriteService.add(req.user!.id, req.params.wordId));
+    } catch (error) {
+      return next(error);
+    }
+  }
   /**
    * Lấy danh sách từ yêu thích
    * GET /api/favorites
@@ -13,7 +20,7 @@ export class FavoriteController {
       const favorites = await FavoriteService.getAll(userId);
       return ResponseUtil.success(res, favorites, 'Lấy danh sách yêu thích thành công');
     } catch (error: any) {
-      next(error);
+      return next(error);
     }
   }
 
@@ -30,7 +37,7 @@ export class FavoriteController {
       const statusCode = result.added ? 201 : 200;
       return ResponseUtil.success(res, result, result.message, statusCode);
     } catch (error: any) {
-      next(error);
+      return next(error);
     }
   }
 
@@ -46,7 +53,7 @@ export class FavoriteController {
       const result = await FavoriteService.remove(userId, wordId);
       return ResponseUtil.success(res, result, 'Đã bỏ khỏi yêu thích');
     } catch (error: any) {
-      next(error);
+      return next(error);
     }
   }
 }

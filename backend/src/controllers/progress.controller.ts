@@ -10,92 +10,43 @@ export class ProgressController {
   static async getProgress(req: Request, res: Response, next: NextFunction) {
     try {
       const userId = req.user!.id;
+      const progress = await ProgressService.getSummary(userId);
 
-      const [overall, byTopic] = await Promise.all([
-        ProgressService.getUserProgress(userId),
-        ProgressService.getProgressByTopic(userId),
-      ]);
-
-      // Tính thống kê hôm nay, tuần, tháng
-      const todaySql = `
-        SELECT COUNT(DISTINCT tu_vung_id) as count
-        FROM tien_do_tu_vung
-        WHERE nguoi_dung_id = ? AND DATE(lan_on_tap_cuoi) = CURDATE()
-      `;
-      const weekSql = `
-        SELECT COUNT(DISTINCT tu_vung_id) as count
-        FROM tien_do_tu_vung
-        WHERE nguoi_dung_id = ?
-          AND lan_on_tap_cuoi >= DATE_SUB(NOW(), INTERVAL 7 DAY)
-      `;
-      const monthSql = `
-        SELECT COUNT(DISTINCT tu_vung_id) as count
-        FROM tien_do_tu_vung
-        WHERE nguoi_dung_id = ?
-          AND lan_on_tap_cuoi >= DATE_SUB(NOW(), INTERVAL 30 DAY)
-      `;
-
-      const { query } = await import('../config/database');
-      const [todayResult, weekResult, monthResult]: any = await Promise.all([
-        query(todaySql, [userId]),
-        query(weekSql, [userId]),
-        query(monthSql, [userId]),
-      ]);
-
-      const total = overall.total_learned || 0;
-      const da_nho = (overall.mastered || 0) + (overall.remembered || 0);
-      const chua_chac = overall.uncertain || 0;
-      const chua_nho = overall.forgotten || 0;
-      const ty_le = total > 0 ? Math.round((da_nho / total) * 100) : 0;
-
-      return ResponseUtil.success(res, {
-        tong_so_tu_da_hoc: total,
-        da_nho,
-        chua_chac,
-        chua_nho,
-        ty_le,
-        hom_nay: todayResult[0]?.count || 0,
-        tuan_nay: weekResult[0]?.count || 0,
-        thang_nay: monthResult[0]?.count || 0,
-        theo_chu_de: byTopic,
-      }, 'Lấy tiến độ học tập thành công');
-    } catch (error: any) {
-      next(error);
+      return ResponseUtil.success(res, progress, 'Lấy tiến độ học tập thành công');
+    } catch (error) {
+      return next(error);
     }
   }
 
   /**
-   * Lấy tiến độ theo chủ đề
+   * Lấy tiến độ học theo chủ đề
    * GET /api/progress/topics
    */
   static async getProgressByTopic(req: Request, res: Response, next: NextFunction) {
     try {
       const userId = req.user!.id;
-      const { topicId } = req.query;
+      const topicId = req.query.topicId as string;
+      const progress = await ProgressService.getProgressByTopic(userId, topicId);
 
-      const result = await ProgressService.getProgressByTopic(userId, topicId as string);
-      return ResponseUtil.success(res, result, 'Lấy tiến độ theo chủ đề thành công');
-    } catch (error: any) {
-      next(error);
+      return ResponseUtil.success(res, progress, 'Lấy tiến độ theo chủ đề thành công');
+    } catch (error) {
+      return next(error);
     }
   }
 
   /**
-   * Lấy từ cần ôn tập
+   * Lấy danh sách từ đến hạn ôn tập
    * GET /api/progress/review
    */
   static async getWordsToReview(req: Request, res: Response, next: NextFunction) {
     try {
       const userId = req.user!.id;
-      const limit = req.query.limit ? Math.min(parseInt(req.query.limit as string), 50) : 20;
+      const limit = Math.min(Number(req.query.limit || 20), 50);
+      const review = await ProgressService.getWordsToReview(userId, limit);
 
-      const words = await ProgressService.getWordsToReview(userId, limit);
-      return ResponseUtil.success(res, {
-        so_tu_can_on: (words as any[]).length,
-        danh_sach_tu: words,
-      }, 'Lấy từ cần ôn tập thành công');
-    } catch (error: any) {
-      next(error);
+      return ResponseUtil.success(res, review, 'Lấy từ cần ôn tập thành công');
+    } catch (error) {
+      return next(error);
     }
   }
 }

@@ -1,71 +1,78 @@
 import { query } from '../config/database';
+import { learningPeriodStarts } from '../utils/calendar.util';
+import { LearningService } from './learning.service';
 
 export class ProgressService {
+  /**
+   * Đếm tiến độ từ đã học, không tính từ chỉ được yêu thích
+   */
   static async getUserProgress(userId: string) {
-    const sql = `
-      SELECT 
-        COUNT(DISTINCT tu_vung_id) as total_learned,
-        SUM(CASE WHEN trang_thai_nho = 'thuoc-long' THEN 1 ELSE 0 END) as mastered,
-        SUM(CASE WHEN trang_thai_nho = 'da-nho' THEN 1 ELSE 0 END) as remembered,
-        SUM(CASE WHEN trang_thai_nho = 'chua-chac' THEN 1 ELSE 0 END) as uncertain,
-        SUM(CASE WHEN trang_thai_nho = 'chua-nho' THEN 1 ELSE 0 END) as forgotten,
-        SUM(CASE WHEN da_hoc = TRUE THEN 1 ELSE 0 END) as total_studied
-      FROM tien_do_tu_vung
-      WHERE nguoi_dung_id = ?
-    `;
-    
-    const results: any = await query(sql, [userId]);
-    return results[0] || {
-      total_learned: 0,
-      mastered: 0,
-      remembered: 0,
-      uncertain: 0,
-      forgotten: 0,
-      total_studied: 0
+    const rows = await query<any[]>(
+      `SELECT COUNT(*) AS total_learned,
+      COALESCE(SUM(trang_thai_nho = 'thuoc-long'), 0) AS mastered,
+      COALESCE(SUM(trang_thai_nho = 'da-nho'), 0) AS remembered,
+      COALESCE(SUM(trang_thai_nho = 'chua-chac'), 0) AS uncertain,
+      COALESCE(SUM(trang_thai_nho = 'chua-nho'), 0) AS forgotten
+      FROM tien_do_tu_vung WHERE nguoi_dung_id = ? AND da_hoc = TRUE`,
+      [userId]
+    );
+
+    return Object.fromEntries(Object.entries(rows[0]).map(([key, value]) => [key, Number(value)]));
+  }
+
+  /**
+   * Tổng hợp tiến độ theo chủ đề, gồm cả chủ đề chưa có từ
+   */
+  static async getProgressByTopic(userId: string, topicId?: string) {
+    return query(
+      `SELECT c.id AS topic_id, c.ten AS topic_name, COUNT(t.id) AS total_words,
+      COUNT(CASE WHEN p.da_hoc = TRUE THEN 1 END) AS learned_words,
+      COUNT(CASE WHEN p.trang_thai_nho = 'thuoc-long' THEN 1 END) AS mastered_words
+      FROM chu_de c LEFT JOIN tu_vung t ON c.id = t.chu_de_id
+      LEFT JOIN tien_do_tu_vung p ON t.id = p.tu_vung_id AND p.nguoi_dung_id = ?
+      WHERE c.trang_thai = 'active' ${topicId ? 'AND c.id = ?' : ''}
+      GROUP BY c.id ORDER BY c.thu_tu_hien_thi, c.id`,
+      topicId ? [userId, topicId] : [userId]
+    );
+  }
+
+  /**
+   * Thống kê ngày, tuần và tháng từ lịch sử đánh giá theo giờ Việt Nam
+   */
+  static async getSummary(userId: string) {
+    const starts = learningPeriodStarts();
+    const [overall, byTopic, counts] = await Promise.all([
+      this.getUserProgress(userId),
+      this.getProgressByTopic(userId),
+      query<any[]>(
+        `SELECT
+        COUNT(DISTINCT CASE WHEN k.ngay_tao >= ? THEN k.tu_vung_id END) AS hom_nay,
+        COUNT(DISTINCT CASE WHEN k.ngay_tao >= ? THEN k.tu_vung_id END) AS tuan_nay,
+        COUNT(DISTINCT CASE WHEN k.ngay_tao >= ? THEN k.tu_vung_id END) AS thang_nay
+        FROM ket_qua_hoc k JOIN phien_hoc_tap p ON k.phien_hoc_tap_id = p.id
+        WHERE p.nguoi_dung_id = ? AND k.ngay_tao <= NOW()`,
+        [starts.today, starts.week, starts.month, userId]
+      ),
+    ]);
+    const remembered = overall.mastered + overall.remembered;
+
+    return {
+      tong_so_tu_da_hoc: overall.total_learned,
+      da_nho: remembered,
+      chua_chac: overall.uncertain,
+      chua_nho: overall.forgotten,
+      ty_le: overall.total_learned ? Math.round((100 * remembered) / overall.total_learned) : 0,
+      hom_nay: Number(counts[0].hom_nay),
+      tuan_nay: Number(counts[0].tuan_nay),
+      thang_nay: Number(counts[0].thang_nay),
+      theo_chu_de: byTopic,
     };
   }
 
-  static async getProgressByTopic(userId: string, topicId?: string) {
-    let sql = `
-      SELECT 
-        c.id as topic_id,
-        c.ten as topic_name,
-        COUNT(t.id) as total_words,
-        COUNT(CASE WHEN p.da_hoc = TRUE THEN 1 END) as learned_words,
-        COUNT(CASE WHEN p.trang_thai_nho = 'thuoc-long' THEN 1 END) as mastered_words
-      FROM chu_de c
-      INNER JOIN tu_vung t ON c.id = t.chu_de_id
-      LEFT JOIN tien_do_tu_vung p ON t.id = p.tu_vung_id AND p.nguoi_dung_id = ?
-    `;
-    
-    const params: any[] = [userId];
-    
-    if (topicId) {
-      sql += ` WHERE c.id = ?`;
-      params.push(topicId);
-    }
-    
-    sql += ` GROUP BY c.id, c.ten ORDER BY c.thu_tu_hien_thi`;
-    
-    return await query(sql, params);
-  }
-
-  static async getWordsToReview(userId: string, limit: number = 20) {
-    const sql = `
-      SELECT 
-        t.*,
-        p.trang_thai_nho,
-        p.so_lan_on_tap,
-        p.ngay_on_tap_tiep_theo
-      FROM tien_do_tu_vung p
-      INNER JOIN tu_vung t ON p.tu_vung_id = t.id
-      WHERE p.nguoi_dung_id = ? 
-        AND p.ngay_on_tap_tiep_theo <= NOW()
-        AND p.da_hoc = TRUE
-      ORDER BY p.ngay_on_tap_tiep_theo ASC
-      LIMIT ?
-    `;
-    
-    return await query(sql, [userId, limit]);
+  /**
+   * Dùng chung quy tắc đến hạn ôn với luồng học
+   */
+  static async getWordsToReview(userId: string, limit = 20) {
+    return LearningService.getReviewWords(userId, limit);
   }
 }

@@ -1,62 +1,38 @@
-import { query } from '../config/database';
+import { query, transaction } from '../config/database';
+import { wordSchema } from '../validations/request.schemas';
+import { AppError } from '../utils/app-error';
 import { UuidUtil } from '../utils/uuid.util';
 
 export class WordService {
   /**
-   * Lấy danh sách từ vựng theo chủ đề
+   * Lấy từ vựng của chủ đề đang hiển thị, kèm trạng thái yêu thích
    */
   static async getByTopic(topicId: string, userId?: string) {
-    const sql = `
-      SELECT 
-        t.*,
-        ${userId ? `
-        CASE WHEN y.id IS NOT NULL THEN TRUE ELSE FALSE END as da_yeu_thich
-        ` : 'FALSE as da_yeu_thich'}
-      FROM tu_vung t
-      ${userId ? `
+    return query(
+      `SELECT t.*, (y.id IS NOT NULL) AS da_yeu_thich
+      FROM tu_vung t JOIN chu_de c ON t.chu_de_id = c.id AND c.trang_thai = 'active'
       LEFT JOIN yeu_thich y ON t.id = y.tu_vung_id AND y.nguoi_dung_id = ?
-      ` : ''}
-      WHERE t.chu_de_id = ?
-      ORDER BY t.thu_tu_hien_thi ASC
-    `;
-
-    const params: any[] = [];
-    if (userId) params.push(userId);
-    params.push(topicId);
-
-    return await query(sql, params);
+      WHERE t.chu_de_id = ? ORDER BY t.thu_tu_hien_thi, t.id`,
+      [userId || null, topicId]
+    );
   }
 
   /**
-   * Lấy chi tiết từ vựng kèm ví dụ
+   * Lấy chi tiết từ và các ví dụ, kiểm tra quyền xem chủ đề ẩn
    */
-  static async getById(id: string, userId?: string) {
-    const wordSql = `
-      SELECT 
-        t.*,
-        ${userId ? `
-        CASE WHEN y.id IS NOT NULL THEN TRUE ELSE FALSE END as da_yeu_thich
-        ` : 'FALSE as da_yeu_thich'}
-      FROM tu_vung t
-      ${userId ? `
+  static async getById(id: string, userId?: string, includeInactive = false) {
+    const words = await query<any[]>(
+      `SELECT t.*, (y.id IS NOT NULL) AS da_yeu_thich FROM tu_vung t
+      JOIN chu_de c ON t.chu_de_id = c.id
       LEFT JOIN yeu_thich y ON t.id = y.tu_vung_id AND y.nguoi_dung_id = ?
-      ` : ''}
-      WHERE t.id = ?
-    `;
-
-    const wordParams: any[] = [];
-    if (userId) wordParams.push(userId);
-    wordParams.push(id);
-
-    const words: any[] = await query(wordSql, wordParams);
-
-    if (words.length === 0) {
-      throw new Error('Từ vựng không tồn tại');
+      WHERE t.id = ? ${includeInactive ? '' : "AND c.trang_thai = 'active'"}`,
+      [userId || null, id]
+    );
+    if (!words.length) {
+      throw new AppError('Từ vựng không tồn tại', 404, 'WORD_NOT_FOUND');
     }
-
-    // Lấy ví dụ
-    const examples: any[] = await query(
-      'SELECT * FROM vi_du WHERE tu_vung_id = ? ORDER BY thu_tu_hien_thi ASC',
+    const examples = await query(
+      'SELECT * FROM vi_du WHERE tu_vung_id = ? ORDER BY thu_tu_hien_thi, id',
       [id]
     );
 
@@ -64,166 +40,168 @@ export class WordService {
   }
 
   /**
-   * Tạo từ vựng mới (admin)
+   * Tạo từ vựng và ví dụ trong cùng giao dịch
    */
-  static async create(data: {
-    chu_de_id: string;
-    tu_tieng_anh: string;
-    phien_am?: string;
-    loai_tu: string;
-    nghia_tieng_viet: string;
-    url_am_thanh?: string;
-    url_hinh_anh?: string;
-    thu_tu_hien_thi?: number;
-    vi_du?: Array<{ cau_tieng_anh: string; cau_tieng_viet: string; thu_tu_hien_thi?: number }>;
-  }) {
+  static async create(input: unknown) {
+    const data = wordSchema.parse(input);
+
     const id = UuidUtil.generate();
-
-    await query(
-      `INSERT INTO tu_vung 
-        (id, chu_de_id, tu_tieng_anh, phien_am, loai_tu, nghia_tieng_viet, url_am_thanh, url_hinh_anh, thu_tu_hien_thi)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [
-        id,
-        data.chu_de_id,
-        data.tu_tieng_anh,
-        data.phien_am || null,
-        data.loai_tu,
-        data.nghia_tieng_viet,
-        data.url_am_thanh || null,
-        data.url_hinh_anh || null,
-        data.thu_tu_hien_thi || 0,
-      ]
-    );
-
-    // Tạo ví dụ nếu có
-    if (data.vi_du && data.vi_du.length > 0) {
-      for (let i = 0; i < data.vi_du.length; i++) {
-        const ex = data.vi_du[i];
-        await query(
-          `INSERT INTO vi_du (id, tu_vung_id, cau_tieng_anh, cau_tieng_viet, thu_tu_hien_thi)
-           VALUES (UUID(), ?, ?, ?, ?)`,
-          [id, ex.cau_tieng_anh, ex.cau_tieng_viet, ex.thu_tu_hien_thi ?? i]
+    await transaction(async (connection) => {
+      const [topics]: any = await connection.execute(
+        'SELECT id FROM chu_de WHERE id = ? FOR UPDATE',
+        [data.chu_de_id]
+      );
+      if (!topics.length) {
+        throw new AppError('Chủ đề không tồn tại', 404, 'TOPIC_NOT_FOUND');
+      }
+      await connection.execute(
+        `INSERT INTO tu_vung (id, chu_de_id, tu_tieng_anh, phien_am, loai_tu, nghia_tieng_viet, url_am_thanh, url_hinh_anh, thu_tu_hien_thi)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [
+          id,
+          data.chu_de_id,
+          data.tu_tieng_anh,
+          data.phien_am ?? null,
+          data.loai_tu,
+          data.nghia_tieng_viet,
+          data.url_am_thanh ?? null,
+          data.url_hinh_anh ?? null,
+          data.thu_tu_hien_thi ?? 0,
+        ]
+      );
+      for (const [index, example] of (data.vi_du || []).entries()) {
+        await connection.execute(
+          'INSERT INTO vi_du (id, tu_vung_id, cau_tieng_anh, cau_tieng_viet, thu_tu_hien_thi) VALUES (?, ?, ?, ?, ?)',
+          [
+            UuidUtil.generate(),
+            id,
+            example.cau_tieng_anh,
+            example.cau_tieng_viet,
+            example.thu_tu_hien_thi ?? index,
+          ]
         );
       }
-    }
+    });
 
-    return await this.getById(id);
+    return this.getById(id, undefined, true);
   }
 
   /**
-   * Cập nhật từ vựng (admin)
+   * Cập nhật từ; chỉ thay danh sách ví dụ khi client gửi vi_du
    */
-  static async update(id: string, data: Partial<{
-    tu_tieng_anh: string;
-    phien_am: string;
-    loai_tu: string;
-    nghia_tieng_viet: string;
-    url_am_thanh: string;
-    url_hinh_anh: string;
-    thu_tu_hien_thi: number;
-    chu_de_id: string;
-  }>) {
-    const fields: string[] = [];
-    const values: any[] = [];
+  static async update(id: string, input: unknown) {
+    const data = wordSchema.partial().parse(input);
+    await transaction(async (connection) => {
+      const [words]: any = await connection.execute(
+        'SELECT id FROM tu_vung WHERE id = ? FOR UPDATE',
+        [id]
+      );
+      if (!words.length) {
+        throw new AppError('Từ vựng không tồn tại', 404, 'WORD_NOT_FOUND');
+      }
+      const { vi_du, ...fields } = data;
+      const entries = Object.entries(fields);
+      if (entries.length) {
+        await connection.execute(
+          'UPDATE tu_vung SET ' + entries.map(([key]) => key + ' = ?').join(', ') + ' WHERE id = ?',
+          [...entries.map(([, value]) => value), id]
+        );
+      }
+      // Omitting vi_du preserves examples; [] explicitly removes them.
+      if (vi_du !== undefined) {
+        await connection.execute('DELETE FROM vi_du WHERE tu_vung_id = ?', [id]);
+        for (const [index, example] of vi_du.entries()) {
+          await connection.execute(
+            'INSERT INTO vi_du (id, tu_vung_id, cau_tieng_anh, cau_tieng_viet, thu_tu_hien_thi) VALUES (?, ?, ?, ?, ?)',
+            [
+              UuidUtil.generate(),
+              id,
+              example.cau_tieng_anh,
+              example.cau_tieng_viet,
+              example.thu_tu_hien_thi ?? index,
+            ]
+          );
+        }
+      }
+    });
 
-    if (data.tu_tieng_anh !== undefined) { fields.push('tu_tieng_anh = ?'); values.push(data.tu_tieng_anh); }
-    if (data.phien_am !== undefined) { fields.push('phien_am = ?'); values.push(data.phien_am); }
-    if (data.loai_tu !== undefined) { fields.push('loai_tu = ?'); values.push(data.loai_tu); }
-    if (data.nghia_tieng_viet !== undefined) { fields.push('nghia_tieng_viet = ?'); values.push(data.nghia_tieng_viet); }
-    if (data.url_am_thanh !== undefined) { fields.push('url_am_thanh = ?'); values.push(data.url_am_thanh); }
-    if (data.url_hinh_anh !== undefined) { fields.push('url_hinh_anh = ?'); values.push(data.url_hinh_anh); }
-    if (data.thu_tu_hien_thi !== undefined) { fields.push('thu_tu_hien_thi = ?'); values.push(data.thu_tu_hien_thi); }
-    if (data.chu_de_id !== undefined) { fields.push('chu_de_id = ?'); values.push(data.chu_de_id); }
-
-    if (fields.length === 0) {
-      return await this.getById(id);
-    }
-
-    values.push(id);
-    await query(`UPDATE tu_vung SET ${fields.join(', ')} WHERE id = ?`, values);
-    return await this.getById(id);
+    return this.getById(id, undefined, true);
   }
 
   /**
-   * Xóa từ vựng (admin) - kiểm tra không trong phiên học đang diễn ra
+   * Chặn xóa từ đã được dùng trong phiên học hoặc có tiến độ học
    */
   static async delete(id: string) {
-    // Kiểm tra từ đang trong phiên học active không
-    const activeCheck: any[] = await query(
-      `SELECT k.id FROM ket_qua_hoc k
-       INNER JOIN phien_hoc_tap p ON k.phien_hoc_tap_id = p.id
-       WHERE k.tu_vung_id = ? AND p.trang_thai = 'dang-hoc'
-       LIMIT 1`,
-      [id]
-    );
-
-    if (activeCheck.length > 0) {
-      throw new Error('Không thể xóa từ vựng đang trong phiên học');
-    }
-
-    // Xóa ví dụ trước
-    await query('DELETE FROM vi_du WHERE tu_vung_id = ?', [id]);
-    // Xóa tiến độ
-    await query('DELETE FROM tien_do_tu_vung WHERE tu_vung_id = ?', [id]);
-    // Xóa yêu thích
-    await query('DELETE FROM yeu_thich WHERE tu_vung_id = ?', [id]);
-    // Xóa từ
-    await query('DELETE FROM tu_vung WHERE id = ?', [id]);
-
-    return { success: true };
+    return transaction(async (connection) => {
+      const [words]: any = await connection.execute(
+        'SELECT id FROM tu_vung WHERE id = ? FOR UPDATE',
+        [id]
+      );
+      if (!words.length) {
+        throw new AppError('Từ vựng không tồn tại', 404, 'WORD_NOT_FOUND');
+      }
+      const [members]: any = await connection.execute(
+        'SELECT tu_vung_id FROM phien_hoc_tu WHERE tu_vung_id = ? LIMIT 1 FOR UPDATE',
+        [id]
+      );
+      const [results]: any = await connection.execute(
+        'SELECT id FROM ket_qua_hoc WHERE tu_vung_id = ? LIMIT 1 FOR UPDATE',
+        [id]
+      );
+      const [progress]: any = await connection.execute(
+        'SELECT tu_vung_id FROM tien_do_tu_vung WHERE tu_vung_id = ? AND da_hoc = TRUE LIMIT 1 FOR UPDATE',
+        [id]
+      );
+      if (members.length || results.length || progress.length) {
+        throw new AppError(
+          'Không thể xóa từ đã có dữ liệu học hoặc thuộc phiên học',
+          409,
+          'WORD_IN_USE'
+        );
+      }
+      await connection.execute('DELETE FROM tu_vung WHERE id = ?', [id]);
+      return { success: true };
+    });
   }
 
   /**
-   * Lấy tất cả từ (admin) có filter, search, pagination
+   * Tìm kiếm, lọc chủ đề và phân trang danh sách từ vựng
    */
   static async getAll(options: {
     topicId?: string;
     search?: string;
     page?: number;
     limit?: number;
+    userId?: string;
+    includeInactive?: boolean;
   }) {
     const page = options.page || 1;
-    const limit = Math.min(options.limit || 20, 100);
-    const offset = (page - 1) * limit;
-
-    let where = '1=1';
+    const limit = options.limit || 20;
+    const where = [options.includeInactive ? '1=1' : "c.trang_thai = 'active'"];
     const params: any[] = [];
-
     if (options.topicId) {
-      where += ' AND t.chu_de_id = ?';
+      where.push('t.chu_de_id = ?');
       params.push(options.topicId);
     }
-
     if (options.search) {
-      where += ' AND (t.tu_tieng_anh LIKE ? OR t.nghia_tieng_viet LIKE ?)';
-      params.push(`%${options.search}%`, `%${options.search}%`);
+      where.push('(t.tu_tieng_anh LIKE ? OR t.nghia_tieng_viet LIKE ?)');
+      params.push('%' + options.search + '%', '%' + options.search + '%');
     }
+    const filter = where.join(' AND ');
 
-    const countResult: any[] = await query(
-      `SELECT COUNT(*) as total FROM tu_vung t WHERE ${where}`,
+    const counts = await query<any[]>(
+      'SELECT COUNT(*) AS total FROM tu_vung t JOIN chu_de c ON t.chu_de_id = c.id WHERE ' + filter,
       params
     );
-    const total = countResult[0]?.total || 0;
-
-    const words: any[] = await query(
-      `SELECT t.*, c.ten as chu_de_ten
-       FROM tu_vung t
-       LEFT JOIN chu_de c ON t.chu_de_id = c.id
-       WHERE ${where}
-       ORDER BY t.thu_tu_hien_thi ASC
-       LIMIT ? OFFSET ?`,
-      [...params, limit, offset]
+    const items = await query(
+      `SELECT t.*, c.ten AS chu_de_ten, (y.id IS NOT NULL) AS da_yeu_thich
+      FROM tu_vung t JOIN chu_de c ON t.chu_de_id = c.id
+      LEFT JOIN yeu_thich y ON t.id = y.tu_vung_id AND y.nguoi_dung_id = ?
+      WHERE ${filter} ORDER BY t.thu_tu_hien_thi, t.id LIMIT ? OFFSET ?`,
+      [options.userId || null, ...params, limit, (page - 1) * limit]
     );
+    const total = Number(counts[0].total);
 
-    return {
-      items: words,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
-      },
-    };
+    return { items, pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } };
   }
 }

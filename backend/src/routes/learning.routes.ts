@@ -1,6 +1,9 @@
 import { Router } from 'express';
 import { LearningController } from '../controllers/learning.controller';
 import { authMiddleware } from '../middlewares/auth.middleware';
+import { ProgressController } from '../controllers/progress.controller';
+import { validate } from '../middlewares/validate.middleware';
+import { schemas } from '../validations/request.schemas';
 
 const router = Router();
 
@@ -34,7 +37,13 @@ const router = Router();
  *       201:
  *         description: Tạo phiên học thành công
  */
-router.post('/start', authMiddleware, LearningController.startSession);
+router.post('/start', authMiddleware, validate(schemas.start), LearningController.startSession);
+router.post(
+  '/review/start',
+  authMiddleware,
+  validate(schemas.review),
+  LearningController.startReviewSession
+);
 
 /**
  * @swagger
@@ -66,7 +75,7 @@ router.post('/start', authMiddleware, LearningController.startSession);
  *       200:
  *         description: Lưu kết quả thành công
  */
-router.post('/result', authMiddleware, LearningController.submitResult);
+router.post('/result', authMiddleware, validate(schemas.result), LearningController.submitResult);
 
 /**
  * @swagger
@@ -91,7 +100,12 @@ router.post('/result', authMiddleware, LearningController.submitResult);
  *       200:
  *         description: Hoàn thành phiên học, trả về tóm tắt kết quả
  */
-router.post('/complete', authMiddleware, LearningController.completeSession);
+router.post(
+  '/complete',
+  authMiddleware,
+  validate(schemas.complete),
+  LearningController.completeSession
+);
 
 /**
  * @swagger
@@ -146,8 +160,31 @@ router.get('/review', authMiddleware, LearningController.getReviewWords);
  *       200:
  *         description: Tiến độ học tập
  */
-router.get('/progress', authMiddleware, (req, res) => {
-  res.json({ success: true, message: 'Xem /api/progress thay thế' });
-});
+router.get('/progress', authMiddleware, ProgressController.getProgress);
+
+/**
+ * @swagger
+ * /api/learning/review/start:
+ *   post:
+ *     summary: Tạo phiên ôn từ các từ đến hạn, kể cả từ đã nhớ
+ *     tags: [Learning]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               tong_so_tu:
+ *                 type: integer
+ *                 minimum: 1
+ *                 maximum: 50
+ *                 default: 50
+ *     responses:
+ *       201:
+ *         description: Phiên ôn và danh sách từ cố định
+ *       404:
+ *         description: Không có từ đến hạn ôn
+ */
 
 export default router;

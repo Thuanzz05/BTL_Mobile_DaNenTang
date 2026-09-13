@@ -11,7 +11,7 @@ export class WordController {
       const { topicId, search, page, limit } = req.query;
       const userId = req.user?.id;
 
-      if (topicId) {
+      if (topicId && req.user?.vai_tro !== 'admin') {
         // Lấy theo chủ đề (mobile app)
         const words = await WordService.getByTopic(topicId as string, userId);
         return ResponseUtil.success(res, words, 'Lấy danh sách từ vựng thành công');
@@ -19,6 +19,9 @@ export class WordController {
 
       // Lấy tất cả (admin có thể search/filter)
       const result = await WordService.getAll({
+        topicId: topicId as string,
+        userId,
+        includeInactive: req.user?.vai_tro === 'admin',
         search: search as string,
         page: page ? parseInt(page as string) : 1,
         limit: limit ? parseInt(limit as string) : 20,
@@ -33,7 +36,7 @@ export class WordController {
         'Lấy danh sách từ vựng thành công'
       );
     } catch (error: any) {
-      next(error);
+      return next(error);
     }
   }
 
@@ -45,10 +48,10 @@ export class WordController {
       const { id } = req.params;
       const userId = req.user?.id;
 
-      const word = await WordService.getById(id, userId);
+      const word = await WordService.getById(id, userId, req.user?.vai_tro === 'admin');
       return ResponseUtil.success(res, word, 'Lấy thông tin từ vựng thành công');
     } catch (error: any) {
-      next(error);
+      return next(error);
     }
   }
 
@@ -71,7 +74,7 @@ export class WordController {
       const word = await WordService.create(req.body);
       return ResponseUtil.success(res, word, 'Tạo từ vựng thành công', 201);
     } catch (error: any) {
-      next(error);
+      return next(error);
     }
   }
 
@@ -84,7 +87,7 @@ export class WordController {
       const word = await WordService.update(id, req.body);
       return ResponseUtil.success(res, word, 'Cập nhật từ vựng thành công');
     } catch (error: any) {
-      next(error);
+      return next(error);
     }
   }
 
@@ -97,7 +100,7 @@ export class WordController {
       await WordService.delete(id);
       return ResponseUtil.success(res, null, 'Xóa từ vựng thành công');
     } catch (error: any) {
-      next(error);
+      return next(error);
     }
   }
 }

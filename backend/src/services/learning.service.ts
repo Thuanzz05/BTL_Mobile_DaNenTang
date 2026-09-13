@@ -1,304 +1,338 @@
-import { query } from '../config/database';
+import { PoolConnection } from 'mysql2/promise';
+import pool, { query, transaction } from '../config/database';
+import { schemas } from '../validations/request.schemas';
+import { PhienHocTap, TrangThaiNhoTu } from '../types/models';
+import { AppError } from '../utils/app-error';
+import { nextReviewDate } from '../utils/srs.util';
 import { UuidUtil } from '../utils/uuid.util';
+
+async function lockUser(connection: PoolConnection, userId: string) {
+  const [users]: any = await connection.execute(
+    'SELECT id, trang_thai FROM nguoi_dung WHERE id = ? FOR UPDATE',
+    [userId]
+  );
+  if (!users[0] || users[0].trang_thai !== 'active') {
+    throw new AppError('Tài khoản không hoạt động', 403, 'ACCOUNT_DISABLED');
+  }
+}
+
+async function sessionForUser(
+  connection: PoolConnection,
+  userId: string,
+  sessionId: string,
+  lock = false
+): Promise<PhienHocTap> {
+  const [sessions]: any = await connection.execute(
+    'SELECT * FROM phien_hoc_tap WHERE id = ? AND nguoi_dung_id = ?' + (lock ? ' FOR UPDATE' : ''),
+    [sessionId, userId]
+  );
+  if (!sessions[0]) {
+    throw new AppError('Phiên học không tồn tại', 404, 'SESSION_NOT_FOUND');
+  }
+  return sessions[0];
+}
+
+async function withExamples(words: any[], connection?: PoolConnection) {
+  if (!words.length) {
+    return [];
+  }
+  const sql =
+    'SELECT * FROM vi_du WHERE tu_vung_id IN (' +
+    words.map(() => '?').join(',') +
+    ') ORDER BY thu_tu_hien_thi, id';
+  const [examples]: any = await (connection || pool).query(
+    sql,
+    words.map((word) => word.id)
+  );
+  return words.map((word) => ({
+    ...word,
+    vi_du: examples.filter((example: any) => example.tu_vung_id === word.id),
+  }));
+}
+
+const dueSql = `FROM tien_do_tu_vung p
+  INNER JOIN tu_vung t ON p.tu_vung_id = t.id
+  INNER JOIN chu_de c ON t.chu_de_id = c.id AND c.trang_thai = 'active'
+  WHERE p.nguoi_dung_id = ? AND p.da_hoc = TRUE AND p.ngay_on_tap_tiep_theo <= NOW()`;
 
 export class LearningService {
   /**
-   * Bắt đầu phiên học mới
+   * Lưu phiên học cùng danh sách từ và thứ tự cố định
    */
-  static async startSession(userId: string, topicId: string, wordCount: number = 20) {
-    // Validate wordCount
-    if (wordCount < 5 || wordCount > 50) {
-      throw new Error('Số từ mỗi phiên phải từ 5 đến 50');
-    }
-
-    // Lấy từ vựng của chủ đề (ưu tiên từ chưa học)
-    const wordsSql = `
-      SELECT t.*
-      FROM tu_vung t
-      LEFT JOIN tien_do_tu_vung p ON t.id = p.tu_vung_id AND p.nguoi_dung_id = ?
-      WHERE t.chu_de_id = ?
-      ORDER BY p.da_hoc ASC, RAND()
-      LIMIT ?
-    `;
-
-    const words: any[] = await query(wordsSql, [userId, topicId, wordCount]);
-
-    if (words.length === 0) {
-      throw new Error('Chủ đề này chưa có từ vựng');
-    }
-
-    if (words.length < 5) {
-      throw new Error('Chủ đề cần ít nhất 5 từ để học');
-    }
-
-    // Tạo phiên học
-    const sessionId = UuidUtil.generate();
-    await query(
-      `INSERT INTO phien_hoc_tap (id, nguoi_dung_id, chu_de_id, tong_so_tu, trang_thai)
-       VALUES (?, ?, ?, ?, 'dang-hoc')`,
-      [sessionId, userId, topicId, words.length]
+  private static async createSession(
+    connection: PoolConnection,
+    userId: string,
+    topicId: string | null,
+    words: any[],
+    type: 'hoc_moi' | 'on_tap'
+  ) {
+    const id = UuidUtil.generate();
+    await connection.execute(
+      'INSERT INTO phien_hoc_tap (id, nguoi_dung_id, chu_de_id, tong_so_tu, loai_phien) VALUES (?, ?, ?, ?, ?)',
+      [id, userId, topicId, words.length, type]
     );
-
-    // Lấy thông tin phiên kèm chủ đề
-    const sessions: any[] = await query(
-      `SELECT p.*, c.ten as chu_de_ten, c.hinh_anh as chu_de_hinh_anh
-       FROM phien_hoc_tap p
-       INNER JOIN chu_de c ON p.chu_de_id = c.id
-       WHERE p.id = ?`,
-      [sessionId]
+    await connection.query(
+      'INSERT INTO phien_hoc_tu (phien_hoc_tap_id, tu_vung_id, thu_tu) VALUES ?',
+      [words.map((word, index) => [id, word.id, index])]
     );
-
-    // Lấy ví dụ cho từng từ
-    const wordsWithExamples = await Promise.all(
-      words.map(async (w) => {
-        const examples: any[] = await query(
-          'SELECT * FROM vi_du WHERE tu_vung_id = ? ORDER BY thu_tu_hien_thi ASC LIMIT 2',
-          [w.id]
-        );
-        return { ...w, vi_du: examples };
-      })
+    const [sessions]: any = await connection.execute(
+      `SELECT p.*, c.ten AS chu_de_ten, c.hinh_anh AS chu_de_hinh_anh FROM phien_hoc_tap p
+       LEFT JOIN chu_de c ON p.chu_de_id = c.id WHERE p.id = ?`,
+      [id]
     );
 
     return {
+      phien_hoc_tap_id: id,
       phien_hoc_tap: sessions[0],
-      danh_sach_tu: wordsWithExamples,
+      danh_sach_tu: await withExamples(words, connection),
     };
   }
 
   /**
-   * Nộp kết quả từng từ - áp dụng SRS
+   * Bắt đầu học theo chủ đề, ưu tiên từ chưa học
+   */
+  static async startSession(userId: string, topicId: string, wordCount = 20) {
+    schemas.start.parse({ chu_de_id: topicId, tong_so_tu: wordCount });
+
+    return transaction(async (connection) => {
+      await lockUser(connection, userId);
+      const [topics]: any = await connection.execute(
+        "SELECT id FROM chu_de WHERE id = ? AND trang_thai = 'active' FOR UPDATE",
+        [topicId]
+      );
+      if (!topics.length) {
+        throw new AppError('Chủ đề không tồn tại hoặc đã bị ẩn', 404, 'TOPIC_NOT_FOUND');
+      }
+      const [words]: any = await connection.query(
+        `SELECT t.* FROM tu_vung t LEFT JOIN tien_do_tu_vung p ON t.id = p.tu_vung_id AND p.nguoi_dung_id = ?
+         WHERE t.chu_de_id = ? ORDER BY COALESCE(p.da_hoc, FALSE), RAND() LIMIT ? FOR SHARE`,
+        [userId, topicId, wordCount]
+      );
+      if (words.length < 5) {
+        throw new AppError('Chủ đề cần ít nhất 5 từ để học', 409, 'INSUFFICIENT_WORDS');
+      }
+      return this.createSession(connection, userId, topicId, words, 'hoc_moi');
+    });
+  }
+
+  /**
+   * Tạo phiên ôn từ các từ đến hạn, có thể thuộc nhiều chủ đề
+   */
+  static async startReviewSession(userId: string, wordCount = 50) {
+    schemas.review.parse({ tong_so_tu: wordCount });
+
+    return transaction(async (connection) => {
+      await lockUser(connection, userId);
+      const [words]: any = await connection.query(
+        'SELECT t.* ' + dueSql + ' ORDER BY p.ngay_on_tap_tiep_theo, t.id LIMIT ? FOR SHARE',
+        [userId, wordCount]
+      );
+      if (!words.length) {
+        throw new AppError('Không có từ đến hạn ôn tập', 404, 'NO_REVIEW_WORDS');
+      }
+      return this.createSession(connection, userId, null, words, 'on_tap');
+    });
+  }
+
+  /**
+   * Ghi nhận một đánh giá duy nhất cho mỗi từ trong phiên học
    */
   static async submitResult(userId: string, sessionId: string, wordId: string, status: string) {
-    // Validate phiên học thuộc user
-    const sessions: any[] = await query(
-      'SELECT * FROM phien_hoc_tap WHERE id = ? AND nguoi_dung_id = ?',
-      [sessionId, userId]
-    );
-
-    if (sessions.length === 0) {
-      throw new Error('Phiên học không hợp lệ');
-    }
-
-    const session = sessions[0];
-    if (session.trang_thai !== 'dang-hoc') {
-      throw new Error('Phiên học đã kết thúc');
-    }
-
-    // Lưu kết quả (có thể đã có - cập nhật lại)
-    const existingResult: any[] = await query(
-      'SELECT id FROM ket_qua_hoc WHERE phien_hoc_tap_id = ? AND tu_vung_id = ?',
-      [sessionId, wordId]
-    );
-
-    if (existingResult.length > 0) {
-      await query(
-        'UPDATE ket_qua_hoc SET trang_thai = ? WHERE id = ?',
-        [status, existingResult[0].id]
-      );
-    } else {
-      const resultId = UuidUtil.generate();
-      await query(
-        `INSERT INTO ket_qua_hoc (id, phien_hoc_tap_id, tu_vung_id, trang_thai)
-         VALUES (?, ?, ?, ?)`,
-        [resultId, sessionId, wordId, status]
-      );
-    }
-
-    // Cập nhật tiến độ SRS
-    await this.updateWordProgress(userId, wordId, status);
-
-    return { success: true };
-  }
-
-  /**
-   * Hoàn thành phiên học
-   */
-  static async completeSession(userId: string, sessionId: string) {
-    const sessions: any[] = await query(
-      'SELECT * FROM phien_hoc_tap WHERE id = ? AND nguoi_dung_id = ?',
-      [sessionId, userId]
-    );
-
-    if (sessions.length === 0) {
-      throw new Error('Phiên học không hợp lệ');
-    }
-
-    // Cập nhật trạng thái
-    await query(
-      `UPDATE phien_hoc_tap
-       SET trang_thai = 'hoan-thanh', ket_thuc_luc = NOW()
-       WHERE id = ?`,
-      [sessionId]
-    );
-
-    // Lấy thống kê kết quả
-    const stats: any[] = await query(
-      `SELECT
-         COUNT(*) as tong_so_tu,
-         SUM(CASE WHEN trang_thai = 'da-nho' THEN 1 ELSE 0 END) as da_nho,
-         SUM(CASE WHEN trang_thai = 'chua-chac' THEN 1 ELSE 0 END) as chua_chac,
-         SUM(CASE WHEN trang_thai = 'chua-nho' THEN 1 ELSE 0 END) as chua_nho
-       FROM ket_qua_hoc
-       WHERE phien_hoc_tap_id = ?`,
-      [sessionId]
-    );
-
-    const stat = stats[0];
-    const ty_le = stat.tong_so_tu > 0
-      ? Math.round((stat.da_nho / stat.tong_so_tu) * 100)
-      : 0;
-
-    return {
+    const data = schemas.result.parse({
       phien_hoc_tap_id: sessionId,
-      tong_so_tu: stat.tong_so_tu,
-      da_nho: stat.da_nho,
-      chua_chac: stat.chua_chac,
-      chua_nho: stat.chua_nho,
-      ty_le,
-    };
-  }
+      tu_vung_id: wordId,
+      trang_thai: status,
+    });
 
-  /**
-   * Lấy kết quả chi tiết phiên học
-   */
-  static async getSessionResult(userId: string, sessionId: string) {
-    const sessions: any[] = await query(
-      `SELECT p.*, c.ten as chu_de_ten
-       FROM phien_hoc_tap p
-       INNER JOIN chu_de c ON p.chu_de_id = c.id
-       WHERE p.id = ? AND p.nguoi_dung_id = ?`,
-      [sessionId, userId]
-    );
-
-    if (sessions.length === 0) {
-      throw new Error('Phiên học không tồn tại');
-    }
-
-    // Kết quả từng từ
-    const results: any[] = await query(
-      `SELECT k.*, t.tu_tieng_anh, t.phien_am, t.nghia_tieng_viet, t.url_hinh_anh
-       FROM ket_qua_hoc k
-       INNER JOIN tu_vung t ON k.tu_vung_id = t.id
-       WHERE k.phien_hoc_tap_id = ?`,
-      [sessionId]
-    );
-
-    const da_nho = results.filter(r => r.trang_thai === 'da-nho').length;
-    const chua_chac = results.filter(r => r.trang_thai === 'chua-chac').length;
-    const chua_nho = results.filter(r => r.trang_thai === 'chua-nho').length;
-    const ty_le = results.length > 0 ? Math.round((da_nho / results.length) * 100) : 0;
-
-    return {
-      phien_hoc_tap: sessions[0],
-      tong_so_tu: results.length,
-      da_nho,
-      chua_chac,
-      chua_nho,
-      ty_le,
-      danh_sach_tu_chua_nho: results.filter(r => r.trang_thai === 'chua-nho'),
-      ket_qua: results,
-    };
-  }
-
-  /**
-   * Lấy từ cần ôn tập theo SRS
-   */
-  static async getReviewWords(userId: string, limit: number = 50) {
-    const words: any[] = await query(
-      `SELECT t.*, p.trang_thai_nho, p.so_lan_on_tap, p.ngay_on_tap_tiep_theo
-       FROM tien_do_tu_vung p
-       INNER JOIN tu_vung t ON p.tu_vung_id = t.id
-       WHERE p.nguoi_dung_id = ?
-         AND p.trang_thai_nho IN ('chua-nho', 'chua-chac')
-         AND p.ngay_on_tap_tiep_theo <= NOW()
-         AND p.da_hoc = TRUE
-       ORDER BY p.ngay_on_tap_tiep_theo ASC
-       LIMIT ?`,
-      [userId, limit]
-    );
-
-    // Lấy ví dụ cho từng từ
-    const wordsWithExamples = await Promise.all(
-      words.map(async (w) => {
-        const examples: any[] = await query(
-          'SELECT * FROM vi_du WHERE tu_vung_id = ? ORDER BY thu_tu_hien_thi ASC LIMIT 2',
-          [w.id]
+    return transaction(async (connection) => {
+      // Serialize submissions for one learner, including submissions from different sessions.
+      await lockUser(connection, userId);
+      const session = await sessionForUser(connection, userId, sessionId, true);
+      const [members]: any = await connection.execute(
+        'SELECT tu_vung_id FROM phien_hoc_tu WHERE phien_hoc_tap_id = ? AND tu_vung_id = ?',
+        [sessionId, wordId]
+      );
+      if (!members.length) {
+        throw new AppError('Từ không thuộc danh sách của phiên học', 400, 'WORD_NOT_IN_SESSION');
+      }
+      const [existing]: any = await connection.execute(
+        'SELECT trang_thai FROM ket_qua_hoc WHERE phien_hoc_tap_id = ? AND tu_vung_id = ?',
+        [sessionId, wordId]
+      );
+      if (existing.length) {
+        if (existing[0].trang_thai === data.trang_thai) {
+          return { success: true, replayed: true };
+        }
+        throw new AppError(
+          'Từ này đã được đánh giá. Hãy tạo phiên ôn mới để đánh giá lại',
+          409,
+          'RESULT_ALREADY_SUBMITTED'
         );
-        return { ...w, vi_du: examples };
-      })
-    );
-
-    return {
-      so_tu_can_on: words.length,
-      danh_sach_tu: wordsWithExamples,
-    };
+      }
+      if (session.trang_thai !== 'dang-hoc') {
+        throw new AppError('Phiên học đã kết thúc', 409, 'SESSION_CLOSED');
+      }
+      await connection.execute(
+        'INSERT INTO ket_qua_hoc (id, phien_hoc_tap_id, tu_vung_id, trang_thai) VALUES (?, ?, ?, ?)',
+        [UuidUtil.generate(), sessionId, wordId, data.trang_thai]
+      );
+      await this.updateWordProgress(connection, userId, wordId, data.trang_thai);
+      return { success: true, replayed: false };
+    });
   }
 
   /**
-   * Cập nhật tiến độ từ theo thuật toán SRS
+   * Cập nhật số lần ôn và lịch SRS trong giao dịch lưu kết quả
    */
-  private static async updateWordProgress(userId: string, wordId: string, status: string) {
-    const existing: any[] = await query(
-      'SELECT * FROM tien_do_tu_vung WHERE nguoi_dung_id = ? AND tu_vung_id = ?',
+  private static async updateWordProgress(
+    connection: PoolConnection,
+    userId: string,
+    wordId: string,
+    status: TrangThaiNhoTu
+  ) {
+    const [existing]: any = await connection.execute(
+      'SELECT so_lan_on_tap FROM tien_do_tu_vung WHERE nguoi_dung_id = ? AND tu_vung_id = ? FOR UPDATE',
       [userId, wordId]
     );
 
-    const reviewCount = existing[0]?.so_lan_on_tap || 0;
-    const nextReviewDate = this.calculateNextReviewDate(status, reviewCount + 1);
+    const count = Number(existing[0]?.so_lan_on_tap || 0) + 1;
 
-    if (existing.length > 0) {
-      await query(
-        `UPDATE tien_do_tu_vung
-         SET da_hoc = TRUE,
-             trang_thai_nho = ?,
-             so_lan_on_tap = so_lan_on_tap + 1,
-             lan_on_tap_cuoi = NOW(),
-             ngay_on_tap_tiep_theo = ?
-         WHERE nguoi_dung_id = ? AND tu_vung_id = ?`,
-        [status, nextReviewDate, userId, wordId]
-      );
-    } else {
-      await query(
-        `INSERT INTO tien_do_tu_vung
-           (nguoi_dung_id, tu_vung_id, da_hoc, trang_thai_nho, so_lan_on_tap, lan_on_tap_cuoi, ngay_on_tap_tiep_theo)
-         VALUES (?, ?, TRUE, ?, 1, NOW(), ?)`,
-        [userId, wordId, status, nextReviewDate]
-      );
-    }
+    // Đồng bộ cờ yêu thích cả khi đây là lần đầu tạo bản ghi tiến độ
+    const [favorites]: any = await connection.execute(
+      'SELECT id FROM yeu_thich WHERE nguoi_dung_id = ? AND tu_vung_id = ?',
+      [userId, wordId]
+    );
+
+    await connection.execute(
+      `INSERT INTO tien_do_tu_vung (
+         nguoi_dung_id, tu_vung_id, da_hoc, yeu_thich, trang_thai_nho,
+         so_lan_on_tap, lan_on_tap_cuoi, ngay_on_tap_tiep_theo
+       )
+       VALUES (?, ?, TRUE, ?, ?, ?, NOW(), IF(? = 'chua-nho', NOW(), ?))
+       ON DUPLICATE KEY UPDATE
+         da_hoc = TRUE,
+         yeu_thich = VALUES(yeu_thich),
+         trang_thai_nho = VALUES(trang_thai_nho),
+         so_lan_on_tap = VALUES(so_lan_on_tap),
+         lan_on_tap_cuoi = NOW(),
+         ngay_on_tap_tiep_theo = VALUES(ngay_on_tap_tiep_theo)`,
+      [userId, wordId, favorites.length > 0, status, count, status, nextReviewDate(status, count)]
+    );
   }
 
   /**
-   * Tính ngày ôn tập tiếp theo theo SRS (theo nghiệp vụ NGHIEP_VU_CHI_TIET.md)
+   * Chỉ hoàn thành khi đã đánh giá đủ từ; gửi lặp không ghi hoạt động lần nữa
    */
-  private static calculateNextReviewDate(status: string, reviewCount: number): Date {
-    const now = new Date();
-    let days = 0;
+  static async completeSession(userId: string, sessionId: string) {
+    return transaction(async (connection) => {
+      await lockUser(connection, userId);
+      const session = await sessionForUser(connection, userId, sessionId, true);
+      const [results]: any = await connection.execute(
+        'SELECT * FROM ket_qua_hoc WHERE phien_hoc_tap_id = ?',
+        [sessionId]
+      );
+      if (session.trang_thai === 'hoan-thanh') {
+        return this.summarize(session, results);
+      }
+      if (session.trang_thai !== 'dang-hoc') {
+        throw new AppError('Phiên học đã kết thúc', 409, 'SESSION_CLOSED');
+      }
+      const [members]: any = await connection.execute(
+        'SELECT COUNT(*) AS count FROM phien_hoc_tu WHERE phien_hoc_tap_id = ?',
+        [sessionId]
+      );
+      if (Number(members[0].count) !== session.tong_so_tu) {
+        throw new AppError(
+          'Phiên học cũ thiếu danh sách từ. Vui lòng bắt đầu phiên mới',
+          409,
+          'LEGACY_SESSION'
+        );
+      }
+      if (results.length !== session.tong_so_tu) {
+        throw new AppError(
+          'Phải đánh giá tất cả các từ trước khi hoàn thành',
+          409,
+          'SESSION_INCOMPLETE'
+        );
+      }
+      await connection.execute(
+        "UPDATE phien_hoc_tap SET trang_thai = 'hoan-thanh', ket_thuc_luc = NOW() WHERE id = ?",
+        [sessionId]
+      );
+      await connection.execute(
+        'INSERT INTO hoat_dong_hoc_tap (id, nguoi_dung_id, loai_hoat_dong, mo_ta) VALUES (?, ?, ?, ?)',
+        [
+          UuidUtil.generate(),
+          userId,
+          session.loai_phien === 'on_tap' ? 'on_tap' : 'hoan_thanh_session',
+          'Hoàn thành phiên ' + sessionId,
+        ]
+      );
+      return this.summarize(session, results);
+    });
+  }
 
-    switch (status) {
-      case 'da-nho':
-        // Ôn lại sau lâu hơn dần
-        if (reviewCount === 1) days = 1;
-        else if (reviewCount === 2) days = 3;
-        else if (reviewCount === 3) days = 7;
-        else if (reviewCount === 4) days = 14;
-        else days = 30;
-        break;
+  /**
+   * Tổng hợp kết quả theo tổng số từ đã chọn cho phiên
+   */
+  private static summarize(session: PhienHocTap, results: any[]) {
+    const da_nho = results.filter((result) => result.trang_thai === 'da-nho').length;
 
-      case 'chua-chac':
-        // Ôn lại sau 1 ngày
-        days = 1;
-        break;
+    return {
+      phien_hoc_tap_id: session.id,
+      tong_so_tu: session.tong_so_tu,
+      so_tu_da_danh_gia: results.length,
+      da_nho,
+      chua_chac: results.filter((result) => result.trang_thai === 'chua-chac').length,
+      chua_nho: results.filter((result) => result.trang_thai === 'chua-nho').length,
+      ty_le: session.tong_so_tu ? Math.round((100 * da_nho) / session.tong_so_tu) : 0,
+    };
+  }
 
-      case 'chua-nho':
-        // Ôn lại ngay hôm nay
-        days = 0;
-        break;
+  /**
+   * Lấy kết quả và danh sách từ đã lưu để mobile tiếp tục phiên học
+   */
+  static async getSessionResult(userId: string, sessionId: string) {
+    return transaction(async (connection) => {
+      const session = await sessionForUser(connection, userId, sessionId);
+      const [results]: any = await connection.execute(
+        `SELECT k.*, t.tu_tieng_anh, t.phien_am, t.nghia_tieng_viet, t.url_hinh_anh FROM ket_qua_hoc k
+         JOIN tu_vung t ON k.tu_vung_id = t.id WHERE k.phien_hoc_tap_id = ? ORDER BY k.ngay_tao, k.id`,
+        [sessionId]
+      );
+      const [words]: any = await connection.execute(
+        `SELECT t.*, k.trang_thai FROM phien_hoc_tu p JOIN tu_vung t ON p.tu_vung_id = t.id
+         LEFT JOIN ket_qua_hoc k ON k.phien_hoc_tap_id = p.phien_hoc_tap_id AND k.tu_vung_id = p.tu_vung_id
+         WHERE p.phien_hoc_tap_id = ? ORDER BY p.thu_tu`,
+        [sessionId]
+      );
+      return {
+        phien_hoc_tap: session,
+        ...this.summarize(session, results),
+        ket_qua: results,
+        danh_sach_tu_chua_nho: results.filter((result: any) => result.trang_thai === 'chua-nho'),
+        danh_sach_tu: await withExamples(words, connection),
+      };
+    });
+  }
 
-      default:
-        days = 1;
+  /**
+   * Lấy từ đến hạn ôn và tổng số từ cần ôn trước khi giới hạn danh sách
+   */
+  static async getReviewWords(userId: string, limit = 50) {
+    if (!Number.isInteger(limit) || limit < 1 || limit > 50) {
+      throw new AppError('Giới hạn ôn tập phải từ 1 đến 50');
     }
 
-    now.setDate(now.getDate() + days);
-    return now;
+    const words = await query<any[]>(
+      'SELECT t.*, p.trang_thai_nho, p.so_lan_on_tap, p.ngay_on_tap_tiep_theo ' +
+        dueSql +
+        ' ORDER BY p.ngay_on_tap_tiep_theo, t.id LIMIT ?',
+      [userId, limit]
+    );
+
+    const counts = await query<any[]>('SELECT COUNT(*) AS count ' + dueSql, [userId]);
+
+    return { so_tu_can_on: Number(counts[0].count), danh_sach_tu: await withExamples(words) };
   }
 }

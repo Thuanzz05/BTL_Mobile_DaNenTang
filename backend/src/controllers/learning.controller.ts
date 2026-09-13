@@ -16,12 +16,12 @@ export class LearningController {
         return ResponseUtil.error(res, 'Thiếu chu_de_id', 'MISSING_FIELDS', 400);
       }
 
-      const wordCount = tong_so_tu ? Math.min(Math.max(parseInt(tong_so_tu), 5), 50) : 20;
+      const wordCount = tong_so_tu ?? 20;
       const result = await LearningService.startSession(userId, chu_de_id, wordCount);
 
       return ResponseUtil.success(res, result, 'Bắt đầu phiên học thành công', 201);
     } catch (error: any) {
-      next(error);
+      return next(error);
     }
   }
 
@@ -53,10 +53,15 @@ export class LearningController {
         );
       }
 
-      const result = await LearningService.submitResult(userId, phien_hoc_tap_id, tu_vung_id, trang_thai);
+      const result = await LearningService.submitResult(
+        userId,
+        phien_hoc_tap_id,
+        tu_vung_id,
+        trang_thai
+      );
       return ResponseUtil.success(res, result, 'Lưu kết quả thành công');
     } catch (error: any) {
-      next(error);
+      return next(error);
     }
   }
 
@@ -76,7 +81,7 @@ export class LearningController {
       const result = await LearningService.completeSession(userId, phien_hoc_tap_id);
       return ResponseUtil.success(res, result, 'Hoàn thành phiên học thành công');
     } catch (error: any) {
-      next(error);
+      return next(error);
     }
   }
 
@@ -92,7 +97,7 @@ export class LearningController {
       const result = await LearningService.getSessionResult(userId, sessionId);
       return ResponseUtil.success(res, result, 'Lấy kết quả thành công');
     } catch (error: any) {
-      next(error);
+      return next(error);
     }
   }
 
@@ -108,7 +113,16 @@ export class LearningController {
       const result = await LearningService.getReviewWords(userId, limit);
       return ResponseUtil.success(res, result, 'Lấy từ cần ôn tập thành công');
     } catch (error: any) {
-      next(error);
+      return next(error);
+    }
+  }
+
+  static async startReviewSession(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await LearningService.startReviewSession(req.user!.id, req.body.tong_so_tu);
+      return ResponseUtil.success(res, result, 'Bắt đầu ôn tập thành công', 201);
+    } catch (error) {
+      return next(error);
     }
   }
 }

@@ -24,7 +24,7 @@ export class HistoryController {
         'Lấy lịch sử học tập thành công'
       );
     } catch (error: any) {
-      next(error);
+      return next(error);
     }
   }
 
@@ -40,7 +40,7 @@ export class HistoryController {
       const result = await HistoryService.getSessionDetail(sessionId, userId);
       return ResponseUtil.success(res, result, 'Lấy chi tiết phiên học thành công');
     } catch (error: any) {
-      next(error);
+      return next(error);
     }
   }
 }

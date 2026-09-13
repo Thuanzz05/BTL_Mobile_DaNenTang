@@ -4,11 +4,17 @@ import { TopicController } from '../controllers/topic.controller';
 import { WordController } from '../controllers/word.controller';
 import { adminMiddleware } from '../middlewares/admin.middleware';
 import { authMiddleware } from '../middlewares/auth.middleware';
+import { validate } from '../middlewares/validate.middleware';
+import { schemas, topicSchema, wordSchema } from '../validations/request.schemas';
+import { uploadAudio, uploadImage } from '../middlewares/upload.middleware';
+import { UploadController } from '../controllers/upload.controller';
 
 const router = Router();
 
 // Áp dụng auth + admin middleware cho tất cả route admin
 router.use(authMiddleware, adminMiddleware);
+router.post('/upload/image', uploadImage, UploadController.uploadImage);
+router.post('/upload/audio', uploadAudio, UploadController.uploadAudio);
 
 /**
  * @swagger
@@ -89,7 +95,7 @@ router.get('/users', AdminController.getUsers);
  *       200:
  *         description: Cập nhật trạng thái thành công
  */
-router.put('/users/:userId/status', AdminController.updateUserStatus);
+router.put('/users/:userId/status', validate(schemas.status), AdminController.updateUserStatus);
 
 /**
  * @swagger
@@ -151,7 +157,7 @@ router.get('/topics', TopicController.getAll);
  *       201:
  *         description: Tạo chủ đề thành công
  */
-router.post('/topics', TopicController.create);
+router.post('/topics', validate(topicSchema), TopicController.create);
 
 /**
  * @swagger
@@ -171,7 +177,7 @@ router.post('/topics', TopicController.create);
  *       200:
  *         description: Cập nhật thành công
  */
-router.put('/topics/:id', TopicController.update);
+router.put('/topics/:id', validate(topicSchema.partial()), TopicController.update);
 
 /**
  * @swagger
@@ -236,7 +242,7 @@ router.get('/words', WordController.getAll);
  *       201:
  *         description: Tạo thành công
  */
-router.post('/words', WordController.create);
+router.post('/words', validate(wordSchema), WordController.create);
 
 /**
  * @swagger
@@ -256,7 +262,7 @@ router.post('/words', WordController.create);
  *       200:
  *         description: Cập nhật thành công
  */
-router.put('/words/:id', WordController.update);
+router.put('/words/:id', validate(wordSchema.partial()), WordController.update);
 
 /**
  * @swagger
@@ -277,5 +283,53 @@ router.put('/words/:id', WordController.update);
  *         description: Xóa thành công
  */
 router.delete('/words/:id', WordController.delete);
+
+/**
+ * @swagger
+ * /api/admin/upload/image:
+ *   post:
+ *     summary: Upload ảnh JPG/PNG tối đa 2 MB (admin)
+ *     tags: [Admin]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required: [file]
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       201:
+ *         description: URL ảnh trong data.url
+ *       400:
+ *         description: File không đúng định dạng
+ *       413:
+ *         description: File vượt giới hạn
+ * /api/admin/upload/audio:
+ *   post:
+ *     summary: Upload âm thanh MP3 tối đa 5 MB (admin)
+ *     tags: [Admin]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             required: [file]
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       201:
+ *         description: URL âm thanh trong data.url
+ *       400:
+ *         description: File không đúng định dạng
+ *       413:
+ *         description: File vượt giới hạn
+ */
 
 export default router;
