@@ -1,26 +1,18 @@
 const mysql = require('mysql2/promise');
-require('dotenv').config();
-
-async function createDatabase() {
-  const connection = await mysql.createConnection({
-    host: process.env.DB_HOST || 'localhost',
-    port: parseInt(process.env.DB_PORT || '3306'),
-    user: process.env.DB_USER || 'root',
-    password: process.env.DB_PASSWORD || ''
-  });
-
+const { connect, databaseName } = require('./database-tools');
+(async () => {
+  const connection = await connect();
   try {
-    console.log('📝 Creating database...');
     await connection.query(
-      `CREATE DATABASE IF NOT EXISTS ${process.env.DB_NAME} CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`
+      'CREATE DATABASE IF NOT EXISTS ' +
+        mysql.escapeId(databaseName()) +
+        ' CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci'
     );
-    console.log(`✅ Database '${process.env.DB_NAME}' created successfully`);
-  } catch (error) {
-    console.error('❌ Error creating database:', error);
-    process.exit(1);
+    console.log('Database đã sẵn sàng. Chạy npm run db:migrate để tạo/nâng cấp bảng.');
   } finally {
     await connection.end();
   }
-}
-
-createDatabase();
+})().catch((error) => {
+  console.error(error.message);
+  process.exitCode = 1;
+});
