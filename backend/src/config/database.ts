@@ -15,10 +15,15 @@ const dbConfig = {
   queueLimit: 0,
   enableKeepAlive: true,
   keepAliveInitialDelay: 0,
+  decimalNumbers: true,
+  timezone: 'Z',
 };
 
 // Create connection pool
 const pool = mysql.createPool(dbConfig);
+pool.on('connection', (connection) => {
+  connection.query("SET time_zone = '+00:00'");
+});
 
 // Test connection
 export const testConnection = async (): Promise<boolean> => {
@@ -30,28 +35,31 @@ export const testConnection = async (): Promise<boolean> => {
     return true;
   } catch (error) {
     console.error('❌ Lỗi kết nối MySQL:', error);
-    return false;
+    throw error;
   }
 };
 
 // Query helper
 export const query = async <T = any>(sql: string, params?: any[]): Promise<T> => {
   try {
-    const [rows] = await pool.execute(sql, params);
+    const [rows] = await pool.query(sql, params);
     return rows as T;
   } catch (error) {
-    console.error('❌ Lỗi query:', error);
+    console.error('Lỗi truy vấn database');
     throw error;
   }
 };
 
 // Transaction helper
-export const transaction = async (callback: (connection: mysql.PoolConnection) => Promise<void>) => {
+export const transaction = async <T>(
+  callback: (connection: mysql.PoolConnection) => Promise<T>
+): Promise<T> => {
   const connection = await pool.getConnection();
   try {
     await connection.beginTransaction();
-    await callback(connection);
+    const result = await callback(connection);
     await connection.commit();
+    return result;
   } catch (error) {
     await connection.rollback();
     throw error;
