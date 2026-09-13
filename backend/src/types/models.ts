@@ -8,6 +8,7 @@ export interface NguoiDung {
   provider_id?: string;
   anh_dai_dien?: string;
   vai_tro: 'user' | 'admin';
+  token_version: number;
   trang_thai: 'active' | 'inactive' | 'locked';
   ngay_tao: Date;
   ngay_cap_nhat: Date;
@@ -26,7 +27,8 @@ export interface ChuDe {
 }
 
 // Word types
-export type LoaiTu = 'danh-tu' | 'dong-tu' | 'tinh-tu' | 'trang-tu' | 'gioi-tu' | 'lien-tu' | 'dai-tu' | 'tham-tu';
+export type LoaiTu =
+  'danh-tu' | 'dong-tu' | 'tinh-tu' | 'trang-tu' | 'gioi-tu' | 'lien-tu' | 'dai-tu' | 'tham-tu';
 
 export interface TuVung {
   id: string;
@@ -58,7 +60,8 @@ export type TrangThaiPhienHoc = 'dang-hoc' | 'hoan-thanh' | 'bo-do';
 export interface PhienHocTap {
   id: string;
   nguoi_dung_id: string;
-  chu_de_id: string;
+  chu_de_id: string | null;
+  loai_phien: 'hoc_moi' | 'on_tap';
   tong_so_tu: number;
   bat_dau_luc: Date;
   ket_thuc_luc?: Date;
