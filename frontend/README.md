@@ -23,3 +23,9 @@ Các dependency native được đồng bộ theo `expo/bundledNativeModules.jso
 Kiểm thử logic phiên đăng nhập: `npm test`. Kiểm tra mobile cuối cùng bằng Expo Go SDK 57 hoặc development build trên Android/iOS; web preview không thay thế kiểm thử thiết bị thật.
 
 Đã kiểm tra trên backend/MySQL local: đăng ký tài khoản tạm, đăng nhập sai/đúng mật khẩu, tải dashboard, khôi phục phiên sau reload, đăng xuất; tài khoản tạm được xóa sau kiểm thử. Playwright/Chrome kiểm tra lật thẻ, đổi chủ đề, tìm kiếm và chiều rộng 320px. TypeScript, ESLint, 8 kiểm thử phiên đăng nhập và build web đều thành công. Chưa chạy trên thiết bị Android/iOS thật.
+
+## Trang luyện trắc nghiệm
+
+Bấm một chủ đề hoặc Bắt đầu học thử trên trang chủ để vào màn luyện trắc nghiệm. Mỗi câu có tối đa 4 nghĩa khác nhau lấy từ chủ đề (ít nhất 2). Chọn một lần, xem đúng/sai, bấm Câu tiếp theo. Không dùng nút tự đánh giá ghi nhớ.
+
+Sai: đặt lại chuỗi đúng, xếp từ lại sau hai câu khác khi còn đủ từ. Đúng: giãn bốn câu khi còn đủ từ. Khi đến hạn, ưu tiên từ sai nhiều; tránh lặp ngay nếu còn từ khác. Từ đạt khi đúng liên tiếp 2 + min(số lần sai, 2) lần. Nếu còn ít từ, khoảng cách rút ngắn. Trang kết quả nằm trong cùng màn học. Kết quả chỉ giữ trong phiên, chưa đồng bộ thuật toán mới với backend/SRS.
