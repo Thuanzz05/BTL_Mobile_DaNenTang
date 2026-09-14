@@ -12,6 +12,13 @@ export interface QuizState {
   turn: number;
   correct: number;
 }
+export type LearningResultStatus = "da-nho" | "chua-chac" | "chua-nho";
+
+export function resultStatus(item: QuizItem): LearningResultStatus {
+  if (item.mistakes === 0) return "da-nho";
+  if (item.mistakes === 1) return "chua-chac";
+  return "chua-nho";
+}
 export function createQuiz(words: Word[]): QuizState {
   return {
     items: words.map((word) => ({

@@ -28,6 +28,7 @@ export default function HomeScreen() {
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Topic | null>(null);
+  const [reviewCount, setReviewCount] = useState(0);
   const load = useCallback(async () => {
     setLoading(true);
     setError("");
@@ -104,7 +105,12 @@ export default function HomeScreen() {
           </Text>
         </View>
         {!ready && <ActivityIndicator color={c.green} />}
-        {ready && user && <HomeProgress key={`${user.id}-${revision}`} />}
+        {ready && user && (
+          <HomeProgress
+            key={`${user.id}-${revision}`}
+            onReview={setReviewCount}
+          />
+        )}
         <View style={s.hero}>
           <View style={s.row}>
             <View style={s.badge}>
@@ -123,10 +129,16 @@ export default function HomeScreen() {
             onPress={() => first && setSelected(first)}
             style={[s.cta, !first && s.disabled]}
           >
-            <Text style={s.ctaText}>Bắt đầu học thử</Text>
+            <Text style={s.ctaText}>
+              {user ? "Bắt đầu phiên học" : "Bắt đầu học thử"}
+            </Text>
             <Ionicons name="arrow-forward" size={20} color={c.ink} />
           </Pressable>
-          <Text style={s.heroNote}>Miễn phí · Không cần tài khoản</Text>
+          <Text style={s.heroNote}>
+            {user
+              ? "Kết quả tự động lưu vào tài khoản"
+              : "Miễn phí · Không cần tài khoản"}
+          </Text>
         </View>
         <View style={s.section}>
           <View style={s.row}>
@@ -217,6 +229,16 @@ export default function HomeScreen() {
           key={selected.id}
           topic={selected}
           onClose={() => setSelected(null)}
+          onCompleted={() => setRevision((value) => value + 1)}
+        />
+      )}
+      {reviewCount > 0 && (
+        <FlashcardPreview
+          key={`review-${reviewCount}`}
+          topic={null}
+          reviewCount={reviewCount}
+          onClose={() => setReviewCount(0)}
+          onCompleted={() => setRevision((value) => value + 1)}
         />
       )}
     </SafeAreaView>
