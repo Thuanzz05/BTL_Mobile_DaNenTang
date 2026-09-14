@@ -5,8 +5,9 @@ import { PhienHocTap, TrangThaiNhoTu } from '../types/models';
 import { AppError } from '../utils/app-error';
 import { nextReviewDate } from '../utils/srs.util';
 import { UuidUtil } from '../utils/uuid.util';
+import { QUIZ_VERSION, shuffled } from '../utils/quiz.util';
 
-async function lockUser(connection: PoolConnection, userId: string) {
+export async function lockUser(connection: PoolConnection, userId: string) {
   const [users]: any = await connection.execute(
     'SELECT id, trang_thai FROM nguoi_dung WHERE id = ? FOR UPDATE',
     [userId]
@@ -16,7 +17,7 @@ async function lockUser(connection: PoolConnection, userId: string) {
   }
 }
 
-async function sessionForUser(
+export async function sessionForUser(
   connection: PoolConnection,
   userId: string,
   sessionId: string,
@@ -64,17 +65,71 @@ export class LearningService {
     userId: string,
     topicId: string | null,
     words: any[],
-    type: 'hoc_moi' | 'on_tap'
+    type: 'hoc_moi' | 'on_tap',
+    method: 'danh_gia' | 'trac_nghiem'
   ) {
     const id = UuidUtil.generate();
     await connection.execute(
-      'INSERT INTO phien_hoc_tap (id, nguoi_dung_id, chu_de_id, tong_so_tu, loai_phien) VALUES (?, ?, ?, ?, ?)',
-      [id, userId, topicId, words.length, type]
+      `INSERT INTO phien_hoc_tap (
+        id, nguoi_dung_id, chu_de_id, tong_so_tu, loai_phien, phuong_thuc, phien_ban_thuat_toan
+      ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [
+        id,
+        userId,
+        topicId,
+        words.length,
+        type,
+        method,
+        method === 'trac_nghiem' ? QUIZ_VERSION : null,
+      ]
     );
     await connection.query(
       'INSERT INTO phien_hoc_tu (phien_hoc_tap_id, tu_vung_id, thu_tu) VALUES ?',
       [words.map((word, index) => [id, word.id, index])]
     );
+
+    // Chụp nội dung và đáp án tại thời điểm bắt đầu để việc sửa từ không đổi kết quả chấm.
+    if (method === 'trac_nghiem') {
+      const [catalog]: any = await connection.query(
+        `SELECT DISTINCT TRIM(t.nghia_tieng_viet) AS nghia FROM tu_vung t
+         JOIN chu_de c ON c.id = t.chu_de_id AND c.trang_thai = 'active'
+         ORDER BY RAND() LIMIT 200`
+      );
+      const meanings = [
+        ...new Set<string>([
+          ...words.map((word) => word.nghia_tieng_viet.trim()),
+          ...catalog.map((word: any) => word.nghia),
+        ]),
+      ];
+
+      if (meanings.length < 2) {
+        throw new AppError(
+          'Cần ít nhất hai nghĩa khác nhau để tạo câu hỏi',
+          409,
+          'INSUFFICIENT_CHOICES'
+        );
+      }
+
+      for (const word of words) {
+        const meaning = word.nghia_tieng_viet.trim();
+        const snapshot = {
+          tu_tieng_anh: word.tu_tieng_anh,
+          phien_am: word.phien_am,
+          url_am_thanh: word.url_am_thanh,
+          url_hinh_anh: word.url_hinh_anh,
+          nghia_tieng_viet: meaning,
+          lua_chon: [
+            meaning,
+            ...shuffled(meanings.filter((value) => value !== meaning)).slice(0, 3),
+          ],
+        };
+
+        await connection.execute(
+          'UPDATE phien_hoc_tu SET noi_dung_trac_nghiem = ? WHERE phien_hoc_tap_id = ? AND tu_vung_id = ?',
+          [JSON.stringify(snapshot), id, word.id]
+        );
+      }
+    }
     const [sessions]: any = await connection.execute(
       `SELECT p.*, c.ten AS chu_de_ten, c.hinh_anh AS chu_de_hinh_anh FROM phien_hoc_tap p
        LEFT JOIN chu_de c ON p.chu_de_id = c.id WHERE p.id = ?`,
@@ -91,7 +146,12 @@ export class LearningService {
   /**
    * Bắt đầu học theo chủ đề, ưu tiên từ chưa học
    */
-  static async startSession(userId: string, topicId: string, wordCount = 20) {
+  static async startSession(
+    userId: string,
+    topicId: string,
+    wordCount = 20,
+    method: 'danh_gia' | 'trac_nghiem' = 'danh_gia'
+  ) {
     schemas.start.parse({ chu_de_id: topicId, tong_so_tu: wordCount });
 
     return transaction(async (connection) => {
@@ -111,14 +171,18 @@ export class LearningService {
       if (words.length < 5) {
         throw new AppError('Chủ đề cần ít nhất 5 từ để học', 409, 'INSUFFICIENT_WORDS');
       }
-      return this.createSession(connection, userId, topicId, words, 'hoc_moi');
+      return this.createSession(connection, userId, topicId, words, 'hoc_moi', method);
     });
   }
 
   /**
    * Tạo phiên ôn từ các từ đến hạn, có thể thuộc nhiều chủ đề
    */
-  static async startReviewSession(userId: string, wordCount = 50) {
+  static async startReviewSession(
+    userId: string,
+    wordCount = 50,
+    method: 'danh_gia' | 'trac_nghiem' = 'danh_gia'
+  ) {
     schemas.review.parse({ tong_so_tu: wordCount });
 
     return transaction(async (connection) => {
@@ -130,7 +194,7 @@ export class LearningService {
       if (!words.length) {
         throw new AppError('Không có từ đến hạn ôn tập', 404, 'NO_REVIEW_WORDS');
       }
-      return this.createSession(connection, userId, null, words, 'on_tap');
+      return this.createSession(connection, userId, null, words, 'on_tap', method);
     });
   }
 
@@ -145,9 +209,17 @@ export class LearningService {
     });
 
     return transaction(async (connection) => {
-      // Serialize submissions for one learner, including submissions from different sessions.
+      // Khóa người học để các lần gửi đồng thời không cộng tiến độ hai lần.
       await lockUser(connection, userId);
       const session = await sessionForUser(connection, userId, sessionId, true);
+
+      if (session.phuong_thuc === 'trac_nghiem') {
+        throw new AppError(
+          'Phiên trắc nghiệm phải nộp đáp án qua API quiz',
+          409,
+          'QUIZ_ANSWER_REQUIRED'
+        );
+      }
       const [members]: any = await connection.execute(
         'SELECT tu_vung_id FROM phien_hoc_tu WHERE phien_hoc_tap_id = ? AND tu_vung_id = ?',
         [sessionId, wordId]
@@ -184,7 +256,7 @@ export class LearningService {
   /**
    * Cập nhật số lần ôn và lịch SRS trong giao dịch lưu kết quả
    */
-  private static async updateWordProgress(
+  static async updateWordProgress(
     connection: PoolConnection,
     userId: string,
     wordId: string,
@@ -227,49 +299,56 @@ export class LearningService {
     return transaction(async (connection) => {
       await lockUser(connection, userId);
       const session = await sessionForUser(connection, userId, sessionId, true);
-      const [results]: any = await connection.execute(
-        'SELECT * FROM ket_qua_hoc WHERE phien_hoc_tap_id = ?',
-        [sessionId]
-      );
-      if (session.trang_thai === 'hoan-thanh') {
-        return this.summarize(session, results);
-      }
-      if (session.trang_thai !== 'dang-hoc') {
-        throw new AppError('Phiên học đã kết thúc', 409, 'SESSION_CLOSED');
-      }
-      const [members]: any = await connection.execute(
-        'SELECT COUNT(*) AS count FROM phien_hoc_tu WHERE phien_hoc_tap_id = ?',
-        [sessionId]
-      );
-      if (Number(members[0].count) !== session.tong_so_tu) {
-        throw new AppError(
-          'Phiên học cũ thiếu danh sách từ. Vui lòng bắt đầu phiên mới',
-          409,
-          'LEGACY_SESSION'
-        );
-      }
-      if (results.length !== session.tong_so_tu) {
-        throw new AppError(
-          'Phải đánh giá tất cả các từ trước khi hoàn thành',
-          409,
-          'SESSION_INCOMPLETE'
-        );
-      }
-      await connection.execute(
-        "UPDATE phien_hoc_tap SET trang_thai = 'hoan-thanh', ket_thuc_luc = NOW() WHERE id = ?",
-        [sessionId]
-      );
-      await connection.execute(
-        'INSERT INTO hoat_dong_hoc_tap (id, nguoi_dung_id, loai_hoat_dong, mo_ta) VALUES (?, ?, ?, ?)',
-        [
-          UuidUtil.generate(),
-          userId,
-          session.loai_phien === 'on_tap' ? 'on_tap' : 'hoan_thanh_session',
-          'Hoàn thành phiên ' + sessionId,
-        ]
-      );
-      return this.summarize(session, results);
+      return this.completeLockedSession(connection, session);
     });
+  }
+
+  /** Hoàn tất trên cùng giao dịch đã khóa người học và phiên. */
+  static async completeLockedSession(connection: PoolConnection, session: PhienHocTap) {
+    const sessionId = session.id;
+    const userId = session.nguoi_dung_id;
+    const [results]: any = await connection.execute(
+      'SELECT * FROM ket_qua_hoc WHERE phien_hoc_tap_id = ?',
+      [sessionId]
+    );
+    if (session.trang_thai === 'hoan-thanh') {
+      return this.summarize(session, results);
+    }
+    if (session.trang_thai !== 'dang-hoc') {
+      throw new AppError('Phiên học đã kết thúc', 409, 'SESSION_CLOSED');
+    }
+    const [members]: any = await connection.execute(
+      'SELECT COUNT(*) AS count FROM phien_hoc_tu WHERE phien_hoc_tap_id = ?',
+      [sessionId]
+    );
+    if (Number(members[0].count) !== session.tong_so_tu) {
+      throw new AppError(
+        'Phiên học cũ thiếu danh sách từ. Vui lòng bắt đầu phiên mới',
+        409,
+        'LEGACY_SESSION'
+      );
+    }
+    if (results.length !== session.tong_so_tu) {
+      throw new AppError(
+        'Phải đánh giá tất cả các từ trước khi hoàn thành',
+        409,
+        'SESSION_INCOMPLETE'
+      );
+    }
+    await connection.execute(
+      "UPDATE phien_hoc_tap SET trang_thai = 'hoan-thanh', ket_thuc_luc = NOW() WHERE id = ?",
+      [sessionId]
+    );
+    await connection.execute(
+      'INSERT INTO hoat_dong_hoc_tap (id, nguoi_dung_id, loai_hoat_dong, mo_ta) VALUES (?, ?, ?, ?)',
+      [
+        UuidUtil.generate(),
+        userId,
+        session.loai_phien === 'on_tap' ? 'on_tap' : 'hoan_thanh_session',
+        'Hoàn thành phiên ' + sessionId,
+      ]
+    );
+    return this.summarize(session, results);
   }
 
   /**

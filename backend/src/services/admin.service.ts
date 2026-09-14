@@ -1,11 +1,16 @@
 import { AppError } from '../utils/app-error';
 import { query, transaction } from '../config/database';
+import { learningPeriodStarts } from '../utils/calendar.util';
+import { fillDays } from './admin-report.service';
 
 export class AdminService {
   /**
    * Lấy thống kê dashboard admin
    */
   static async getDashboard() {
+    const today = learningPeriodStarts().today;
+    const start = new Date(today.getTime() - 6 * 86400000);
+    const end = new Date(today.getTime() + 86400000);
     const [usersResult, topicsResult, wordsResult, sessionsResult, activeSessionsResult]: any[] =
       await Promise.all([
         query<any[]>(`SELECT COUNT(*) as count FROM nguoi_dung WHERE vai_tro = 'user'`),
@@ -17,20 +22,22 @@ export class AdminService {
 
     // Người dùng mới 7 ngày gần nhất
     const newUsers7Days: any[] = await query(
-      `SELECT DATE(ngay_tao) as ngay, COUNT(*) as so_luong
+      `SELECT DATE_FORMAT(DATE_ADD(ngay_tao, INTERVAL 7 HOUR), '%Y-%m-%d') as ngay, COUNT(*) as so_luong
        FROM nguoi_dung
-       WHERE ngay_tao >= DATE_SUB(NOW(), INTERVAL 7 DAY) AND vai_tro = 'user'
-       GROUP BY DATE(ngay_tao)
-       ORDER BY ngay ASC`
+       WHERE ngay_tao >= ? AND ngay_tao < ? AND vai_tro = 'user'
+       GROUP BY ngay
+       ORDER BY ngay ASC`,
+      [start, end]
     );
 
     // Lượt học 7 ngày gần nhất
     const sessions7Days: any[] = await query(
-      `SELECT DATE(bat_dau_luc) as ngay, COUNT(*) as so_luong
+      `SELECT DATE_FORMAT(DATE_ADD(bat_dau_luc, INTERVAL 7 HOUR), '%Y-%m-%d') as ngay, COUNT(*) as so_luong
        FROM phien_hoc_tap
-       WHERE bat_dau_luc >= DATE_SUB(NOW(), INTERVAL 7 DAY)
-       GROUP BY DATE(bat_dau_luc)
-       ORDER BY ngay ASC`
+       WHERE bat_dau_luc >= ? AND bat_dau_luc < ?
+       GROUP BY ngay
+       ORDER BY ngay ASC`,
+      [start, end]
     );
 
     return {
@@ -39,8 +46,8 @@ export class AdminService {
       tong_tu_vung: wordsResult[0]?.count || 0,
       tong_luot_hoc: sessionsResult[0]?.count || 0,
       phien_dang_hoc: activeSessionsResult[0]?.count || 0,
-      nguoi_dung_moi_7_ngay: newUsers7Days,
-      luot_hoc_7_ngay: sessions7Days,
+      nguoi_dung_moi_7_ngay: fillDays(start, end, newUsers7Days, { so_luong: 0 }),
+      luot_hoc_7_ngay: fillDays(start, end, sessions7Days, { so_luong: 0 }),
     };
   }
 
@@ -139,6 +146,9 @@ export class AdminService {
    * Lấy thống kê chi tiết (admin statistics)
    */
   static async getStatistics() {
+    const today = learningPeriodStarts().today;
+    const start = new Date(today.getTime() - 6 * 86400000);
+    const end = new Date(today.getTime() + 86400000);
     // Chủ đề được học nhiều nhất
     const topTopics: any[] = await query(
       `SELECT c.id, c.ten, COUNT(p.id) as luot_hoc
@@ -161,17 +171,21 @@ export class AdminService {
 
     // Hoạt động học 7 ngày gần nhất
     const activity7Days: any[] = await query(
-      `SELECT DATE(bat_dau_luc) as ngay, COUNT(*) as so_phien, SUM(tong_so_tu) as so_tu
-       FROM phien_hoc_tap
-       WHERE bat_dau_luc >= DATE_SUB(NOW(), INTERVAL 7 DAY)
-       GROUP BY DATE(bat_dau_luc)
-       ORDER BY ngay ASC`
+      `SELECT DATE_FORMAT(DATE_ADD(p.bat_dau_luc, INTERVAL 7 HOUR), '%Y-%m-%d') as ngay,
+         COUNT(*) as so_phien, COALESCE(SUM(k.so_tu), 0) as so_tu
+       FROM phien_hoc_tap p
+       LEFT JOIN (SELECT phien_hoc_tap_id, COUNT(*) as so_tu FROM ket_qua_hoc GROUP BY phien_hoc_tap_id) k
+         ON k.phien_hoc_tap_id = p.id
+       WHERE p.bat_dau_luc >= ? AND p.bat_dau_luc < ?
+       GROUP BY ngay
+       ORDER BY ngay ASC`,
+      [start, end]
     );
 
     return {
       chu_de_pho_bien: topTopics,
       tu_pho_bien: topWords,
-      hoat_dong_7_ngay: activity7Days,
+      hoat_dong_7_ngay: fillDays(start, end, activity7Days, { so_phien: 0, so_tu: 0 }),
     };
   }
 }
