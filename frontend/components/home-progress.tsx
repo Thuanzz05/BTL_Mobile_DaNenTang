@@ -8,12 +8,17 @@ import {
 } from "react-native";
 import { useAuth } from "@/contexts/auth-context";
 import { palette as c } from "@/constants/palette";
+import { Ionicons } from "@expo/vector-icons";
 interface Dashboard {
   tien_do_hom_nay: { da_hoc: number; muc_tieu: number };
   so_tu_can_on: number;
   tien_do: { tong_so_tu_da_hoc: number };
 }
-export function HomeProgress() {
+export function HomeProgress({
+  onReview,
+}: {
+  onReview: (count: number) => void;
+}) {
   const { client, user } = useAuth();
   const [data, setData] = useState<Dashboard | null>(null);
   const [error, setError] = useState("");
@@ -83,6 +88,16 @@ export function HomeProgress() {
             </Text>
             <Text style={s.body}>{data.so_tu_can_on} từ đến hạn ôn</Text>
           </View>
+          {data.so_tu_can_on > 0 && (
+            <Pressable
+              accessibilityRole="button"
+              style={s.review}
+              onPress={() => onReview(data.so_tu_can_on)}
+            >
+              <Text style={s.reviewText}>Ôn từ đến hạn</Text>
+              <Ionicons name="refresh" size={18} color="white" />
+            </Pressable>
+          )}
         </>
       )}
     </View>
@@ -116,4 +131,15 @@ const s = StyleSheet.create({
   },
   fill: { height: "100%", backgroundColor: c.green, borderRadius: 4 },
   retry: { minHeight: 44, justifyContent: "center" },
+  review: {
+    minHeight: 48,
+    paddingHorizontal: 16,
+    borderRadius: 14,
+    backgroundColor: c.green,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  reviewText: { color: "white", fontWeight: "700" },
 });

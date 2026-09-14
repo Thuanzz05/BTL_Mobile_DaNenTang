@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
-import { Link } from "expo-router";
+import { Href, Link } from "expo-router";
 import { useAuth } from "@/contexts/auth-context";
 import { palette as c } from "@/constants/palette";
 export default function AccountScreen() {
@@ -53,6 +53,30 @@ export default function AccountScreen() {
                 Bạn đã đăng nhập. Tiến độ cá nhân được lấy từ tài khoản của bạn.
               </Text>
             </View>
+            <Link href={"/favorites" as Href} asChild>
+              <Pressable accessibilityRole="button" style={s.menuItem}>
+                <View style={s.menuIcon}>
+                  <Ionicons name="heart-outline" size={23} color={c.green} />
+                </View>
+                <View style={s.menuText}>
+                  <Text style={s.menuTitle}>Từ yêu thích</Text>
+                  <Text style={s.body}>Xem lại những từ bạn đã lưu</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color={c.muted} />
+              </Pressable>
+            </Link>
+            <Link href={"/history" as Href} asChild>
+              <Pressable accessibilityRole="button" style={s.menuItem}>
+                <View style={s.menuIcon}>
+                  <Ionicons name="time-outline" size={23} color={c.green} />
+                </View>
+                <View style={s.menuText}>
+                  <Text style={s.menuTitle}>Lịch sử học tập</Text>
+                  <Text style={s.body}>Xem lại các buổi học gần đây</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color={c.muted} />
+              </Pressable>
+            </Link>
             <Pressable
               accessibilityRole="button"
               style={s.button}
@@ -146,4 +170,25 @@ const s = StyleSheet.create({
   white: { color: "white", fontWeight: "700", fontSize: 16 },
   secondary: { minHeight: 44, justifyContent: "center", alignItems: "center" },
   link: { color: c.green, fontWeight: "700", fontSize: 15 },
+  menuItem: {
+    minHeight: 72,
+    padding: 14,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: c.line,
+    backgroundColor: c.surface,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  menuIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: c.soft,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  menuText: { flex: 1 },
+  menuTitle: { color: c.ink, fontSize: 16, fontWeight: "700" },
 });

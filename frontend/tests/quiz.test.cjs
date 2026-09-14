@@ -18,7 +18,8 @@ vm.runInNewContext(
   ).outputText,
   { exports: exportsObject },
 );
-const { createQuiz, answerQuiz, nextQuestion, choicesFor } = exportsObject;
+const { createQuiz, answerQuiz, nextQuestion, choicesFor, resultStatus } =
+  exportsObject;
 const words = ["A", "B", "C", "D"].map((id) => ({
   id,
   tu_tieng_anh: id,
@@ -60,4 +61,10 @@ test("mistake resets streak; choice meanings are unique and include correct answ
   assert.equal(choices.length, 4);
   assert.equal(new Set(choices).size, 4);
   assert.ok(choices.includes("Meaning A"));
+});
+test("answer history maps to the backend SRS status", () => {
+  const item = createQuiz(words).items[0];
+  assert.equal(resultStatus(item), "da-nho");
+  assert.equal(resultStatus({ ...item, mistakes: 1 }), "chua-chac");
+  assert.equal(resultStatus({ ...item, mistakes: 2 }), "chua-nho");
 });

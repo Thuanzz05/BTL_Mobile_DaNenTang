@@ -17,24 +17,63 @@ import {
   choicesFor,
   createQuiz,
   nextQuestion,
+  resultStatus,
 } from "@/services/quiz";
+import { useAuth } from "@/contexts/auth-context";
+
+interface LearningSession {
+  phien_hoc_tap_id: string;
+  danh_sach_tu: Word[];
+}
+
+const post = (body: unknown): RequestInit => ({
+  method: "POST",
+  body: JSON.stringify(body),
+});
 
 export function FlashcardPreview({
   topic,
+  reviewCount = 0,
   onClose,
+  onCompleted,
 }: {
   topic: Topic | null;
+  reviewCount?: number;
   onClose: () => void;
+  onCompleted: () => void;
 }) {
+  const { client, ready, user } = useAuth();
   const [words, setWords] = useState<Word[] | null>(null);
+  const [sessionId, setSessionId] = useState<string | null>(null);
   const [error, setError] = useState("");
   const [attempt, setAttempt] = useState(0);
+  const visible = !!topic || reviewCount > 0;
   useEffect(() => {
-    if (!topic) return;
+    if (!visible || !ready) return;
     let active = true;
-    getWords(topic.id)
+    const request: Promise<LearningSession | Word[]> = reviewCount
+      ? client.authorized(
+          "/learning/review/start",
+          post({ tong_so_tu: Math.min(20, reviewCount) }),
+        )
+      : user && topic
+        ? client.authorized(
+            "/learning/start",
+            post({
+              chu_de_id: topic.id,
+              tong_so_tu: Math.min(20, Math.max(5, Number(topic.word_count))),
+            }),
+          )
+        : getWords(topic!.id);
+    request
       .then((data) => {
-        if (active) setWords(data);
+        if (!active) return;
+        if (Array.isArray(data)) {
+          setWords(data);
+        } else {
+          setSessionId(data.phien_hoc_tap_id);
+          setWords(data.danh_sach_tu);
+        }
       })
       .catch((e) => {
         if (active) setError(e.message);
@@ -42,18 +81,20 @@ export function FlashcardPreview({
     return () => {
       active = false;
     };
-  }, [topic, attempt]);
+  }, [attempt, client, ready, reviewCount, topic, user, visible]);
   const enough =
     words && new Set(words.map((w) => w.nghia_tieng_viet.trim())).size >= 2;
   return (
-    <Modal visible={!!topic} animationType="slide" onRequestClose={onClose}>
+    <Modal visible={visible} animationType="slide" onRequestClose={onClose}>
       <SafeAreaView style={s.page}>
         {enough ? (
           <Quiz
             key={attempt}
             words={words}
-            title={topic?.ten || "Từ vựng"}
+            title={reviewCount ? "Ôn tập hôm nay" : topic?.ten || "Từ vựng"}
+            sessionId={sessionId}
             onClose={onClose}
+            onCompleted={onCompleted}
           />
         ) : (
           <View style={s.loading}>
@@ -101,16 +142,27 @@ export function FlashcardPreview({
 function Quiz({
   words,
   title,
+  sessionId,
   onClose,
+  onCompleted,
 }: {
   words: Word[];
   title: string;
+  sessionId: string | null;
   onClose: () => void;
+  onCompleted: () => void;
 }) {
+  const { client, user } = useAuth();
   const [state, setState] = useState(() => createQuiz(words));
   const [options, setOptions] = useState(() => choicesFor(words[0], words));
   const [selected, setSelected] = useState<string | null>(null);
   const [confirmExit, setConfirmExit] = useState(false);
+  const [saved, setSaved] = useState<Set<string>>(() => new Set());
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
+  const [syncing, setSyncing] = useState(false);
+  const [syncError, setSyncError] = useState("");
+  const [synced, setSynced] = useState(!sessionId);
   const item = state.items[state.current];
   const completed = state.items.filter((i) => i.done).length;
   const correct = !!item && selected === item.word.nghia_tieng_viet.trim();
@@ -122,8 +174,35 @@ function Quiz({
     setSelected(value);
     setState(answerQuiz(state, value === item.word.nghia_tieng_viet.trim()));
   }
-  function next() {
+  async function next() {
     const updated = nextQuestion(state);
+    if (updated.current < 0 && sessionId) {
+      setSyncing(true);
+      setSyncError("");
+      try {
+        for (const quizItem of updated.items) {
+          await client.authorized(
+            "/learning/result",
+            post({
+              phien_hoc_tap_id: sessionId,
+              tu_vung_id: quizItem.word.id,
+              trang_thai: resultStatus(quizItem),
+            }),
+          );
+        }
+        await client.authorized(
+          "/learning/complete",
+          post({ phien_hoc_tap_id: sessionId }),
+        );
+        setSynced(true);
+        onCompleted();
+      } catch (syncFailure) {
+        setSyncError((syncFailure as Error).message);
+        return;
+      } finally {
+        setSyncing(false);
+      }
+    }
     setState(updated);
     setSelected(null);
     if (updated.current >= 0)
@@ -133,6 +212,19 @@ function Quiz({
     setState(createQuiz(words));
     setSelected(null);
     setOptions(choicesFor(words[0], words));
+  }
+  async function saveWord() {
+    if (!item || saving || saved.has(item.word.id)) return;
+    setSaving(true);
+    setSaveError("");
+    try {
+      await client.authorized(`/favorites/${item.word.id}`, { method: "PUT" });
+      setSaved((current) => new Set(current).add(item.word.id));
+    } catch (error) {
+      setSaveError((error as Error).message);
+    } finally {
+      setSaving(false);
+    }
   }
   return (
     <ScrollView
@@ -208,9 +300,11 @@ function Quiz({
           <Pressable
             accessibilityRole="button"
             style={s.button}
-            onPress={restart}
+            onPress={sessionId ? onClose : restart}
           >
-            <Text style={s.white}>Luyện lại từ đầu</Text>
+            <Text style={s.white}>
+              {sessionId ? "Hoàn tất" : "Luyện lại từ đầu"}
+            </Text>
           </Pressable>
           <Pressable
             accessibilityRole="button"
@@ -297,16 +391,55 @@ function Quiz({
                     ? "Từ này sẽ quay lại để củng cố trí nhớ."
                     : "Từ này sẽ xuất hiện lại sau vài câu; nếu chỉ còn một từ, bạn sẽ gặp lại ngay."}
               </Text>
+              {user && (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Lưu từ yêu thích"
+                  disabled={saving || saved.has(item.word.id)}
+                  style={s.favorite}
+                  onPress={saveWord}
+                >
+                  {saving ? (
+                    <ActivityIndicator color={c.green} />
+                  ) : (
+                    <Ionicons
+                      name={saved.has(item.word.id) ? "heart" : "heart-outline"}
+                      size={20}
+                      color={c.green}
+                    />
+                  )}
+                  <Text style={s.link}>
+                    {saved.has(item.word.id)
+                      ? "Đã lưu vào yêu thích"
+                      : "Lưu từ này"}
+                  </Text>
+                </Pressable>
+              )}
+              {!!saveError && <Text style={s.error}>{saveError}</Text>}
               <Pressable
                 accessibilityRole="button"
                 style={s.button}
+                disabled={syncing}
                 onPress={next}
               >
-                <Text style={s.white}>
-                  {completed === words.length ? "Xem kết quả" : "Câu tiếp theo"}
-                </Text>
-                <Ionicons name="arrow-forward" size={19} color="white" />
+                {syncing ? (
+                  <ActivityIndicator color="white" />
+                ) : (
+                  <>
+                    <Text style={s.white}>
+                      {completed === words.length
+                        ? "Lưu và xem kết quả"
+                        : "Câu tiếp theo"}
+                    </Text>
+                    <Ionicons name="arrow-forward" size={19} color="white" />
+                  </>
+                )}
               </Pressable>
+              {!!syncError && (
+                <Text accessibilityRole="alert" style={s.error}>
+                  {syncError}. Bấm lại để thử lưu kết quả.
+                </Text>
+              )}
             </View>
           ) : (
             <View style={s.tip}>
@@ -320,7 +453,11 @@ function Quiz({
         </>
       )}
       <Text style={s.footer}>
-        Phiên luyện tập · Chưa lưu kết quả vào tài khoản
+        {sessionId
+          ? synced
+            ? "Phiên luyện tập · Đã lưu kết quả vào tài khoản"
+            : "Phiên luyện tập · Kết quả sẽ tự động lưu"
+          : "Phiên học thử · Chưa lưu kết quả vào tài khoản"}
       </Text>
     </ScrollView>
   );
@@ -436,4 +573,11 @@ const s = StyleSheet.create({
   tip: { flexDirection: "row", padding: 12, gap: 9 },
   footer: { textAlign: "center", fontSize: 11, color: c.muted },
   stats: { gap: 8, alignItems: "center" },
+  favorite: {
+    minHeight: 44,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
 });

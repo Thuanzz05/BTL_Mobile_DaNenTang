@@ -7,6 +7,7 @@ import favoriteRoutes from './favorite.routes';
 import historyRoutes from './history.routes';
 import homeRoutes from './home.routes';
 import learningRoutes from './learning.routes';
+import progressRoutes from './progress.routes';
 import topicRoutes from './topic.routes';
 import wordRoutes from './word.routes';
 
@@ -18,6 +19,7 @@ router.use('/auth', authRoutes);
 router.use('/topics', topicRoutes);
 router.use('/words', wordRoutes);
 router.use('/learning', learningRoutes);
+router.use('/progress', progressRoutes);
 router.use('/history', historyRoutes);
 router.use('/favorites', favoriteRoutes);
 router.use('/home', homeRoutes);
