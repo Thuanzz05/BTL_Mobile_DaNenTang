@@ -473,6 +473,8 @@ test('Backend HTTP and real MySQL regression tests', { timeout: 120000 }, async 
       assert.deepEqual(Buffer.from(await response.arrayBuffer()), png);
     });
 
+    await require('./quiz-integration.cjs')(t, { api, connection, admin, learner, other, base });
+
     await t.test(
       'locked and unlocked accounts cannot reuse old access or refresh tokens',
       async () => {

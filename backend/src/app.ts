@@ -16,7 +16,7 @@ const app: Application = express();
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN?.split(',') || '*',
+    origin: process.env.CORS_ORIGIN?.split(',').map((origin) => origin.trim()) || '*',
     credentials: Boolean(process.env.CORS_ORIGIN),
   })
 );
@@ -24,8 +24,12 @@ app.use(
 // Rate limiting
 const limiter = rateLimit({
   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS || '900000'),
-  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '100'),
-  message: 'Too many requests from this IP, please try again later.',
+  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS || '1000'),
+  message: {
+    success: false,
+    message: 'Quá nhiều yêu cầu. Vui lòng thử lại sau.',
+    error: { code: 'RATE_LIMITED' },
+  },
 });
 app.use(process.env.API_PREFIX || '/api', limiter);
 
