@@ -59,6 +59,25 @@ export class AuthClient {
       }),
     );
   }
+  async updateProfile(name: string) {
+    const user = await this.authorized<User>("/auth/profile", {
+      method: "PUT",
+      body: JSON.stringify({ ho_ten: name.trim() }),
+    });
+    if (this.session) this.session = { ...this.session, user };
+    this.changed(user);
+    return user;
+  }
+  async changePassword(currentPassword: string, newPassword: string) {
+    await this.authorized("/auth/change-password", {
+      method: "POST",
+      body: JSON.stringify({
+        mat_khau_cu: currentPassword,
+        mat_khau_moi: newPassword,
+      }),
+    });
+    await this.clear();
+  }
   async restore() {
     const generation = this.generation;
     const refreshToken = await this.storage.read();
