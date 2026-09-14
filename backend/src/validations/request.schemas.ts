@@ -103,4 +103,13 @@ export const querySchema = z.object({
   topicId: identifier.optional(),
   search: z.string().trim().max(150).optional(),
   status: z.enum(['active', 'inactive', 'locked']).optional(),
+  from: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
+  to: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
+  minAttempts: positiveQueryNumber(100000).optional(),
 });

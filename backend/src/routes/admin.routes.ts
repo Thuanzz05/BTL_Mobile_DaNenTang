@@ -113,6 +113,24 @@ router.get('/statistics', AdminController.getStatistics);
 
 /**
  * @swagger
+ * /api/admin/quiz-statistics:
+ *   get:
+ *     summary: Thống kê lượt trả lời đúng/sai và từ cần luyện từ dữ liệu quiz thật
+ *     tags: [Admin]
+ *     security: [{ bearerAuth: [] }]
+ *     parameters:
+ *       - { in: query, name: from, schema: { type: string, format: date } }
+ *       - { in: query, name: to, schema: { type: string, format: date } }
+ *       - { in: query, name: minAttempts, schema: { type: integer, minimum: 1, default: 5 } }
+ *       - { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 100, default: 20 } }
+ *     responses:
+ *       200: { description: Khoảng ngày theo giờ Việt Nam, tổng quan, từ cần luyện và hoạt động theo ngày }
+ *       400: { description: Ngày không tồn tại, khoảng đảo ngược hoặc vượt 366 ngày }
+ */
+router.get('/quiz-statistics', AdminController.getQuizStatistics);
+
+/**
+ * @swagger
  * /api/admin/topics:
  *   get:
  *     summary: Lấy tất cả chủ đề (Admin)
