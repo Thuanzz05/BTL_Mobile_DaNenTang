@@ -18,6 +18,7 @@ import {
   createQuiz,
   nextQuestion,
 } from "@/services/quiz";
+import { useAuth } from "@/contexts/auth-context";
 
 export function FlashcardPreview({
   topic,
@@ -107,10 +108,14 @@ function Quiz({
   title: string;
   onClose: () => void;
 }) {
+  const { client, user } = useAuth();
   const [state, setState] = useState(() => createQuiz(words));
   const [options, setOptions] = useState(() => choicesFor(words[0], words));
   const [selected, setSelected] = useState<string | null>(null);
   const [confirmExit, setConfirmExit] = useState(false);
+  const [saved, setSaved] = useState<Set<string>>(() => new Set());
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState("");
   const item = state.items[state.current];
   const completed = state.items.filter((i) => i.done).length;
   const correct = !!item && selected === item.word.nghia_tieng_viet.trim();
@@ -133,6 +138,19 @@ function Quiz({
     setState(createQuiz(words));
     setSelected(null);
     setOptions(choicesFor(words[0], words));
+  }
+  async function saveWord() {
+    if (!item || saving || saved.has(item.word.id)) return;
+    setSaving(true);
+    setSaveError("");
+    try {
+      await client.authorized(`/favorites/${item.word.id}`, { method: "PUT" });
+      setSaved((current) => new Set(current).add(item.word.id));
+    } catch (error) {
+      setSaveError((error as Error).message);
+    } finally {
+      setSaving(false);
+    }
   }
   return (
     <ScrollView
@@ -297,6 +315,31 @@ function Quiz({
                     ? "Từ này sẽ quay lại để củng cố trí nhớ."
                     : "Từ này sẽ xuất hiện lại sau vài câu; nếu chỉ còn một từ, bạn sẽ gặp lại ngay."}
               </Text>
+              {user && (
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Lưu từ yêu thích"
+                  disabled={saving || saved.has(item.word.id)}
+                  style={s.favorite}
+                  onPress={saveWord}
+                >
+                  {saving ? (
+                    <ActivityIndicator color={c.green} />
+                  ) : (
+                    <Ionicons
+                      name={saved.has(item.word.id) ? "heart" : "heart-outline"}
+                      size={20}
+                      color={c.green}
+                    />
+                  )}
+                  <Text style={s.link}>
+                    {saved.has(item.word.id)
+                      ? "Đã lưu vào yêu thích"
+                      : "Lưu từ này"}
+                  </Text>
+                </Pressable>
+              )}
+              {!!saveError && <Text style={s.error}>{saveError}</Text>}
               <Pressable
                 accessibilityRole="button"
                 style={s.button}
@@ -436,4 +479,11 @@ const s = StyleSheet.create({
   tip: { flexDirection: "row", padding: 12, gap: 9 },
   footer: { textAlign: "center", fontSize: 11, color: c.muted },
   stats: { gap: 8, alignItems: "center" },
+  favorite: {
+    minHeight: 44,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
 });

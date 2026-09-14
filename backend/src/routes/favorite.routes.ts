@@ -67,6 +67,8 @@ router.delete('/:wordId', authMiddleware, FavoriteController.remove);
  *   put:
  *     summary: Thêm yêu thích, gửi lặp vẫn giữ trạng thái đã thêm
  *     tags: [Favorites]
+ *     security:
+ *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: wordId
@@ -79,5 +81,6 @@ router.delete('/:wordId', authMiddleware, FavoriteController.remove);
  *       404:
  *         description: Không tìm thấy từ
  */
+router.put('/:wordId', authMiddleware, FavoriteController.add);
 
 export default router;
