@@ -21,6 +21,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
   const params = useLocalSearchParams<{
     email?: string;
     registered?: string;
+    passwordChanged?: string;
   }>();
   const { client, ready } = useAuth();
   const [name, setName] = useState("");
@@ -114,11 +115,14 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
               ? "Tạo tài khoản để lưu tiến độ và những từ bạn yêu thích."
               : "Đăng nhập để tiếp tục hành trình học từ vựng."}
           </Text>
-          {!register && params.registered === "1" && (
+          {!register &&
+            (params.registered === "1" || params.passwordChanged === "1") && (
             <Text accessibilityRole="alert" style={s.success}>
-              Đăng ký thành công! Hãy đăng nhập bằng tài khoản vừa tạo.
+              {params.passwordChanged === "1"
+                ? "Đổi mật khẩu thành công! Hãy đăng nhập lại."
+                : "Đăng ký thành công! Hãy đăng nhập bằng tài khoản vừa tạo."}
             </Text>
-          )}
+            )}
           {error !== "" && (
             <Text accessibilityRole="alert" style={s.error}>
               {error}
