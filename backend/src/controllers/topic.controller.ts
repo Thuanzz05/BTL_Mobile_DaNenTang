@@ -7,7 +7,8 @@ export class TopicController {
     try {
       const { status } = req.query;
       const topics = await TopicService.getAllTopics(
-        req.user?.vai_tro === 'admin' ? (status as string) : 'active'
+        req.user?.vai_tro === 'admin' ? (status as string) : 'active',
+        req.user?.vai_tro === 'admin'
       );
       return ResponseUtil.success(res, topics, 'Lấy danh sách chủ đề thành công');
     } catch (error: any) {
@@ -18,7 +19,7 @@ export class TopicController {
   static async getById(req: Request, res: Response, next: NextFunction) {
     try {
       const { id } = req.params;
-      const topic = await TopicService.getTopicById(id);
+      const topic = await TopicService.getTopicById(id, req.user?.vai_tro === 'admin');
 
       if (!topic || (req.user?.vai_tro !== 'admin' && topic.trang_thai !== 'active')) {
         return ResponseUtil.notFound(res, 'Không tìm thấy chủ đề');

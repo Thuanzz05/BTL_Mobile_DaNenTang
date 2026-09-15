@@ -8,7 +8,7 @@ export class WordController {
    */
   static async getAll(req: Request, res: Response, next: NextFunction) {
     try {
-      const { topicId, search, page, limit } = req.query;
+      const { topicId, search, page, limit, status } = req.query;
       const userId = req.user?.id;
 
       if (topicId && req.user?.vai_tro !== 'admin') {
@@ -22,6 +22,7 @@ export class WordController {
         topicId: topicId as string,
         userId,
         includeInactive: req.user?.vai_tro === 'admin',
+        status: req.user?.vai_tro === 'admin' ? (status as string) : undefined,
         search: search as string,
         page: page ? parseInt(page as string) : 1,
         limit: limit ? parseInt(limit as string) : 20,
