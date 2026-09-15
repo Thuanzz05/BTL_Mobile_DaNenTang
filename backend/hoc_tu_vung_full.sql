@@ -2,10 +2,11 @@
 -- ỨNG DỤNG HỌC TỪ VỰNG TIẾNG ANH QUA FLASHCARD
 -- DATABASE HOÀN CHỈNH + DỮ LIỆU MẪU
 -- Yêu cầu: MySQL 8.0+ (có dùng ROW_NUMBER())
--- Cách chạy: mở file trong MySQL Workbench -> Execute All
+-- Cách chạy đầy đủ: npm run db:migrate; npm run db:seed (chỉ database trống).
+-- Nguồn schema gốc và dữ liệu mẫu; các migrations bổ sung cột/bảng cho API hiện tại.
+-- Không chạy Execute All trên database đang sử dụng.
 -- =========================================================
 
-DROP DATABASE IF EXISTS hoc_tu_vung;
 
 CREATE DATABASE hoc_tu_vung
 CHARACTER SET utf8mb4
