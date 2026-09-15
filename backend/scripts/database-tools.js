@@ -1,6 +1,7 @@
 const mysql = require('mysql2/promise');
 const fs = require('fs');
 const path = require('path');
+const { readDatabaseSource } = require('./sql-source');
 require('dotenv').config({ path: path.join(__dirname, '../.env') });
 
 function databaseName() {
@@ -30,6 +31,7 @@ async function migrate(connection, name) {
   if (!/^[a-zA-Z0-9_]+$/.test(name)) {
     throw new Error('Tên database không hợp lệ');
   }
+  const source = readDatabaseSource();
   await connection.query(
     'CREATE DATABASE IF NOT EXISTS ' +
       mysql.escapeId(name) +
@@ -44,12 +46,9 @@ async function migrate(connection, name) {
     throw new Error('Một tiến trình khác đang nâng cấp database');
   }
   try {
-    let schema = fs.readFileSync(path.join(__dirname, '../database_schema.sql'), 'utf8');
-    schema = schema
-      .replace(/CREATE DATABASE IF NOT EXISTS[\s\S]*?;/i, '')
-      .replace(/^USE\s+[^;]+;/gim, '');
-    schema = schema.replace(/CREATE TABLE (?!IF NOT EXISTS)/g, 'CREATE TABLE IF NOT EXISTS ');
-    await connection.query(schema);
+    for (const statement of source.schema) {
+      await connection.query(statement);
+    }
     await connection.query(`CREATE TABLE IF NOT EXISTS schema_migrations (
       name VARCHAR(150) PRIMARY KEY, applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     ) ENGINE=InnoDB`);

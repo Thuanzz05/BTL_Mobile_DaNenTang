@@ -1,5 +1,7 @@
 # Kế hoạch xây dựng website quản trị Wordleaf
 
+> Cập nhật triển khai 15/09/2026: `admin-web/` đã có các trang quản trị và nối API thật. Backend đã bổ sung cookie đăng nhập web, lưu/chấm từng câu quiz và báo cáo đúng/sai. Mobile vẫn dùng luồng lưu kết quả cũ; xem [hướng dẫn web](admin-web/README.md) và [hợp đồng tích hợp mobile](docs/TICH_HOP_BACKEND_MOBILE.md). Các mục bên dưới giữ lại để đối chiếu kế hoạch ban đầu.
+
 > Đề tài: Ứng dụng học từ vựng tiếng Anh qua flashcard và trắc nghiệm.
 > Ngày lập: 14/09/2026. Đối chiếu với source backend hiện có trên nhánh Thuan.
 > Đây là kế hoạch triển khai, không phải danh sách tính năng đã hoàn thành.

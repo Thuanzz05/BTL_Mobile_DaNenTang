@@ -74,9 +74,21 @@ export class HistoryService {
 
     const results = await query(resultsSql, [sessionId]);
 
+    // Chỉ trả các câu đã chấm, giữ nguyên nội dung và lựa chọn tại lúc học.
+    const attempts = await query(
+      `SELECT q.id, q.tu_vung_id, q.thu_tu, q.lua_chon, q.dap_an_chon_id,
+        q.dap_an_dung_id, q.dung, q.thoi_gian_tra_loi_ms, q.tra_loi_luc,
+        JSON_UNQUOTE(JSON_EXTRACT(m.noi_dung_trac_nghiem, '$.tu_tieng_anh')) AS tu_tieng_anh
+       FROM cau_hoi_trac_nghiem q
+       JOIN phien_hoc_tu m ON m.phien_hoc_tap_id = q.phien_hoc_tap_id AND m.tu_vung_id = q.tu_vung_id
+       WHERE q.phien_hoc_tap_id = ? AND q.dung IS NOT NULL ORDER BY q.thu_tu`,
+      [sessionId]
+    );
+
     return {
       ...session,
       results,
+      luot_tra_loi: attempts,
     };
   }
 }

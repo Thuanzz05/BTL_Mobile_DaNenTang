@@ -1,8 +1,23 @@
 import { NextFunction, Request, Response } from 'express';
 import { AdminService } from '../services/admin.service';
 import { ResponseUtil } from '../utils/response.util';
+import { AdminReportService } from '../services/admin-report.service';
 
 export class AdminController {
+  static async getQuizStatistics(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await AdminReportService.quiz({
+        from: req.query.from as string | undefined,
+        to: req.query.to as string | undefined,
+        minAttempts: req.query.minAttempts ? Number(req.query.minAttempts) : undefined,
+        limit: req.query.limit ? Number(req.query.limit) : undefined,
+      });
+      return ResponseUtil.success(res, data);
+    } catch (error) {
+      return next(error);
+    }
+  }
+
   /**
    * Dashboard thống kê admin
    * GET /api/admin/dashboard

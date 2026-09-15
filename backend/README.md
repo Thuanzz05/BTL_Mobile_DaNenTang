@@ -16,7 +16,7 @@ Backend dùng Node.js 24+, Express, TypeScript và MySQL 8.0+.
 
 ## Chạy backend
 
-1. Cài dependency trong thư mục `backend`: `npm install`.
+1. Cài dependency trong thư mục `backend`: `npm ci`.
 2. Tạo `.env` dựa trên `.env.example`. Điền cấu hình MySQL và hai khóa JWT ngẫu nhiên khác nhau, mỗi khóa ít nhất 32 ký tự.
 3. Chạy `npm run db:migrate`. Lệnh tự tạo database nếu chưa tồn tại, bổ sung bảng/cột thiếu và giữ dữ liệu có sẵn.
 4. Chỉ với database trống, có thể chạy `npm run db:seed` để nạp mẫu.
@@ -34,7 +34,9 @@ Mặc định server ở `http://localhost:5000`; Swagger ở `http://localhost:
 - Server không khởi động nếu thiếu khóa JWT hợp lệ hoặc không kết nối được MySQL.
 - `CORS_ORIGIN` chứa danh sách origin web, phân cách bằng dấu phẩy. Điện thoại truy cập API qua địa chỉ LAN của máy chạy backend.
 
-Không chạy lại nguyên file `database_schema.sql` trên database đang có bảng. File đó là cấu trúc gốc; `db:migrate` mới là cách tạo/nâng cấp đầy đủ và có thể chạy lại.
+`hoc_tu_vung_full.sql` là nguồn cấu trúc gốc và dữ liệu mẫu hợp nhất. Công cụ tự tách lệnh tạo bảng cho `db:migrate` và lệnh INSERT cho `db:seed`; các migrations bổ sung cột/bảng của API hiện tại. Không chạy Execute All trên database đang sử dụng. Công cụ từ chối DROP/TRUNCATE hoặc lệnh ngoài danh sách được phép.
+
+Web quản trị nằm ở [admin-web](../admin-web/README.md), chạy tại `http://localhost:5173`. Hợp đồng quiz và phần việc mobile còn lại nằm trong [tài liệu tích hợp](../docs/TICH_HOP_BACKEND_MOBILE.md).
 
 ## API chính
 
@@ -84,6 +86,14 @@ Quản trị:
 - `POST /api/admin/upload/audio`: MP3, tối đa 5 MB.
 - Upload dùng multipart với trường `file`, trả đường dẫn tại `data.url`.
 
+Trắc nghiệm được server chấm và web admin:
+
+- `POST /api/quiz/start`, `POST /api/quiz/review/start`.
+- `GET /api/quiz/:sessionId`, `POST /api/quiz/:sessionId/answers`, `POST /api/quiz/:sessionId/stop`.
+- Phiên quiz lưu từng lượt trả lời, chụp nội dung câu hỏi, chống ghi lặp và tự hoàn thành; các endpoint `/learning` cũ tiếp tục hoạt động.
+- `GET /api/admin/quiz-statistics?from=YYYY-MM-DD&to=YYYY-MM-DD&minAttempts=5`.
+- `POST /api/web-auth/login`, `/api/web-auth/refresh`, `/api/web-auth/logout`: cookie HttpOnly, header `X-Wordleaf-Client: admin-web`, kiểm tra Origin. API JSON token của mobile không thay đổi.
+
 ## Quy tắc dữ liệu
 
 - Danh sách từ của phiên được lưu cố định trong `phien_hoc_tu`; chỉ nhận đánh giá cho các từ thuộc danh sách này.
@@ -112,6 +122,6 @@ Các tình huống chính: đăng ký/đăng nhập, validation, phân quyền, 
 
 ## Công việc còn lại ngoài đợt sửa backend này
 
-- Kết nối các màn hình mobile đang giả lập với API thật.
+- Chuyển luồng trắc nghiệm mobile sang `/api/quiz`, lưu ID phiên để khôi phục. Bản mobile hiện tại đã lưu kết quả SRS cuối phiên và có hồ sơ, lịch sử, yêu thích; giao diện được giữ nguyên.
 - Đăng nhập Google cần bổ sung luồng xác minh token Google và cấu hình OAuth.
 - Thành tích/điểm thưởng vẫn là phần mở rộng, chưa có API nghiệp vụ hoàn chỉnh.

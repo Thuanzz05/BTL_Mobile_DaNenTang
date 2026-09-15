@@ -42,8 +42,7 @@
     <Content Include=".prettierignore" />
     <Content Include=".prettierrc" />
     <Content Include=".vsconfig" />
-    <Content Include="database_schema.sql" />
-    <Content Include="database_seed.sql" />
+    <Content Include="hoc_tu_vung_full.sql" />
     <Content Include="DATABASE_DESIGN.md" />
     <Content Include="package.json" />
     <Content Include="package-lock.json" />

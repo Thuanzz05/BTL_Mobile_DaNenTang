@@ -62,6 +62,8 @@ export interface PhienHocTap {
   nguoi_dung_id: string;
   chu_de_id: string | null;
   loai_phien: 'hoc_moi' | 'on_tap';
+  phuong_thuc: 'danh_gia' | 'trac_nghiem';
+  phien_ban_thuat_toan: string | null;
   tong_so_tu: number;
   bat_dau_luc: Date;
   ket_thuc_luc?: Date;
