@@ -5,7 +5,15 @@ import { Eye, EyeOff, Headphones, Image, Pencil, Plus, Search, Trash2 } from 'lu
 import { api, jsonBody } from '../services/api';
 import type { Page, Topic, Word } from '../types';
 import { useQuery } from '../hooks/use-query';
-import { Confirm, Empty, Notice, PageHeader, Pagination, QueryState, Status } from '../components/ui';
+import {
+  Confirm,
+  Empty,
+  Notice,
+  PageHeader,
+  Pagination,
+  QueryState,
+  Status,
+} from '../components/ui';
 
 export const wordTypes: Record<string, string> = {
   'danh-tu': 'Danh từ',
@@ -68,10 +76,7 @@ export function WordsPage() {
 
     try {
       const nextStatus = changing.trang_thai === 'active' ? 'inactive' : 'active';
-      await api(
-        '/admin/words/' + changing.id,
-        jsonBody('PUT', { trang_thai: nextStatus })
-      );
+      await api('/admin/words/' + changing.id, jsonBody('PUT', { trang_thai: nextStatus }));
       setNotice(nextStatus === 'active' ? 'Đã bật hiển thị từ vựng.' : 'Đã ẩn từ vựng.');
       setChanging(null);
       if (status && query.data?.items.length === 1 && page > 1) {
@@ -221,22 +226,27 @@ export function WordsPage() {
                             value={word.trang_thai}
                             label={word.trang_thai === 'active' ? 'Bật hiển thị' : 'Đã ẩn'}
                           />
-                          {topics.data?.find((topic) => topic.id === word.chu_de_id)?.trang_thai === 'inactive' && (
-                            <span className="cell-note">Chủ đề đang ẩn</span>
-                          )}
+                          {topics.data?.find((topic) => topic.id === word.chu_de_id)?.trang_thai ===
+                            'inactive' && <span className="cell-note">Chủ đề đang ẩn</span>}
                         </td>
                         <td>
                           <div className="row-actions">
                             <button
                               className="icon-button"
                               title={word.trang_thai === 'active' ? 'Ẩn từ' : 'Hiện từ'}
-                              aria-label={(word.trang_thai === 'active' ? 'Ẩn ' : 'Hiện ') + word.tu_tieng_anh}
+                              aria-label={
+                                (word.trang_thai === 'active' ? 'Ẩn ' : 'Hiện ') + word.tu_tieng_anh
+                              }
                               onClick={() => {
                                 setError('');
                                 setChanging(word);
                               }}
                             >
-                              {word.trang_thai === 'active' ? <EyeOff size={17} /> : <Eye size={17} />}
+                              {word.trang_thai === 'active' ? (
+                                <EyeOff size={17} />
+                              ) : (
+                                <Eye size={17} />
+                              )}
                             </button>
                             <Link
                               className="icon-button"
@@ -275,12 +285,17 @@ export function WordsPage() {
         )}
       </section>
       <p className="hint page-hint">
-        Từ chỉ xuất hiện trong lượt học mới khi cả từ và chủ đề đều bật hiển thị.
-        Ẩn từ giữ nguyên lịch sử, tiến độ và các phiên đã bắt đầu.
+        Từ chỉ xuất hiện trong lượt học mới khi cả từ và chủ đề đều bật hiển thị. Ẩn từ giữ nguyên
+        lịch sử, tiến độ và các phiên đã bắt đầu.
       </p>
       {changing && (
         <Confirm
-          title={(changing.trang_thai === 'active' ? 'Ẩn' : 'Hiện') + ' từ “' + changing.tu_tieng_anh + '”?'}
+          title={
+            (changing.trang_thai === 'active' ? 'Ẩn' : 'Hiện') +
+            ' từ “' +
+            changing.tu_tieng_anh +
+            '”?'
+          }
           description={
             changing.trang_thai === 'active'
               ? 'Từ sẽ ngừng xuất hiện trong thư viện, danh sách yêu thích và lượt học/ôn mới. Các phiên đã bắt đầu vẫn tiếp tục được; lịch sử và tiến độ được giữ lại.'
@@ -290,7 +305,9 @@ export function WordsPage() {
           busy={busy}
           error={error}
           onClose={() => setChanging(null)}
-          onConfirm={() => { void changeVisibility(); }}
+          onConfirm={() => {
+            void changeVisibility();
+          }}
         />
       )}
       {removing && (

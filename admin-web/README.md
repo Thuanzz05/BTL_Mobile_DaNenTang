@@ -20,7 +20,7 @@ Cấu hình mặc định dùng `/api`; Vite chuyển tiếp `/api` và `/upload
 - `/login`: đăng nhập dành cho admin, ẩn/hiện mật khẩu, báo lỗi.
 - `/dashboard`: số người học, chủ đề, từ vựng, phiên học; biểu đồ đủ bảy ngày theo giờ Việt Nam.
 - `/topics`: thêm, sửa, xóa, tìm tên, lọc trạng thái, ẩn/hiện, thứ tự, upload ảnh.
-- `/words`: tìm tiếng Anh/nghĩa tiếng Việt, lọc chủ đề, phân trang, xóa.
+- `/words`: tìm tiếng Anh/nghĩa tiếng Việt, lọc chủ đề/trạng thái từ, phân trang, ẩn/hiện và xóa.
 - `/words/new`, `/words/:id/edit`: từ loại, phiên âm, nghĩa, ví dụ, ảnh JPG/PNG và phát âm MP3.
 - `/users`: tìm tên/email, lọc trạng thái, phân trang, xem hồ sơ cơ bản, khóa/mở khóa.
 - `/statistics`: nội dung được học nhiều và thống kê đúng/sai từ các câu server đã chấm; lọc ngày và ngưỡng số lượt.
@@ -29,6 +29,14 @@ Cấu hình mặc định dùng `/api`; Vite chuyển tiếp `/api` và `/upload
 Người dùng tự đăng ký qua ứng dụng học. Web quản trị không cấp quyền admin hoặc xóa tài khoản người học. Khóa tài khoản giữ lại lịch sử và thu hồi các phiên đăng nhập cũ.
 
 Chủ đề còn từ hoặc lịch sử không được xóa. Từ đã nằm trong phiên học hoặc tiến độ cũng được giữ lại. Giao diện hiển thị lý do do backend trả về; có thể ẩn chủ đề khi muốn ngừng hiển thị nội dung.
+
+## Ẩn/hiện từng từ vựng
+
+- Trong trang **Từ vựng**, dùng nút hình con mắt ở cột thao tác, rồi xác nhận **Ẩn từ** hoặc **Hiện từ**. Có thể chọn trạng thái ngay trong form thêm/sửa.
+- Bộ lọc **Bật hiển thị / Đã ẩn** xét trạng thái riêng của từ. Từ chỉ xuất hiện cho người học khi cả từ và chủ đề đều bật hiển thị; chủ đề ẩn được ghi chú trong bảng.
+- Từ ẩn không xuất hiện trong thư viện, yêu thích, lượt học/ôn mới hoặc các đáp án nhiễu mới. Ẩn không xóa ví dụ, yêu thích, tiến độ hay lịch sử; hiện lại khôi phục khả năng sử dụng dữ liệu đó.
+- Phiên đã bắt đầu vẫn tiếp tục theo danh sách cũ. Các số liệu lịch sử giữ nguyên; số từ có thể học và số từ đến hạn ôn chỉ tính nội dung đang hiển thị.
+- Chạy `npm run db:migrate` trong `backend/` sau khi pull. Migration `003-word-visibility.js` giữ các từ cũ ở trạng thái hiển thị; chạy lại không đặt lại trạng thái đã chọn.
 
 ## Cấu trúc code
 

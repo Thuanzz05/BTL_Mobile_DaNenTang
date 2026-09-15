@@ -162,8 +162,8 @@ function WordForm({
               </select>
             </label>
             <p className="hint">
-              Từ chỉ dùng cho lượt học mới khi cả từ và chủ đề đều bật hiển thị.
-              Ẩn từ giữ nguyên lịch sử, tiến độ và các phiên đã bắt đầu.
+              Từ chỉ dùng cho lượt học mới khi cả từ và chủ đề đều bật hiển thị. Ẩn từ giữ nguyên
+              lịch sử, tiến độ và các phiên đã bắt đầu.
             </p>
             <label>
               Thứ tự hiển thị
