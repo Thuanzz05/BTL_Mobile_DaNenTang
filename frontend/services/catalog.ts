@@ -12,6 +12,8 @@ export interface Word {
   phien_am: string | null;
   nghia_tieng_viet: string;
   loai_tu: string;
+  url_am_thanh?: string | null;
+  url_hinh_anh?: string | null;
 }
 export const getTopics = () => api<Topic[]>("/topics?status=active");
 export const getWords = (id: string) =>
