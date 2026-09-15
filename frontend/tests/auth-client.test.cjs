@@ -162,3 +162,25 @@ test("late refresh cannot restore a session after logout", async () => {
   assert.equal(state.user(), null);
   assert.equal(state.token(), null);
 });
+test("profile update refreshes local user and password change clears the session", async () => {
+  const state = setup(async (path, options) => {
+    if (path === "/auth/login") return session;
+    if (path === "/auth/profile") {
+      assert.equal(options.method, "PUT");
+      assert.equal(JSON.parse(options.body).ho_ten, "New Name");
+      return { ...user, ho_ten: "New Name" };
+    }
+    assert.equal(path, "/auth/change-password");
+    assert.deepEqual(JSON.parse(options.body), {
+      mat_khau_cu: "secret123",
+      mat_khau_moi: "newSecret123",
+    });
+    return { success: true };
+  });
+  await state.client.login("test@example.com", "secret123");
+  await state.client.updateProfile(" New Name ");
+  assert.equal(state.user().ho_ten, "New Name");
+  await state.client.changePassword("secret123", "newSecret123");
+  assert.equal(state.user(), null);
+  assert.equal(state.token(), null);
+});

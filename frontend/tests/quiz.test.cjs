@@ -18,8 +18,14 @@ vm.runInNewContext(
   ).outputText,
   { exports: exportsObject },
 );
-const { createQuiz, answerQuiz, nextQuestion, choicesFor, resultStatus } =
-  exportsObject;
+const {
+  createQuiz,
+  answerQuiz,
+  nextQuestion,
+  choicesFor,
+  resultStatus,
+  requestId,
+} = exportsObject;
 const words = ["A", "B", "C", "D"].map((id) => ({
   id,
   tu_tieng_anh: id,
@@ -67,4 +73,10 @@ test("answer history maps to the backend SRS status", () => {
   assert.equal(resultStatus(item), "da-nho");
   assert.equal(resultStatus({ ...item, mistakes: 1 }), "chua-chac");
   assert.equal(resultStatus({ ...item, mistakes: 2 }), "chua-nho");
+});
+test("quiz request IDs are UUID v4 values", () => {
+  assert.match(
+    requestId(() => 0.5),
+    /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+  );
 });

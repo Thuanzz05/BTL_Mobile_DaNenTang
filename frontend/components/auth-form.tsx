@@ -117,11 +117,11 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
           </Text>
           {!register &&
             (params.registered === "1" || params.passwordChanged === "1") && (
-            <Text accessibilityRole="alert" style={s.success}>
-              {params.passwordChanged === "1"
-                ? "Đổi mật khẩu thành công! Hãy đăng nhập lại."
-                : "Đăng ký thành công! Hãy đăng nhập bằng tài khoản vừa tạo."}
-            </Text>
+              <Text accessibilityRole="alert" style={s.success}>
+                {params.passwordChanged === "1"
+                  ? "Đổi mật khẩu thành công! Hãy đăng nhập lại."
+                  : "Đăng ký thành công! Hãy đăng nhập bằng tài khoản vừa tạo."}
+              </Text>
             )}
           {error !== "" && (
             <Text accessibilityRole="alert" style={s.error}>

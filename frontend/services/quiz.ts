@@ -14,6 +14,13 @@ export interface QuizState {
 }
 export type LearningResultStatus = "da-nho" | "chua-chac" | "chua-nho";
 
+export function requestId(random = Math.random): string {
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (value) => {
+    const number = Math.floor(random() * 16);
+    return (value === "x" ? number : (number & 3) | 8).toString(16);
+  });
+}
+
 export function resultStatus(item: QuizItem): LearningResultStatus {
   if (item.mistakes === 0) return "da-nho";
   if (item.mistakes === 1) return "chua-chac";

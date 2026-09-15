@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
+  Modal,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -29,6 +30,15 @@ interface HistoryResponse {
   pagination: { total: number };
 }
 
+interface SessionDetail extends StudySession {
+  results: {
+    id: string;
+    tu_tieng_anh: string;
+    phien_am: string | null;
+    nghia_tieng_viet: string;
+  }[];
+}
+
 const dateFormatter = new Intl.DateTimeFormat("vi-VN", {
   day: "2-digit",
   month: "2-digit",
@@ -49,6 +59,10 @@ export default function HistoryScreen() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [selected, setSelected] = useState<StudySession | null>(null);
+  const [detail, setDetail] = useState<SessionDetail | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState("");
 
   const load = useCallback(async () => {
     if (!user) return;
@@ -97,6 +111,22 @@ export default function HistoryScreen() {
       sessions.reduce((sum, session) => sum + Number(session.total_results), 0),
     [sessions],
   );
+
+  async function openSession(session: StudySession) {
+    setSelected(session);
+    setDetail(null);
+    setDetailError("");
+    setDetailLoading(true);
+    try {
+      setDetail(
+        await client.authorized<SessionDetail>(`/history/${session.id}`),
+      );
+    } catch (loadError) {
+      setDetailError((loadError as Error).message);
+    } finally {
+      setDetailLoading(false);
+    }
+  }
 
   return (
     <SafeAreaView style={s.page}>
@@ -178,7 +208,13 @@ export default function HistoryScreen() {
             const goal = Number(session.tong_so_tu);
             const status = sessionStatus(session.trang_thai);
             return (
-              <View key={session.id} style={s.card}>
+              <Pressable
+                key={session.id}
+                accessibilityRole="button"
+                accessibilityLabel={`Xem chi tiết ${session.topic_name || "buổi ôn tập"}`}
+                style={s.card}
+                onPress={() => openSession(session)}
+              >
                 <View style={s.cardTop}>
                   <View style={s.sessionIcon}>
                     <Ionicons
@@ -224,11 +260,61 @@ export default function HistoryScreen() {
                     ]}
                   />
                 </View>
-              </View>
+                <Text style={s.detailLink}>Xem chi tiết</Text>
+              </Pressable>
             );
           })
         )}
       </ScrollView>
+      <Modal
+        visible={!!selected}
+        animationType="slide"
+        onRequestClose={() => setSelected(null)}
+      >
+        <SafeAreaView style={s.page}>
+          <View style={s.header}>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Đóng chi tiết"
+              style={s.back}
+              onPress={() => setSelected(null)}
+            >
+              <Ionicons name="close" size={24} color={c.ink} />
+            </Pressable>
+            <View style={s.headerText}>
+              <Text style={s.eyebrow}>CHI TIẾT BUỔI HỌC</Text>
+              <Text style={s.heading}>
+                {selected?.topic_name || "Ôn tập tổng hợp"}
+              </Text>
+            </View>
+          </View>
+          <ScrollView contentContainerStyle={s.content}>
+            {detailLoading ? (
+              <ActivityIndicator size="large" color={c.green} />
+            ) : detailError ? (
+              <Text accessibilityRole="alert" style={s.error}>
+                {detailError}
+              </Text>
+            ) : (
+              detail?.results.map((result) => (
+                <View key={result.id} style={s.wordCard}>
+                  <View style={s.wordText}>
+                    <Text style={s.word}>{result.tu_tieng_anh}</Text>
+                    {!!result.phien_am && (
+                      <Text style={s.date}>{result.phien_am}</Text>
+                    )}
+                    <Text style={s.meaning}>{result.nghia_tieng_viet}</Text>
+                  </View>
+                  <Ionicons name="book-outline" size={22} color={c.green} />
+                </View>
+              ))
+            )}
+            {!detailLoading && !detailError && detail?.results.length === 0 && (
+              <Text style={s.body}>Buổi học này chưa có kết quả.</Text>
+            )}
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -313,6 +399,20 @@ const s = StyleSheet.create({
     overflow: "hidden",
   },
   progressFill: { height: "100%", borderRadius: 4, backgroundColor: c.green },
+  detailLink: { color: c.green, fontSize: 13, fontWeight: "700" },
+  wordCard: {
+    padding: 17,
+    borderRadius: 18,
+    backgroundColor: c.surface,
+    borderWidth: 1,
+    borderColor: c.line,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  wordText: { flex: 1, gap: 4 },
+  word: { color: c.ink, fontSize: 19, fontWeight: "800" },
+  meaning: { color: c.ink, fontSize: 14 },
   empty: { paddingVertical: 54, alignItems: "center", gap: 16 },
   emptyIcon: {
     width: 76,

@@ -102,6 +102,7 @@ test('Backend HTTP and real MySQL regression tests', { timeout: 120000 }, async 
       chosen;
 
     await t.test('auth routes, validation and permissions', async () => {
+      assert.equal((await api('GET', '/')).api, '/api');
       await api('GET', '/health');
       await api('GET', '/ready');
       await api(
