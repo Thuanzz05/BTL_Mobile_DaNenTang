@@ -1,7 +1,7 @@
 import { useAuth } from "@/contexts/auth-context";
 import { HomeProgress } from "@/components/home-progress";
 import { Ionicons } from "@expo/vector-icons";
-import { Link } from "expo-router";
+import { Link, router } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -27,7 +27,6 @@ export default function HomeScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
-  const [selected, setSelected] = useState<Topic | null>(null);
   const [reviewCount, setReviewCount] = useState(0);
   const load = useCallback(async () => {
     setLoading(true);
@@ -63,6 +62,11 @@ export default function HomeScreen() {
       .includes(search.trim().toLocaleLowerCase("vi")),
   );
   const first = topics.find((t) => t.word_count > 0);
+  const study = (topic: Topic) =>
+    router.push({
+      pathname: "/study",
+      params: { topicId: topic.id, topicName: topic.ten },
+    });
   return (
     <SafeAreaView edges={["top"]} style={s.page}>
       <StatusBar style="dark" />
@@ -121,16 +125,17 @@ export default function HomeScreen() {
           </View>
           <Text style={s.heroTitle}>Một thẻ nhỏ.{"\n"}Một điều mới.</Text>
           <Text style={s.heroBody}>
-            Nhìn từ, chọn nghĩa, ghi nhớ.{"\n"}Học theo nhịp của riêng bạn.
+            Lật thẻ, nghe phát âm, xem nghĩa.{"\n"}Sau đó ôn lại bằng trắc
+            nghiệm.
           </Text>
           <Pressable
             accessibilityRole="button"
             disabled={!first}
-            onPress={() => first && setSelected(first)}
+            onPress={() => first && study(first)}
             style={[s.cta, !first && s.disabled]}
           >
             <Text style={s.ctaText}>
-              {user ? "Bắt đầu phiên học" : "Bắt đầu học thử"}
+              {user ? "Học flashcard" : "Học flashcard miễn phí"}
             </Text>
             <Ionicons name="arrow-forward" size={20} color={c.ink} />
           </Pressable>
@@ -195,7 +200,7 @@ export default function HomeScreen() {
                   <TopicCard
                     key={topic.id}
                     topic={topic}
-                    onPress={() => setSelected(topic)}
+                    onPress={() => study(topic)}
                   />
                 ))}
                 {!filtered[i * 2 + 1] && <View style={s.spacer} />}
@@ -224,14 +229,6 @@ export default function HomeScreen() {
         )}
         <Text style={s.bottom}>Học một chút. Nhớ lâu hơn.</Text>
       </ScrollView>
-      {selected && (
-        <FlashcardPreview
-          key={selected.id}
-          topic={selected}
-          onClose={() => setSelected(null)}
-          onCompleted={() => setRevision((value) => value + 1)}
-        />
-      )}
       {reviewCount > 0 && (
         <FlashcardPreview
           key={`review-${reviewCount}`}

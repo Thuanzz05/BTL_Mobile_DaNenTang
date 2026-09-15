@@ -291,7 +291,7 @@ function ServerQuiz({
           <Ionicons name="close" size={24} color={c.ink} />
         </Pressable>
         <View style={s.headerText}>
-          <Text style={s.overline}>LUYỆN TỪ VỰNG</Text>
+          <Text style={s.overline}>ÔN TẬP TRẮC NGHIỆM</Text>
           <Text style={s.topic}>{title}</Text>
         </View>
         <View style={s.counter}>
@@ -533,7 +533,7 @@ function Quiz({
           <Ionicons name="close" size={24} color={c.ink} />
         </Pressable>
         <View style={s.headerText}>
-          <Text style={s.overline}>LUYỆN TỪ VỰNG</Text>
+          <Text style={s.overline}>ÔN TẬP TRẮC NGHIỆM</Text>
           <Text style={s.topic}>{title}</Text>
         </View>
         <View style={s.counter}>
