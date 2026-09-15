@@ -85,14 +85,14 @@ export class TopicService {
     }
 
     if (fields.length === 0) {
-      return await this.getTopicById(id);
+      return await this.getTopicById(id, true);
     }
 
     values.push(id);
     const sql = `UPDATE chu_de SET ${fields.join(', ')} WHERE id = ?`;
     await query(sql, values);
 
-    return await this.getTopicById(id);
+    return await this.getTopicById(id, true);
   }
 
   static async deleteTopic(id: string) {

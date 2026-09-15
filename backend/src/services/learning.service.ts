@@ -171,7 +171,11 @@ export class LearningService {
         [userId, topicId, wordCount]
       );
       if (words.length < 5) {
-        throw new AppError('Chủ đề cần ít nhất 5 từ đang hiển thị để học', 409, 'INSUFFICIENT_WORDS');
+        throw new AppError(
+          'Chủ đề cần ít nhất 5 từ đang hiển thị để học',
+          409,
+          'INSUFFICIENT_WORDS'
+        );
       }
       return this.createSession(connection, userId, topicId, words, 'hoc_moi', method);
     });

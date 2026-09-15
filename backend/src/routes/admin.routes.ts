@@ -227,6 +227,12 @@ router.delete('/topics/:id', TopicController.delete);
  *       - bearerAuth: []
  *     parameters:
  *       - in: query
+ *         name: status
+ *         description: Trạng thái riêng của từ; bỏ qua để xem cả từ hiện và ẩn
+ *         schema:
+ *           type: string
+ *           enum: [active, inactive]
+ *       - in: query
  *         name: topicId
  *         schema:
  *           type: string
@@ -253,6 +259,7 @@ router.get('/words', WordController.getAll);
  * /api/admin/words:
  *   post:
  *     summary: Tạo từ vựng mới (Admin)
+ *     description: Nhận trang_thai là active hoặc inactive; mặc định active nếu không gửi.
  *     tags: [Admin]
  *     security:
  *       - bearerAuth: []
@@ -267,6 +274,7 @@ router.post('/words', validate(wordSchema), WordController.create);
  * /api/admin/words/{id}:
  *   put:
  *     summary: Cập nhật từ vựng (Admin)
+ *     description: Gửi riêng trang_thai để ẩn/hiện từ và giữ nguyên ví dụ, lịch sử, tiến độ. Chỉ ảnh hưởng thư viện và phiên học mới.
  *     tags: [Admin]
  *     security:
  *       - bearerAuth: []
@@ -276,6 +284,17 @@ router.post('/words', validate(wordSchema), WordController.create);
  *         required: true
  *         schema:
  *           type: string
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               trang_thai:
+ *                 type: string
+ *                 enum: [active, inactive]
+ *           example: { trang_thai: inactive }
  *     responses:
  *       200:
  *         description: Cập nhật thành công
