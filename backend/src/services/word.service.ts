@@ -1,5 +1,5 @@
 import { query, transaction } from '../config/database';
-import { wordSchema } from '../validations/request.schemas';
+import { wordSchema, wordStatusSchema } from '../validations/request.schemas';
 import { AppError } from '../utils/app-error';
 import { UuidUtil } from '../utils/uuid.util';
 
@@ -12,20 +12,20 @@ export class WordService {
       `SELECT t.*, (y.id IS NOT NULL) AS da_yeu_thich
       FROM tu_vung t JOIN chu_de c ON t.chu_de_id = c.id AND c.trang_thai = 'active'
       LEFT JOIN yeu_thich y ON t.id = y.tu_vung_id AND y.nguoi_dung_id = ?
-      WHERE t.chu_de_id = ? ORDER BY t.thu_tu_hien_thi, t.id`,
+      WHERE t.chu_de_id = ? AND t.trang_thai = 'active' ORDER BY t.thu_tu_hien_thi, t.id`,
       [userId || null, topicId]
     );
   }
 
   /**
-   * Lấy chi tiết từ và các ví dụ, kiểm tra quyền xem chủ đề ẩn
+   * Lấy chi tiết từ và ví dụ; chỉ admin được xem từ hoặc chủ đề ẩn
    */
   static async getById(id: string, userId?: string, includeInactive = false) {
     const words = await query<any[]>(
       `SELECT t.*, (y.id IS NOT NULL) AS da_yeu_thich FROM tu_vung t
       JOIN chu_de c ON t.chu_de_id = c.id
       LEFT JOIN yeu_thich y ON t.id = y.tu_vung_id AND y.nguoi_dung_id = ?
-      WHERE t.id = ? ${includeInactive ? '' : "AND c.trang_thai = 'active'"}`,
+      WHERE t.id = ? ${includeInactive ? '' : "AND c.trang_thai = 'active' AND t.trang_thai = 'active'"}`,
       [userId || null, id]
     );
     if (!words.length) {
@@ -55,8 +55,8 @@ export class WordService {
         throw new AppError('Chủ đề không tồn tại', 404, 'TOPIC_NOT_FOUND');
       }
       await connection.execute(
-        `INSERT INTO tu_vung (id, chu_de_id, tu_tieng_anh, phien_am, loai_tu, nghia_tieng_viet, url_am_thanh, url_hinh_anh, thu_tu_hien_thi)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO tu_vung (id, chu_de_id, tu_tieng_anh, phien_am, loai_tu, nghia_tieng_viet, url_am_thanh, url_hinh_anh, thu_tu_hien_thi, trang_thai)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           id,
           data.chu_de_id,
@@ -67,6 +67,7 @@ export class WordService {
           data.url_am_thanh ?? null,
           data.url_hinh_anh ?? null,
           data.thu_tu_hien_thi ?? 0,
+          data.trang_thai ?? 'active',
         ]
       );
       for (const [index, example] of (data.vi_du || []).entries()) {
@@ -154,7 +155,7 @@ export class WordService {
       );
       if (members.length || results.length || progress.length) {
         throw new AppError(
-          'Không thể xóa từ đã có dữ liệu học hoặc thuộc phiên học',
+          'Không thể xóa từ đã có dữ liệu học hoặc thuộc phiên học. Bạn có thể ẩn từ này',
           409,
           'WORD_IN_USE'
         );
@@ -174,11 +175,18 @@ export class WordService {
     limit?: number;
     userId?: string;
     includeInactive?: boolean;
+    status?: string;
   }) {
     const page = options.page || 1;
     const limit = options.limit || 20;
-    const where = [options.includeInactive ? '1=1' : "c.trang_thai = 'active'"];
+    const where = [
+      options.includeInactive ? '1=1' : "c.trang_thai = 'active' AND t.trang_thai = 'active'",
+    ];
     const params: any[] = [];
+    if (options.includeInactive && options.status) {
+      where.push('t.trang_thai = ?');
+      params.push(wordStatusSchema.parse(options.status));
+    }
     if (options.topicId) {
       where.push('t.chu_de_id = ?');
       params.push(options.topicId);

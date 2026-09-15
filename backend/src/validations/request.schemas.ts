@@ -33,6 +33,7 @@ export const topicSchema = z
     thu_tu_hien_thi: z.number().int().min(0).optional(),
   })
   .strict();
+export const wordStatusSchema = z.enum(['active', 'inactive']);
 export const wordSchema = z
   .object({
     chu_de_id: identifier,
@@ -51,6 +52,7 @@ export const wordSchema = z
     ]),
     url_am_thanh: url,
     url_hinh_anh: url,
+    trang_thai: wordStatusSchema.optional(),
     thu_tu_hien_thi: z.number().int().min(0).optional(),
     vi_du: z.array(example).max(20).optional(),
   })

@@ -28,7 +28,7 @@ export class ProgressService {
       `SELECT c.id AS topic_id, c.ten AS topic_name, COUNT(t.id) AS total_words,
       COUNT(CASE WHEN p.da_hoc = TRUE THEN 1 END) AS learned_words,
       COUNT(CASE WHEN p.trang_thai_nho = 'thuoc-long' THEN 1 END) AS mastered_words
-      FROM chu_de c LEFT JOIN tu_vung t ON c.id = t.chu_de_id
+      FROM chu_de c LEFT JOIN tu_vung t ON c.id = t.chu_de_id AND t.trang_thai = 'active'
       LEFT JOIN tien_do_tu_vung p ON t.id = p.tu_vung_id AND p.nguoi_dung_id = ?
       WHERE c.trang_thai = 'active' ${topicId ? 'AND c.id = ?' : ''}
       GROUP BY c.id ORDER BY c.thu_tu_hien_thi, c.id`,

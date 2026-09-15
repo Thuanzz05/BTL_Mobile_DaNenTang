@@ -39,6 +39,7 @@ export interface TuVung {
   nghia_tieng_viet: string;
   url_am_thanh?: string;
   url_hinh_anh?: string;
+  trang_thai: 'active' | 'inactive';
   thu_tu_hien_thi: number;
   ngay_tao: Date;
   ngay_cap_nhat: Date;

@@ -52,7 +52,7 @@ async function withExamples(words: any[], connection?: PoolConnection) {
 }
 
 const dueSql = `FROM tien_do_tu_vung p
-  INNER JOIN tu_vung t ON p.tu_vung_id = t.id
+  INNER JOIN tu_vung t ON p.tu_vung_id = t.id AND t.trang_thai = 'active'
   INNER JOIN chu_de c ON t.chu_de_id = c.id AND c.trang_thai = 'active'
   WHERE p.nguoi_dung_id = ? AND p.da_hoc = TRUE AND p.ngay_on_tap_tiep_theo <= NOW()`;
 
@@ -93,6 +93,7 @@ export class LearningService {
       const [catalog]: any = await connection.query(
         `SELECT DISTINCT TRIM(t.nghia_tieng_viet) AS nghia FROM tu_vung t
          JOIN chu_de c ON c.id = t.chu_de_id AND c.trang_thai = 'active'
+         WHERE t.trang_thai = 'active'
          ORDER BY RAND() LIMIT 200`
       );
       const meanings = [
@@ -165,11 +166,12 @@ export class LearningService {
       }
       const [words]: any = await connection.query(
         `SELECT t.* FROM tu_vung t LEFT JOIN tien_do_tu_vung p ON t.id = p.tu_vung_id AND p.nguoi_dung_id = ?
-         WHERE t.chu_de_id = ? ORDER BY COALESCE(p.da_hoc, FALSE), RAND() LIMIT ? FOR SHARE`,
+         WHERE t.chu_de_id = ? AND t.trang_thai = 'active'
+         ORDER BY COALESCE(p.da_hoc, FALSE), RAND() LIMIT ? FOR SHARE`,
         [userId, topicId, wordCount]
       );
       if (words.length < 5) {
-        throw new AppError('Chủ đề cần ít nhất 5 từ để học', 409, 'INSUFFICIENT_WORDS');
+        throw new AppError('Chủ đề cần ít nhất 5 từ đang hiển thị để học', 409, 'INSUFFICIENT_WORDS');
       }
       return this.createSession(connection, userId, topicId, words, 'hoc_moi', method);
     });

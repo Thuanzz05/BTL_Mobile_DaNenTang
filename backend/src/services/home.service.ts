@@ -11,7 +11,7 @@ export class HomeService {
     const popularTopicsSql = `
       SELECT
         c.*,
-        (SELECT COUNT(*) FROM tu_vung t WHERE t.chu_de_id = c.id) AS so_luong_tu,
+        (SELECT COUNT(*) FROM tu_vung t WHERE t.chu_de_id = c.id AND t.trang_thai = 'active') AS so_luong_tu,
         (
           SELECT COUNT(*)
           FROM phien_hoc_tap s

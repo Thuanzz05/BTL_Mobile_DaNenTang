@@ -3,10 +3,12 @@ import { UuidUtil } from '../utils/uuid.util';
 import { AppError } from '../utils/app-error';
 
 export class TopicService {
-  static async getAllTopics(status?: string) {
+  static async getAllTopics(status?: string, includeInactiveWords = false) {
     let sql = `
       SELECT t.*, 
-        (SELECT COUNT(*) FROM tu_vung WHERE chu_de_id = t.id) as word_count
+        (SELECT COUNT(*) FROM tu_vung WHERE chu_de_id = t.id
+          ${includeInactiveWords ? '' : "AND trang_thai = 'active'"}) AS word_count,
+        (SELECT COUNT(*) FROM tu_vung WHERE chu_de_id = t.id AND trang_thai = 'active') AS active_word_count
       FROM chu_de t
     `;
 
@@ -21,10 +23,12 @@ export class TopicService {
     return await query(sql, params);
   }
 
-  static async getTopicById(id: string) {
+  static async getTopicById(id: string, includeInactiveWords = false) {
     const sql = `
       SELECT t.*,
-        (SELECT COUNT(*) FROM tu_vung WHERE chu_de_id = t.id) as word_count
+        (SELECT COUNT(*) FROM tu_vung WHERE chu_de_id = t.id
+          ${includeInactiveWords ? '' : "AND trang_thai = 'active'"}) AS word_count,
+        (SELECT COUNT(*) FROM tu_vung WHERE chu_de_id = t.id AND trang_thai = 'active') AS active_word_count
       FROM chu_de t
       WHERE t.id = ?
     `;

@@ -11,7 +11,7 @@ export class FavoriteService {
       `SELECT y.id AS yeu_thich_id, y.ngay_tao AS ngay_them_yeu_thich, t.*, c.ten AS chu_de_ten
       FROM yeu_thich y JOIN tu_vung t ON y.tu_vung_id = t.id
       JOIN chu_de c ON t.chu_de_id = c.id AND c.trang_thai = 'active'
-      WHERE y.nguoi_dung_id = ? ORDER BY y.ngay_tao DESC, y.id`,
+      WHERE y.nguoi_dung_id = ? AND t.trang_thai = 'active' ORDER BY y.ngay_tao DESC, y.id`,
       [userId]
     );
   }
@@ -24,7 +24,7 @@ export class FavoriteService {
       await connection.execute('SELECT id FROM nguoi_dung WHERE id = ? FOR UPDATE', [userId]);
       const [words]: any = await connection.execute(
         `SELECT t.id FROM tu_vung t JOIN chu_de c ON t.chu_de_id = c.id
-         WHERE t.id = ? AND c.trang_thai = 'active' FOR SHARE`,
+         WHERE t.id = ? AND c.trang_thai = 'active' AND t.trang_thai = 'active' FOR SHARE`,
         [wordId]
       );
       if (!words.length) {
