@@ -145,7 +145,7 @@ Quy tắc:
 - URL tương đối phải được ghép với địa chỉ backend khi hiển thị ảnh hoặc phát âm thanh.
 - Kiểm tra dữ liệu và lỗi theo trường; không đóng form khi lưu thất bại.
 - Backend chặn xóa từ đã có dữ liệu học hoặc thuộc phiên học.
-- Từ vựng hiện chưa có trường ẩn/hiện riêng; muốn thêm chức năng này phải mở rộng schema/API, không chỉ đặt một nút trên web.
+- Đã bổ sung trạng thái ẩn/hiện riêng cho từng từ qua migration `003-word-visibility.js`, kèm bộ lọc và thao tác trên admin. Từ ẩn được loại khỏi nội dung và phiên học mới, giữ nguyên lịch sử.
 - Không cần quản trị viên nhập bốn đáp án cho mỗi từ: phiên bản quiz hiện lấy các nghĩa khác nhau trong cùng chủ đề để tạo lựa chọn. Ngân hàng câu hỏi tùy chỉnh là tính năng mở rộng.
 
 ### 4.5. Quản lý người dùng

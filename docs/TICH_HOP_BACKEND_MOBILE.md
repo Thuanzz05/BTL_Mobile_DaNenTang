@@ -131,6 +131,14 @@ Web đã nối các endpoint quản trị hiện có, kèm:
 
 Bộ lọc ngày tính theo UTC+7, bao gồm cả ngày kết thúc, tối đa 366 ngày. Mặc định 30 ngày gần nhất. `ty_le_dung = null` khi chưa có lượt trả lời. Thống kê bao gồm các lượt đã chấm của cả phiên hoàn thành và phiên dừng.
 
+## Trạng thái ẩn/hiện từ vựng
+
+Backend đã hỗ trợ `tu_vung.trang_thai` (`active` / `inactive`). Mobile không phải gửi thêm trường khi lấy nội dung: các API thư viện, yêu thích và tạo phiên học/ôn tự loại từ ẩn, kể cả đáp án nhiễu của quiz mới. Từ còn bị ẩn nếu chủ đề của nó ẩn. API chi tiết từ ẩn trả 404 cho người học.
+
+Phiên đã bắt đầu vẫn giữ danh sách và có thể hoàn thành; lịch sử/tiến độ/yêu thích không bị xóa. Khi từ được hiện lại, dữ liệu trước đó còn nguyên. Tổng từ đã học là số liệu lịch sử; `total_words` / `learned_words` theo chủ đề chỉ tính từ đang hiển thị. Bộ đếm ôn cũng loại từ ẩn. Cache đã tải trên mobile chỉ cập nhật khi client gọi lại API.
+
+Admin dùng `PUT /api/admin/words/:id` với `{ "trang_thai": "inactive" }` hoặc `"active"`; bỏ trường này khi sửa nội dung sẽ giữ trạng thái hiện tại. `GET /api/admin/words?status=inactive` hỗ trợ tìm/lọc/phân trang. Các API chủ đề trả thêm `active_word_count`; `word_count` của admin tính toàn bộ từ, của người học chỉ tính từ hiển thị.
+
 ## Phần việc mobile còn lại
 
 1. Đổi các lời gọi mạng của màn hình luyện tập sang hợp đồng quiz ở trên; giữ thiết kế giao diện.
