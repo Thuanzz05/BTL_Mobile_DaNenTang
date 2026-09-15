@@ -54,7 +54,7 @@ export function DashboardPage() {
                 title: 'Từ vựng',
                 value: data.tong_tu_vung,
                 icon: BookOpen,
-                detail: 'Sẵn sàng cho việc học',
+                detail: 'Tổng từ trong thư viện',
                 color: 'blue',
               },
               {

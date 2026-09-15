@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Headphones, Image, Pencil, Plus, Search, Trash2 } from 'lucide-react';
-import { api } from '../services/api';
+import { Eye, EyeOff, Headphones, Image, Pencil, Plus, Search, Trash2 } from 'lucide-react';
+import { api, jsonBody } from '../services/api';
 import type { Page, Topic, Word } from '../types';
 import { useQuery } from '../hooks/use-query';
-import { Confirm, Empty, Notice, PageHeader, Pagination, QueryState } from '../components/ui';
+import { Confirm, Empty, Notice, PageHeader, Pagination, QueryState, Status } from '../components/ui';
 
 export const wordTypes: Record<string, string> = {
   'danh-tu': 'Danh từ',
@@ -22,6 +22,7 @@ export function WordsPage() {
   const [params, setParams] = useSearchParams();
   const search = params.get('search') || '';
   const topicId = params.get('topicId') || '';
+  const status = params.get('status') || '';
   const page = Math.max(1, Math.min(1000000, Number(params.get('page')) || 1));
   const [draft, setDraft] = useState(search);
   const topics = useQuery('word-topics', () => api<Topic[]>('/admin/topics'));
@@ -29,10 +30,14 @@ export function WordsPage() {
   if (!topicId) {
     queryString.delete('topicId');
   }
+  if (status) {
+    queryString.set('status', status);
+  }
   const query = useQuery(queryString.toString(), () =>
     api<Page<Word>>('/admin/words?' + queryString)
   );
   const [removing, setRemoving] = useState<Word | null>(null);
+  const [changing, setChanging] = useState<Word | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -52,6 +57,33 @@ export function WordsPage() {
   function searchWords(event: FormEvent) {
     event.preventDefault();
     change({ search: draft.trim(), page: '1' });
+  }
+
+  async function changeVisibility() {
+    if (!changing || busy) {
+      return;
+    }
+    setBusy(true);
+    setError('');
+
+    try {
+      const nextStatus = changing.trang_thai === 'active' ? 'inactive' : 'active';
+      await api(
+        '/admin/words/' + changing.id,
+        jsonBody('PUT', { trang_thai: nextStatus })
+      );
+      setNotice(nextStatus === 'active' ? 'Đã bật hiển thị từ vựng.' : 'Đã ẩn từ vựng.');
+      setChanging(null);
+      if (status && query.data?.items.length === 1 && page > 1) {
+        change({ page: String(page - 1) });
+      } else {
+        query.reload();
+      }
+    } catch (failure) {
+      setError((failure as Error).message);
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function remove() {
@@ -118,6 +150,15 @@ export function WordsPage() {
               </option>
             ))}
           </select>
+          <select
+            aria-label="Lọc trạng thái từ vựng"
+            value={status}
+            onChange={(event) => change({ status: event.target.value, page: '1' })}
+          >
+            <option value="">Tất cả trạng thái từ</option>
+            <option value="active">Bật hiển thị</option>
+            <option value="inactive">Đã ẩn</option>
+          </select>
         </div>
         {topics.error && (
           <Notice>
@@ -139,6 +180,7 @@ export function WordsPage() {
                       <th>Nghĩa tiếng Việt</th>
                       <th>Chủ đề</th>
                       <th>Học liệu</th>
+                      <th>Trạng thái từ</th>
                       <th className="align-right">Thao tác</th>
                     </tr>
                   </thead>
@@ -175,7 +217,27 @@ export function WordsPage() {
                           </div>
                         </td>
                         <td>
+                          <Status
+                            value={word.trang_thai}
+                            label={word.trang_thai === 'active' ? 'Bật hiển thị' : 'Đã ẩn'}
+                          />
+                          {topics.data?.find((topic) => topic.id === word.chu_de_id)?.trang_thai === 'inactive' && (
+                            <span className="cell-note">Chủ đề đang ẩn</span>
+                          )}
+                        </td>
+                        <td>
                           <div className="row-actions">
+                            <button
+                              className="icon-button"
+                              title={word.trang_thai === 'active' ? 'Ẩn từ' : 'Hiện từ'}
+                              aria-label={(word.trang_thai === 'active' ? 'Ẩn ' : 'Hiện ') + word.tu_tieng_anh}
+                              onClick={() => {
+                                setError('');
+                                setChanging(word);
+                              }}
+                            >
+                              {word.trang_thai === 'active' ? <EyeOff size={17} /> : <Eye size={17} />}
+                            </button>
                             <Link
                               className="icon-button"
                               aria-label={'Sửa ' + word.tu_tieng_anh}
@@ -212,10 +274,29 @@ export function WordsPage() {
           </>
         )}
       </section>
+      <p className="hint page-hint">
+        Từ chỉ xuất hiện trong lượt học mới khi cả từ và chủ đề đều bật hiển thị.
+        Ẩn từ giữ nguyên lịch sử, tiến độ và các phiên đã bắt đầu.
+      </p>
+      {changing && (
+        <Confirm
+          title={(changing.trang_thai === 'active' ? 'Ẩn' : 'Hiện') + ' từ “' + changing.tu_tieng_anh + '”?'}
+          description={
+            changing.trang_thai === 'active'
+              ? 'Từ sẽ ngừng xuất hiện trong thư viện, danh sách yêu thích và lượt học/ôn mới. Các phiên đã bắt đầu vẫn tiếp tục được; lịch sử và tiến độ được giữ lại.'
+              : 'Từ sẽ xuất hiện trở lại khi chủ đề cũng đang hiển thị. Tiến độ và trạng thái yêu thích trước đó được giữ nguyên.'
+          }
+          action={changing.trang_thai === 'active' ? 'Ẩn từ' : 'Hiện từ'}
+          busy={busy}
+          error={error}
+          onClose={() => setChanging(null)}
+          onConfirm={() => { void changeVisibility(); }}
+        />
+      )}
       {removing && (
         <Confirm
           title={'Xóa từ “' + removing.tu_tieng_anh + '”?'}
-          description="Từ và các ví dụ sẽ được xóa. Backend sẽ giữ lại từ đang được sử dụng trong phiên học hoặc tiến độ của người học."
+          description="Từ và các ví dụ sẽ được xóa. Từ đã có dữ liệu học được giữ lại; bạn có thể dùng nút Ẩn từ để ngừng sử dụng."
           busy={busy}
           error={error}
           onClose={() => setRemoving(null)}

@@ -17,6 +17,7 @@ export interface Topic {
   trang_thai: 'active' | 'inactive';
   thu_tu_hien_thi: number;
   word_count: number;
+  active_word_count: number;
 }
 export interface Example {
   cau_tieng_anh: string;
@@ -33,6 +34,7 @@ export interface Word {
   loai_tu: string;
   url_hinh_anh: string | null;
   url_am_thanh: string | null;
+  trang_thai: 'active' | 'inactive';
   thu_tu_hien_thi: number;
   vi_du?: Example[];
 }

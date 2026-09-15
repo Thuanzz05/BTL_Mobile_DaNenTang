@@ -25,6 +25,7 @@ function WordForm({
     nghia_tieng_viet: word?.nghia_tieng_viet || '',
     phien_am: word?.phien_am || '',
     loai_tu: word?.loai_tu || 'danh-tu',
+    trang_thai: word?.trang_thai || 'active',
     thu_tu_hien_thi: word?.thu_tu_hien_thi || 0,
     url_hinh_anh: word?.url_hinh_anh || '',
     url_am_thanh: word?.url_am_thanh || '',
@@ -150,6 +151,20 @@ function WordForm({
                 </select>
               </label>
             </div>
+            <label>
+              Trạng thái từ
+              <select
+                value={values.trang_thai}
+                onChange={(event) => update('trang_thai', event.target.value)}
+              >
+                <option value="active">Bật hiển thị</option>
+                <option value="inactive">Ẩn</option>
+              </select>
+            </label>
+            <p className="hint">
+              Từ chỉ dùng cho lượt học mới khi cả từ và chủ đề đều bật hiển thị.
+              Ẩn từ giữ nguyên lịch sử, tiến độ và các phiên đã bắt đầu.
+            </p>
             <label>
               Thứ tự hiển thị
               <input

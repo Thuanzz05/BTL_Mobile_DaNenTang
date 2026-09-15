@@ -239,8 +239,9 @@ export function TopicsPage() {
                         <Link className="text-link" to={'/words?topicId=' + topic.id}>
                           {topic.word_count} từ vựng
                         </Link>
-                        {Number(topic.word_count) < 5 && (
-                          <span className="cell-note">Cần thêm từ để bắt đầu học</span>
+                        <span className="cell-note">{topic.active_word_count} từ bật hiển thị</span>
+                        {Number(topic.active_word_count) < 5 && (
+                          <span className="cell-note">Cần ít nhất 5 từ bật hiển thị để học</span>
                         )}
                       </td>
                       <td>

@@ -72,7 +72,7 @@ export function Empty({ title, children }: { title: string; children?: ReactNode
   );
 }
 
-export function Status({ value }: { value: string }) {
+export function Status({ value, label }: { value: string; label?: string }) {
   const labels: Record<string, string> = {
     active: 'Đang hoạt động',
     inactive: 'Đã ẩn / tạm ngưng',
@@ -81,7 +81,7 @@ export function Status({ value }: { value: string }) {
   return (
     <span className={'badge ' + value}>
       <i />
-      {labels[value] || value}
+      {label || labels[value] || value}
     </span>
   );
 }
