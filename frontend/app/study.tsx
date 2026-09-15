@@ -5,8 +5,11 @@ import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import * as Speech from "expo-speech";
 import { useEffect, useState } from "react";
+import { useReducedMotion } from "react-native-reanimated";
 import {
   ActivityIndicator,
+  Animated,
+  Easing,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -45,6 +48,8 @@ export default function StudyScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [attempt, setAttempt] = useState(0);
+  const reduceMotion = useReducedMotion();
+  const [flip] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
     if (!topicId) return;
@@ -73,6 +78,14 @@ export default function StudyScreen() {
     ? { id: topicId, ten: topicName, mo_ta: null, word_count: words.length }
     : null;
   const progress = words.length ? ((index + 1) / words.length) * 100 : 0;
+  const frontRotation = flip.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["0deg", "180deg"],
+  });
+  const backRotation = flip.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["180deg", "360deg"],
+  });
 
   function pronounce() {
     if (!word) return;
@@ -81,10 +94,27 @@ export default function StudyScreen() {
     );
   }
 
+  function flipCard() {
+    const nextValue = flipped ? 0 : 1;
+    setFlipped(!flipped);
+    Animated.timing(flip, {
+      toValue: nextValue,
+      duration: reduceMotion ? 0 : 420,
+      easing: Easing.inOut(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }
+
+  function resetFlip() {
+    flip.stopAnimation();
+    flip.setValue(0);
+    setFlipped(false);
+  }
+
   function previous() {
     if (index === 0) return;
     setIndex(index - 1);
-    setFlipped(false);
+    resetFlip();
   }
 
   function next() {
@@ -93,7 +123,7 @@ export default function StudyScreen() {
       return;
     }
     setIndex(index + 1);
-    setFlipped(false);
+    resetFlip();
   }
 
   return (
@@ -175,7 +205,7 @@ export default function StudyScreen() {
               onPress={() => {
                 setFinished(false);
                 setIndex(0);
-                setFlipped(false);
+                resetFlip();
               }}
             >
               <Text style={s.secondaryText}>Xem lại flashcard</Text>
@@ -206,42 +236,83 @@ export default function StudyScreen() {
               accessibilityLabel={
                 flipped ? "Lật về mặt từ tiếng Anh" : "Lật thẻ để xem nghĩa"
               }
-              style={({ pressed }) => [s.card, pressed && s.cardPressed]}
-              onPress={() => setFlipped(!flipped)}
+              style={({ pressed }) => [s.cardFrame, pressed && s.cardPressed]}
+              onPress={flipCard}
             >
-              <View style={s.cardTop}>
-                <Text style={s.cardNumber}>
-                  {String(index + 1).padStart(2, "0")}
+              <Animated.View
+                pointerEvents="none"
+                accessibilityElementsHidden={flipped}
+                importantForAccessibility={
+                  flipped ? "no-hide-descendants" : "auto"
+                }
+                style={[
+                  s.card,
+                  {
+                    transform: [
+                      { perspective: 1000 },
+                      { rotateY: frontRotation },
+                    ],
+                  },
+                ]}
+              >
+                <View style={s.cardTop}>
+                  <Text style={s.cardNumber}>
+                    {String(index + 1).padStart(2, "0")}
+                  </Text>
+                  <Ionicons name="sync-outline" size={21} color={c.muted} />
+                </View>
+                <View style={s.cardBody}>
+                  <Text style={s.cardLabel}>
+                    {wordTypes[word.loai_tu] || word.loai_tu}
+                  </Text>
+                  <Text style={s.english}>{word.tu_tieng_anh}</Text>
+                  {!!word.phien_am && (
+                    <Text style={s.phonetic}>{word.phien_am}</Text>
+                  )}
+                  <View style={s.play}>
+                    <Ionicons name="volume-high" size={24} color="white" />
+                  </View>
+                </View>
+                <Text style={s.flipHint}>Chạm vào thẻ để lật</Text>
+              </Animated.View>
+              <Animated.View
+                pointerEvents="none"
+                accessibilityElementsHidden={!flipped}
+                importantForAccessibility={
+                  flipped ? "auto" : "no-hide-descendants"
+                }
+                style={[
+                  s.card,
+                  s.cardBack,
+                  {
+                    transform: [
+                      { perspective: 1000 },
+                      { rotateY: backRotation },
+                    ],
+                  },
+                ]}
+              >
+                <View style={s.cardTop}>
+                  <Text style={[s.cardNumber, s.cardNumberBack]}>
+                    {String(index + 1).padStart(2, "0")}
+                  </Text>
+                  <Ionicons name="sync-outline" size={21} color="#8A5A2B" />
+                </View>
+                <View style={s.cardBody}>
+                  <Text style={[s.cardLabel, s.cardLabelBack]}>
+                    NGHĨA TIẾNG VIỆT
+                  </Text>
+                  <Text style={s.meaning}>{word.nghia_tieng_viet}</Text>
+                  <View style={s.rule} />
+                  <Text style={s.englishSmall}>{word.tu_tieng_anh}</Text>
+                  {!!word.phien_am && (
+                    <Text style={s.phonetic}>{word.phien_am}</Text>
+                  )}
+                </View>
+                <Text style={[s.flipHint, s.flipHintBack]}>
+                  Chạm vào thẻ để lật lại
                 </Text>
-                <Ionicons name="sync-outline" size={21} color={c.muted} />
-              </View>
-              <View style={s.cardBody}>
-                {flipped ? (
-                  <>
-                    <Text style={s.cardLabel}>NGHĨA TIẾNG VIỆT</Text>
-                    <Text style={s.meaning}>{word.nghia_tieng_viet}</Text>
-                    <View style={s.rule} />
-                    <Text style={s.englishSmall}>{word.tu_tieng_anh}</Text>
-                    {!!word.phien_am && (
-                      <Text style={s.phonetic}>{word.phien_am}</Text>
-                    )}
-                  </>
-                ) : (
-                  <>
-                    <Text style={s.cardLabel}>
-                      {wordTypes[word.loai_tu] || word.loai_tu}
-                    </Text>
-                    <Text style={s.english}>{word.tu_tieng_anh}</Text>
-                    {!!word.phien_am && (
-                      <Text style={s.phonetic}>{word.phien_am}</Text>
-                    )}
-                    <View style={s.play}>
-                      <Ionicons name="volume-high" size={24} color="white" />
-                    </View>
-                  </>
-                )}
-              </View>
-              <Text style={s.flipHint}>Chạm vào thẻ để lật</Text>
+              </Animated.View>
             </Pressable>
 
             <View style={s.tip}>
@@ -358,7 +429,9 @@ const s = StyleSheet.create({
     paddingHorizontal: 8,
   },
   speakerText: { color: c.green, fontSize: 13, fontWeight: "700" },
+  cardFrame: { minHeight: 430, position: "relative" },
   card: {
+    ...StyleSheet.absoluteFill,
     minHeight: 430,
     padding: 24,
     borderRadius: 28,
@@ -366,7 +439,9 @@ const s = StyleSheet.create({
     borderWidth: 1,
     borderColor: c.line,
     justifyContent: "space-between",
+    backfaceVisibility: "hidden",
   },
+  cardBack: { backgroundColor: c.peach, borderColor: "#EAD5B8" },
   cardPressed: { transform: [{ scale: 0.985 }] },
   cardTop: {
     flexDirection: "row",
@@ -379,6 +454,7 @@ const s = StyleSheet.create({
     fontWeight: "700",
     letterSpacing: 1.2,
   },
+  cardNumberBack: { color: "#8A5A2B" },
   cardBody: { alignItems: "center", gap: 14, paddingHorizontal: 10 },
   cardLabel: {
     color: c.green,
@@ -387,6 +463,7 @@ const s = StyleSheet.create({
     letterSpacing: 1.4,
     textTransform: "uppercase",
   },
+  cardLabelBack: { color: "#8A5A2B" },
   english: {
     color: c.ink,
     fontSize: 46,
@@ -415,6 +492,7 @@ const s = StyleSheet.create({
   },
   rule: { width: 48, height: 2, marginVertical: 5, backgroundColor: c.line },
   flipHint: { color: c.muted, fontSize: 12, textAlign: "center" },
+  flipHintBack: { color: "#7A674F" },
   tip: {
     flexDirection: "row",
     alignItems: "center",
