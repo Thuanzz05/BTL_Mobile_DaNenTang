@@ -91,3 +91,15 @@ test('late profile update cannot resurrect a logged-out session', async () => {
   await pending;
   assert.equal(session.getSnapshot(), null);
 });
+
+test('failed logout keeps the session visible until the server can revoke the cookie', async () => {
+  const session = new AdminSession(async (url) => {
+    if (url === '/web-auth/login') {
+      return auth();
+    }
+    throw new ApiError('Offline', 0);
+  });
+  await session.login('a@b.c', 'Test123456');
+  await assert.rejects(session.logout(), /Offline/);
+  assert.ok(session.getSnapshot());
+});

@@ -127,7 +127,11 @@ export class AdminSession {
       try {
         return await send();
       } catch (retryError) {
-        if (generation === this.generation && retryError instanceof ApiError && retryError.status === 401) {
+        if (
+          generation === this.generation &&
+          retryError instanceof ApiError &&
+          retryError.status === 401
+        ) {
           this.clear();
         }
         throw retryError;
