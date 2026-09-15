@@ -478,7 +478,11 @@ test('Backend HTTP and real MySQL regression tests', { timeout: 120000 }, async 
     });
 
     await require('./quiz-integration.cjs')(t, { api, connection, admin, learner, other, base });
-    await require('./word-visibility-integration.cjs').verifyBehavior(t, { api, connection, admin });
+    await require('./word-visibility-integration.cjs').verifyBehavior(t, {
+      api,
+      connection,
+      admin,
+    });
 
     await t.test(
       'locked and unlocked accounts cannot reuse old access or refresh tokens',
