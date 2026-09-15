@@ -28,6 +28,7 @@ Dữ liệu mẫu: admin dùng email `admin@hoctuvung.vn` và mật khẩu `admi
 
 Mặc định server ở `http://localhost:5000`; Swagger ở `http://localhost:5000/api-docs`.
 
+- `GET /`: thông tin nhanh và các đường dẫn chính của API.
 - `GET /health`: kiểm tra tiến trình HTTP.
 - `GET /ready`: kiểm tra kết nối MySQL; trả 503 khi database không sẵn sàng.
 - Server không khởi động nếu thiếu khóa JWT hợp lệ hoặc không kết nối được MySQL.

@@ -40,6 +40,13 @@ if (process.env.NODE_ENV === 'development') {
 
 // Static files
 app.use('/uploads', express.static(uploadRoot));
+app.get('/', (_req, res) => {
+  res.json({
+    success: true,
+    message: 'Vocabulary API is running',
+    data: { api: '/api', docs: '/api-docs', health: '/health' },
+  });
+});
 app.get('/ready', async (_req, res) => {
   try {
     await pool.query('SELECT 1');
