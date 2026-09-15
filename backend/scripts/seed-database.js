@@ -1,29 +1,12 @@
-const fs = require('fs');
-const path = require('path');
 const { connect, databaseName, migrate } = require('./database-tools');
+const { businessTables, readDatabaseSource } = require('./sql-source');
 
 /**
  * Nạp mẫu chỉ khi toàn bộ bảng nghiệp vụ đang trống.
  * File seed không chứa TRUNCATE hoặc tắt kiểm tra khóa ngoại.
  */
 async function seedDatabase(connection) {
-  const tables = [
-    'nguoi_dung',
-    'token_lam_moi',
-    'chu_de',
-    'tu_vung',
-    'vi_du',
-    'yeu_thich',
-    'phien_hoc_tap',
-    'phien_hoc_tu',
-    'ket_qua_hoc',
-    'tien_do_tu_vung',
-    'hoat_dong_hoc_tap',
-    'thanh_tich',
-    'thanh_tich_nguoi_dung',
-  ];
-
-  for (const table of tables) {
+  for (const table of businessTables) {
     const [rows] = await connection.query('SELECT COUNT(*) AS count FROM ' + table);
 
     if (rows[0].count > 0) {
@@ -31,14 +14,14 @@ async function seedDatabase(connection) {
     }
   }
 
-  const seed = fs
-    .readFileSync(path.join(__dirname, '../database_seed.sql'), 'utf8')
-    .replace(/^USE\s+[^;]+;/gim, '');
+  const { seed } = readDatabaseSource();
 
   await connection.beginTransaction();
 
   try {
-    await connection.query(seed);
+    for (const statement of seed) {
+      await connection.query(statement);
+    }
     await connection.commit();
   } catch (error) {
     await connection.rollback();
