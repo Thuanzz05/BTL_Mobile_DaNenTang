@@ -1,12 +1,12 @@
 # Tích hợp backend, admin web và mobile
 
-Cập nhật ngày 15/09/2026. Đây là hợp đồng API để cộng tác viên nối tiếp phần mobile; các màn hình mobile hiện có được giữ nguyên.
+Cập nhật ngày 17/09/2026. Đây là hợp đồng API và trạng thái tích hợp để cộng tác viên nối tiếp phần mobile.
 
 ## Bốn thay đổi mới từ PR #13 và #14
 
 - Hồ sơ và đổi mật khẩu đã dùng `/auth/profile` và `/auth/change-password`; backend hỗ trợ, đổi mật khẩu thu hồi token cũ.
-- Flashcard đã tạo phiên thật, nhưng chỉ nộp trạng thái SRS của mỗi từ khi hoàn thành. Chưa lưu từng câu trả lời trong khi học.
-- Lịch sử đã gọi `GET /history?page=1&limit=50`. Màn hình hiện lấy 50 phiên đầu, chưa có tải trang tiếp theo hoặc mở chi tiết từng lượt.
+- Trắc nghiệm đã dùng API quiz: server chọn câu, chấm và lưu từng lượt; đã lưu phiên và câu trả lời chờ gửi trên thiết bị.
+- Lịch sử đã gọi `GET /history?page=1&limit=50` và có xem chi tiết phiên. Chưa có tải trang tiếp theo.
 - Yêu thích đã dùng GET/PUT/DELETE. Nút trong flashcard hiện là thêm yêu thích; gỡ ở màn hình danh sách.
 
 Tiến độ trên trang chủ được tải lại sau phiên hoàn thành, chưa phải đồng bộ thời gian thực giữa nhiều thiết bị. Các luồng cũ tiếp tục chạy với API hiện tại.
@@ -22,7 +22,7 @@ Tiến độ trên trang chủ được tải lại sau phiên hoàn thành, ch�
 
 Dữ liệu cũ có `phuong_thuc = danh_gia`; dữ liệu mới dùng `trac_nghiem` và `phien_ban_thuat_toan = adaptive-v1`. Migration không đổi các phiên cũ thành quiz và không tự suy diễn lịch sử trả lời.
 
-## Chuyển màn hình trắc nghiệm mobile sang API mới
+## Hợp đồng API trắc nghiệm đang dùng trên mobile
 
 Tất cả endpoint dưới đây nằm sau `/api`, dùng `Authorization: Bearer <accessToken>`.
 
@@ -31,12 +31,14 @@ Tất cả endpoint dưới đây nằm sau `/api`, dùng `Authorization: Bearer
 `POST /quiz/start`
 
 ```json
-{ "chu_de_id": "<id-chủ-đề>", "tong_so_tu": 20 }
+{ "chu_de_id": "<id-chủ-đề>", "tong_so_tu": 20, "ma_yeu_cau": "<uuid-khởi-tạo>" }
 ```
 
 Nhận 5–50 từ; chủ đề phải có ít nhất năm từ. Backend chọn số thực tế có sẵn, tối đa bằng số yêu cầu.
 
 Ôn từ đến hạn: `POST /quiz/review/start` với `{ "tong_so_tu": 20 }`, cho phép 1–50 từ. Một từ ôn vẫn tạo được câu trắc nghiệm nhờ đáp án nhiễu lấy từ danh mục đang hiển thị. Danh mục cần ít nhất hai nghĩa khác nhau.
+
+Cả hai endpoint nhận thêm `ma_yeu_cau` UUID tùy chọn, được mobile mới lưu trước khi gọi. Cùng tài khoản, cùng mã và cùng tham số sẽ trả lại phiên cũ (kể cả phiên đã kết thúc); đổi tham số với cùng mã trả 409 `IDEMPOTENCY_CONFLICT`. Client cũ không gửi mã vẫn hoạt động như trước. Chạy `npm run db:migrate` trong `backend` để áp dụng migration `004-quiz-start-retry.js` trước khi chạy backend mới.
 
 Kết quả trong `data`:
 
@@ -99,7 +101,18 @@ Khi `phien.trang_thai = hoan-thanh`, server đã ghi tiến độ và hoạt đ�
 - `POST /quiz/:sessionId/stop`: chuyển phiên đang học sang `bo-do`, giữ lịch sử trả lời; gọi lại không đổi kết quả.
 - `GET /history/:sessionId`: có thêm `luot_tra_loi` gồm các câu đã chấm, lựa chọn, đáp án, thời gian và nội dung từ đã chụp.
 
-Mobile cần lưu ID phiên theo tài khoản nếu muốn khôi phục sau khi đóng ứng dụng. Không dùng ID phiên của người đăng nhập trước.
+Mobile đã lưu bản nháp riêng theo tài khoản: ý định khởi tạo, ID phiên, một câu trả lời chờ gửi và yêu cầu dừng đang chờ. Native dùng SecureStore; web dùng localStorage. Không lưu access token hoặc cả bộ câu hỏi vào bản nháp.
+
+Trang chủ có **Tiếp tục bài học**. Khi mở lại, app gửi lại câu đang chờ với đúng UUID và nội dung, rồi GET trạng thái mới nhất. Nếu chọn chủ đề khác khi còn bài dở, app tiếp tục bài cũ và hiển thị tên bài cũ; không ghi đè bản lưu. Nếu không ghi được xuống thiết bị thì không gửi câu trả lời mới. Lỗi mạng hoặc đăng nhập không xóa bản lưu; đăng nhập lại đúng tài khoản để khôi phục. Phiên đã kết thúc hoặc không còn trên server sẽ được bỏ khỏi bản lưu.
+
+Nút thoát và Back Android trong modal trắc nghiệm dùng chung xác nhận:
+- **Tiếp tục học**: ở lại bài.
+- **Lưu để học sau**: về trang chủ, không gọi API dừng.
+- **Dừng phiên**: lưu yêu cầu dừng, gửi xong câu trả lời chờ trước, rồi gọi API dừng. Nếu mất mạng, yêu cầu dừng được giữ để thử lại. Trong lúc gửi, các hành động rời bài bị khóa.
+
+Phạm vi: phiên trắc nghiệm của tài khoản đã đăng nhập, một bản nháp mỗi tài khoản trên mỗi thiết bị. Vẫn cần mạng để chấm và lấy câu tiếp theo; có thể bấm **Thử gửi lại** hoặc mở **Tiếp tục bài học** khi có mạng. Nếu mở app lúc offline và chưa khôi phục đăng nhập được, trang chủ có **Thử kết nối lại**. Bài thử của khách và vị trí lật thẻ trước trắc nghiệm chưa được lưu qua lần mở app; xóa dữ liệu ứng dụng sẽ xóa các câu chưa gửi.
+
+Code tách theo trách nhiệm: `services/quiz-session.ts` quản lý lưu/gửi lại, `hooks/use-quiz-session.ts` gắn tài khoản, `components/server-quiz.tsx` và `guest-quiz.tsx` hiển thị bài, `flashcard-preview.tsx` điều phối modal và Back, `resume-learning-card.tsx` hiển thị bài dở.
 
 ### 4. Quy tắc luyện tập
 
@@ -141,10 +154,9 @@ Admin dùng `PUT /api/admin/words/:id` với `{ "trang_thai": "inactive" }` ho�
 
 ## Phần việc mobile còn lại
 
-1. Đổi các lời gọi mạng của màn hình luyện tập sang hợp đồng quiz ở trên; giữ thiết kế giao diện.
-2. Lưu/khôi phục ID phiên và mã yêu cầu đang chờ gửi.
-3. Nối hành động thoát chủ động với API dừng phiên.
-4. Bổ sung phân trang lịch sử và trang chi tiết từng lượt khi cần.
-5. Đồng bộ trạng thái yêu thích ban đầu và thao tác bỏ yêu thích trực tiếp trên flashcard nếu đó là thiết kế mong muốn.
+1. Kiểm tra trên máy Android thật: Back ở câu đầu, sau trả lời, khi đang gửi, và tại xác nhận thoát; thoát/mở lại app khi có câu chờ gửi; thử lại sau khi kết nối mạng.
+2. Bổ sung phân trang lịch sử.
+3. Đồng bộ trạng thái yêu thích ban đầu và thao tác bỏ yêu thích trực tiếp trên flashcard nếu đó là thiết kế mong muốn.
+4. Nếu cần học hoàn toàn offline hoặc lưu vị trí lật flashcard, bổ sung bộ nhớ nội dung và quy tắc đồng bộ riêng.
 
 Google OAuth và thành tích/điểm thưởng là phần mở rộng; chưa có luồng nghiệp vụ hoàn chỉnh trong đợt này.
