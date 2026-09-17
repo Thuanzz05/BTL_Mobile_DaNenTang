@@ -57,6 +57,48 @@ const dueSql = `FROM tien_do_tu_vung p
   WHERE p.nguoi_dung_id = ? AND p.da_hoc = TRUE AND p.ngay_on_tap_tiep_theo <= NOW()`;
 
 export class LearningService {
+  /** Gọi sau lockUser: cùng mã khởi tạo luôn trả về cùng một phiên. */
+  private static async replayStart(
+    connection: PoolConnection,
+    userId: string,
+    topicId: string | null,
+    wordCount: number,
+    method: string,
+    requestId?: string
+  ) {
+    if (!requestId) {
+      return null;
+    }
+    const [sessions]: any = await connection.execute(
+      `SELECT p.*, c.ten AS chu_de_ten, c.hinh_anh AS chu_de_hinh_anh
+       FROM phien_hoc_tap p LEFT JOIN chu_de c ON c.id = p.chu_de_id
+       WHERE p.nguoi_dung_id = ? AND p.ma_yeu_cau_khoi_tao = ?`,
+      [userId, requestId]
+    );
+    const session = sessions[0];
+    if (!session) {
+      return null;
+    }
+    if (
+      session.chu_de_id !== topicId ||
+      session.so_tu_yeu_cau !== wordCount ||
+      session.phuong_thuc !== method ||
+      session.loai_phien !== (topicId ? 'hoc_moi' : 'on_tap')
+    ) {
+      throw new AppError('Mã khởi tạo đã được dùng cho bài khác', 409, 'IDEMPOTENCY_CONFLICT');
+    }
+    const [words]: any = await connection.execute(
+      `SELECT t.* FROM phien_hoc_tu p JOIN tu_vung t ON t.id = p.tu_vung_id
+       WHERE p.phien_hoc_tap_id = ? ORDER BY p.thu_tu`,
+      [session.id]
+    );
+    return {
+      phien_hoc_tap_id: session.id as string,
+      phien_hoc_tap: session,
+      danh_sach_tu: await withExamples(words, connection),
+    };
+  }
+
   /**
    * Lưu phiên học cùng danh sách từ và thứ tự cố định
    */
@@ -66,13 +108,16 @@ export class LearningService {
     topicId: string | null,
     words: any[],
     type: 'hoc_moi' | 'on_tap',
-    method: 'danh_gia' | 'trac_nghiem'
+    method: 'danh_gia' | 'trac_nghiem',
+    requestId?: string,
+    requestedCount?: number
   ) {
     const id = UuidUtil.generate();
     await connection.execute(
       `INSERT INTO phien_hoc_tap (
-        id, nguoi_dung_id, chu_de_id, tong_so_tu, loai_phien, phuong_thuc, phien_ban_thuat_toan
-      ) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+        id, nguoi_dung_id, chu_de_id, tong_so_tu, loai_phien, phuong_thuc, phien_ban_thuat_toan,
+        ma_yeu_cau_khoi_tao, so_tu_yeu_cau
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         id,
         userId,
@@ -81,6 +126,8 @@ export class LearningService {
         type,
         method,
         method === 'trac_nghiem' ? QUIZ_VERSION : null,
+        requestId || null,
+        requestedCount ?? null,
       ]
     );
     await connection.query(
@@ -151,12 +198,24 @@ export class LearningService {
     userId: string,
     topicId: string,
     wordCount = 20,
-    method: 'danh_gia' | 'trac_nghiem' = 'danh_gia'
+    method: 'danh_gia' | 'trac_nghiem' = 'danh_gia',
+    requestId?: string
   ) {
     schemas.start.parse({ chu_de_id: topicId, tong_so_tu: wordCount });
 
     return transaction(async (connection) => {
       await lockUser(connection, userId);
+      const replay = await this.replayStart(
+        connection,
+        userId,
+        topicId,
+        wordCount,
+        method,
+        requestId
+      );
+      if (replay) {
+        return replay;
+      }
       const [topics]: any = await connection.execute(
         "SELECT id FROM chu_de WHERE id = ? AND trang_thai = 'active' FOR UPDATE",
         [topicId]
@@ -177,7 +236,16 @@ export class LearningService {
           'INSUFFICIENT_WORDS'
         );
       }
-      return this.createSession(connection, userId, topicId, words, 'hoc_moi', method);
+      return this.createSession(
+        connection,
+        userId,
+        topicId,
+        words,
+        'hoc_moi',
+        method,
+        requestId,
+        wordCount
+      );
     });
   }
 
@@ -187,12 +255,17 @@ export class LearningService {
   static async startReviewSession(
     userId: string,
     wordCount = 50,
-    method: 'danh_gia' | 'trac_nghiem' = 'danh_gia'
+    method: 'danh_gia' | 'trac_nghiem' = 'danh_gia',
+    requestId?: string
   ) {
     schemas.review.parse({ tong_so_tu: wordCount });
 
     return transaction(async (connection) => {
       await lockUser(connection, userId);
+      const replay = await this.replayStart(connection, userId, null, wordCount, method, requestId);
+      if (replay) {
+        return replay;
+      }
       const [words]: any = await connection.query(
         'SELECT t.* ' + dueSql + ' ORDER BY p.ngay_on_tap_tiep_theo, t.id LIMIT ? FOR SHARE',
         [userId, wordCount]
@@ -200,7 +273,16 @@ export class LearningService {
       if (!words.length) {
         throw new AppError('Không có từ đến hạn ôn tập', 404, 'NO_REVIEW_WORDS');
       }
-      return this.createSession(connection, userId, null, words, 'on_tap', method);
+      return this.createSession(
+        connection,
+        userId,
+        null,
+        words,
+        'on_tap',
+        method,
+        requestId,
+        wordCount
+      );
     });
   }
 

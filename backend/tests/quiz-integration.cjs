@@ -75,12 +75,24 @@ module.exports = async function quizIntegration(
         );
       }
 
-      const start = await api(
+      const startBody = { chu_de_id: topic.id, tong_so_tu: 5, ma_yeu_cau: randomUUID() };
+      const [start, duplicateStart] = await Promise.all([
+        api('POST', '/api/quiz/start', startBody, other.accessToken, 201),
+        api('POST', '/api/quiz/start', startBody, other.accessToken, 201),
+      ]);
+      assert.deepEqual(duplicateStart, start);
+      const [[starts]] = await connection.query(
+        'SELECT COUNT(*) AS count FROM phien_hoc_tap WHERE nguoi_dung_id = ? AND ma_yeu_cau_khoi_tao = ?',
+        [other.user.id, startBody.ma_yeu_cau]
+      );
+      assert.equal(starts.count, 1);
+      await api('POST', '/api/quiz/start', { ...startBody, tong_so_tu: 6 }, other.accessToken, 409);
+      await api(
         'POST',
-        '/api/quiz/start',
-        { chu_de_id: topic.id, tong_so_tu: 5 },
+        '/api/quiz/review/start',
+        { tong_so_tu: 5, ma_yeu_cau: startBody.ma_yeu_cau },
         other.accessToken,
-        201
+        409
       );
       const sessionId = start.phien_hoc_tap_id;
       const route = '/api/quiz/' + sessionId;
@@ -192,6 +204,10 @@ module.exports = async function quizIntegration(
       assert.equal(state.so_luot_tra_loi, 12);
       assert.equal(state.so_luot_dung, 11);
       assert.deepEqual(
+        await api('POST', '/api/quiz/start', startBody, other.accessToken, 201),
+        state
+      );
+      assert.deepEqual(
         await api('POST', route + '/answers', lastAnswer, other.accessToken),
         lastResponse
       );
@@ -248,20 +264,45 @@ module.exports = async function quizIntegration(
         'UPDATE tien_do_tu_vung SET ngay_on_tap_tiep_theo = DATE_SUB(NOW(), INTERVAL 1 DAY) WHERE nguoi_dung_id = ? AND tu_vung_id = ?',
         [other.user.id, start.cau_hoi.tu_vung_id]
       );
+      const reviewBody = { tong_so_tu: 1, ma_yeu_cau: randomUUID() };
       const review = await api(
         'POST',
         '/api/quiz/review/start',
-        { tong_so_tu: 1 },
+        reviewBody,
         other.accessToken,
         201
       );
       assert.equal(review.tong_so_tu, 1);
       assert.equal(review.cau_hoi.lua_chon.length, 4);
+      await connection.query(
+        'UPDATE tien_do_tu_vung SET ngay_on_tap_tiep_theo = DATE_ADD(NOW(), INTERVAL 2 DAY) WHERE nguoi_dung_id = ?',
+        [other.user.id]
+      );
+      assert.deepEqual(
+        await api('POST', '/api/quiz/review/start', reviewBody, other.accessToken, 201),
+        review
+      );
       const stopRoute = '/api/quiz/' + review.phien_hoc_tap_id;
       const stopped = await api('POST', stopRoute + '/stop', {}, other.accessToken);
       assert.equal(stopped.trang_thai, 'bo-do');
       assert.equal(stopped.cau_hoi, null);
       assert.deepEqual(await api('POST', stopRoute + '/stop', {}, other.accessToken), stopped);
+      assert.deepEqual(
+        await api('POST', '/api/quiz/review/start', reviewBody, other.accessToken, 201),
+        stopped
+      );
+      const anotherUser = await api('POST', '/api/quiz/start', startBody, learner.accessToken, 201);
+      assert.notEqual(anotherUser.phien_hoc_tap_id, sessionId);
+      await api(
+        'PUT',
+        '/api/admin/topics/' + topic.id,
+        { trang_thai: 'inactive' },
+        admin.accessToken
+      );
+      assert.deepEqual(
+        await api('POST', '/api/quiz/start', startBody, learner.accessToken, 201),
+        anotherUser
+      );
       await api(
         'POST',
         stopRoute + '/answers',

@@ -24,6 +24,7 @@ router.use(authMiddleware);
  *             required: [chu_de_id]
  *             properties:
  *               chu_de_id: { type: string }
+ *               ma_yeu_cau: { type: string, format: uuid, description: Giữ nguyên mã khi thử tạo lại phiên sau mất mạng }
  *               tong_so_tu: { type: integer, minimum: 5, maximum: 50, default: 20 }
  *     responses:
  *       201: { description: Phiên và câu hỏi đầu tiên; không trả đáp án đúng }
@@ -39,11 +40,13 @@ router.use(authMiddleware);
  *             type: object
  *             properties:
  *               tong_so_tu: { type: integer, minimum: 1, maximum: 50, default: 50 }
+ *               ma_yeu_cau: { type: string, format: uuid, description: Giữ nguyên mã khi thử tạo lại phiên sau mất mạng }
  *     responses:
  *       201: { description: Phiên ôn và câu hỏi }
  */
-router.post('/start', validate(schemas.start), QuizController.start);
-router.post('/review/start', validate(schemas.review), QuizController.review);
+const startRequest = { ma_yeu_cau: z.string().uuid().optional() };
+router.post('/start', validate(schemas.start.extend(startRequest)), QuizController.start);
+router.post('/review/start', validate(schemas.review.extend(startRequest)), QuizController.review);
 router.use('/:sessionId', validate(z.object({ sessionId: identifier }), 'params'));
 
 /**

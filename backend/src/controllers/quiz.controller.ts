@@ -10,7 +10,8 @@ export class QuizController {
         req.user!.id,
         req.body.chu_de_id,
         req.body.tong_so_tu,
-        'trac_nghiem'
+        'trac_nghiem',
+        req.body.ma_yeu_cau
       );
       const data = await QuizService.getSession(req.user!.id, session.phien_hoc_tap_id);
       return ResponseUtil.success(res, data, 'Bắt đầu trắc nghiệm thành công', 201);
@@ -24,7 +25,8 @@ export class QuizController {
       const session = await LearningService.startReviewSession(
         req.user!.id,
         req.body.tong_so_tu,
-        'trac_nghiem'
+        'trac_nghiem',
+        req.body.ma_yeu_cau
       );
       const data = await QuizService.getSession(req.user!.id, session.phien_hoc_tap_id);
       return ResponseUtil.success(res, data, 'Bắt đầu ôn tập thành công', 201);
