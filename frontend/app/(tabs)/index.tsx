@@ -1,5 +1,6 @@
 import { useAuth } from "@/contexts/auth-context";
 import { HomeProgress } from "@/components/home-progress";
+import { ResumeLearningCard } from "@/components/resume-learning-card";
 import { Ionicons } from "@expo/vector-icons";
 import { Link, router } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
@@ -109,6 +110,9 @@ export default function HomeScreen() {
           </Text>
         </View>
         {!ready && <ActivityIndicator color={c.green} />}
+        <ResumeLearningCard
+          onUpdated={() => setRevision((value) => value + 1)}
+        />
         {ready && user && (
           <HomeProgress
             key={`${user.id}-${revision}`}
@@ -234,7 +238,10 @@ export default function HomeScreen() {
           key={`review-${reviewCount}`}
           topic={null}
           reviewCount={reviewCount}
-          onClose={() => setReviewCount(0)}
+          onClose={() => {
+            setReviewCount(0);
+            setRevision((value) => value + 1);
+          }}
           onCompleted={() => setRevision((value) => value + 1)}
         />
       )}

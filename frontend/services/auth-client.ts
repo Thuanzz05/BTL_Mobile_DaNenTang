@@ -32,6 +32,9 @@ export class AuthClient {
     private storage: TokenStorage,
     private changed: (user: User | null) => void,
   ) {}
+  get userId() {
+    return this.session?.user.id ?? null;
+  }
   private async clear() {
     this.generation++;
     this.session = null;

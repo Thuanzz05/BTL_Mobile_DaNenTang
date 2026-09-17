@@ -9,6 +9,7 @@ export class ApiError extends Error {
   constructor(
     message: string,
     public status: number,
+    public code?: string,
   ) {
     super(message);
   }
@@ -30,6 +31,7 @@ export async function api<T>(
       throw new ApiError(
         result?.message || "Máy chủ chưa thể xử lý yêu cầu.",
         response.status,
+        result?.error?.code,
       );
     return result.data as T;
   } catch (error) {
