@@ -65,6 +65,22 @@ export default function AccountScreen() {
                 <Ionicons name="chevron-forward" size={20} color={c.muted} />
               </Pressable>
             </Link>
+            <Link href={"/progress" as Href} asChild>
+              <Pressable accessibilityRole="button" style={s.menuItem}>
+                <View style={s.menuIcon}>
+                  <Ionicons
+                    name="stats-chart-outline"
+                    size={23}
+                    color={c.green}
+                  />
+                </View>
+                <View style={s.menuText}>
+                  <Text style={s.menuTitle}>Thống kê tiến độ</Text>
+                  <Text style={s.body}>Theo dõi kết quả và từng chủ đề</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color={c.muted} />
+              </Pressable>
+            </Link>
             <Link href={"/favorites" as Href} asChild>
               <Pressable accessibilityRole="button" style={s.menuItem}>
                 <View style={s.menuIcon}>

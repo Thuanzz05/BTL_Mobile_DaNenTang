@@ -37,7 +37,7 @@ export default function ReviewScreen() {
   const { client, ready, user } = useAuth();
   const [review, setReview] = useState<ReviewData | null>(null);
   const [progress, setProgress] = useState<ProgressData | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [quizCount, setQuizCount] = useState(0);
 
@@ -60,8 +60,27 @@ export default function ReviewScreen() {
   }, [client, user]);
 
   useEffect(() => {
-    if (ready && user) void load();
-  }, [load, ready, user]);
+    if (!ready || !user) return;
+    let active = true;
+    Promise.all([
+      client.authorized<ReviewData>("/progress/review?limit=20"),
+      client.authorized<ProgressData>("/progress"),
+    ])
+      .then(([reviewData, progressData]) => {
+        if (!active) return;
+        setReview(reviewData);
+        setProgress(progressData);
+      })
+      .catch((loadError) => {
+        if (active) setError((loadError as Error).message);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [client, ready, user]);
 
   const due = review?.so_tu_can_on ?? 0;
 
@@ -71,7 +90,11 @@ export default function ReviewScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={s.content}
         refreshControl={
-          <RefreshControl refreshing={loading} onRefresh={load} tintColor={c.green} />
+          <RefreshControl
+            refreshing={loading}
+            onRefresh={load}
+            tintColor={c.green}
+          />
         }
       >
         <View style={s.header}>
