@@ -74,6 +74,7 @@ export class AuthService {
         ho_ten: user.ho_ten,
         email: user.email,
         anh_dai_dien: user.anh_dai_dien,
+        muc_tieu_hang_ngay: user.muc_tieu_hang_ngay,
         vai_tro: user.vai_tro,
       },
       ...tokens,
@@ -152,7 +153,7 @@ export class AuthService {
    */
   static async getUserById(userId: string) {
     const users = await query<NguoiDung[]>(
-      'SELECT id, ho_ten, email, anh_dai_dien, vai_tro, trang_thai, ngay_tao FROM nguoi_dung WHERE id = ?',
+      'SELECT id, ho_ten, email, anh_dai_dien, muc_tieu_hang_ngay, vai_tro, trang_thai, ngay_tao FROM nguoi_dung WHERE id = ?',
       [userId]
     );
 
@@ -171,13 +172,17 @@ export class AuthService {
    */
   static async updateProfile(
     userId: string,
-    input: { ho_ten?: string; anh_dai_dien?: string | null }
+    input: {
+      ho_ten?: string;
+      anh_dai_dien?: string | null;
+      muc_tieu_hang_ngay?: 5 | 10 | 20;
+    }
   ) {
     const data = schemas.profile.parse(input);
 
     const fields: string[] = [];
     const params: any[] = [];
-    for (const field of ['ho_ten', 'anh_dai_dien'] as const) {
+    for (const field of ['ho_ten', 'anh_dai_dien', 'muc_tieu_hang_ngay'] as const) {
       if (data[field] !== undefined) {
         fields.push(field + ' = ?');
         params.push(data[field]);

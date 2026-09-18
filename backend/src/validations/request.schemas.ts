@@ -76,7 +76,13 @@ export const schemas = {
     })
     .strict(),
   refresh: z.object({ refreshToken: text(2048) }).strict(),
-  profile: z.object({ ho_ten: text(150).min(2).optional(), anh_dai_dien: url }).strict(),
+  profile: z
+    .object({
+      ho_ten: text(150).min(2).optional(),
+      anh_dai_dien: url,
+      muc_tieu_hang_ngay: z.union([z.literal(5), z.literal(10), z.literal(20)]).optional(),
+    })
+    .strict(),
   password: z.object({ mat_khau_cu: password, mat_khau_moi: password }).strict(),
   start: z
     .object({ chu_de_id: identifier, tong_so_tu: z.number().int().min(5).max(50).default(20) })

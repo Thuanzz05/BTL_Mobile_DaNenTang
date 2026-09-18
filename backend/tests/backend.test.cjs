@@ -144,6 +144,17 @@ test('Backend HTTP and real MySQL regression tests', { timeout: 120000 }, async 
         (await api('PUT', '/api/auth/profile', { ho_ten: 'Tên mới' }, learner.accessToken)).ho_ten,
         'Tên mới'
       );
+      assert.equal(
+        (await api('PUT', '/api/auth/profile', { muc_tieu_hang_ngay: 5 }, learner.accessToken))
+          .muc_tieu_hang_ngay,
+        5
+      );
+      await api('PUT', '/api/auth/profile', { muc_tieu_hang_ngay: 7 }, learner.accessToken, 400);
+      assert.equal(
+        (await api('GET', '/api/home/dashboard', undefined, learner.accessToken)).tien_do_hom_nay
+          .muc_tieu,
+        5
+      );
       await api('POST', '/api/auth/refresh', { refreshToken: learner.refreshToken });
       await api('GET', '/api/admin/dashboard', undefined, learner.accessToken, 403);
       await api('GET', '/api/progress', undefined, undefined, 401);

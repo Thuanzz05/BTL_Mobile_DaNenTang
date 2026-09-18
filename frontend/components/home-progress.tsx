@@ -36,7 +36,7 @@ export function HomeProgress({
     return () => {
       active = false;
     };
-  }, [client, attempt]);
+  }, [client, attempt, user?.muc_tieu_hang_ngay]);
   const today = data?.tien_do_hom_nay;
   const progress = today
     ? Math.min(

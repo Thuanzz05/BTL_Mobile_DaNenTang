@@ -27,6 +27,7 @@ CREATE TABLE nguoi_dung (
     phuong_thuc_dang_nhap ENUM('local', 'google') NOT NULL DEFAULT 'local',
     provider_id VARCHAR(255) NULL COMMENT 'ID từ Google/Facebook',
     anh_dai_dien VARCHAR(255) NULL,
+    muc_tieu_hang_ngay TINYINT UNSIGNED NOT NULL DEFAULT 20,
     vai_tro ENUM('user', 'admin') NOT NULL DEFAULT 'user',
     trang_thai ENUM('active', 'inactive', 'locked') NOT NULL DEFAULT 'active',
     ngay_tao TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

@@ -167,8 +167,13 @@ test("profile update refreshes local user and password change clears the session
     if (path === "/auth/login") return session;
     if (path === "/auth/profile") {
       assert.equal(options.method, "PUT");
-      assert.equal(JSON.parse(options.body).ho_ten, "New Name");
-      return { ...user, ho_ten: "New Name" };
+      const body = JSON.parse(options.body);
+      if (body.ho_ten) {
+        assert.equal(body.ho_ten, "New Name");
+        return { ...user, ho_ten: "New Name" };
+      }
+      assert.equal(body.muc_tieu_hang_ngay, 5);
+      return { ...user, ho_ten: "New Name", muc_tieu_hang_ngay: 5 };
     }
     assert.equal(path, "/auth/change-password");
     assert.deepEqual(JSON.parse(options.body), {
@@ -180,6 +185,8 @@ test("profile update refreshes local user and password change clears the session
   await state.client.login("test@example.com", "secret123");
   await state.client.updateProfile(" New Name ");
   assert.equal(state.user().ho_ten, "New Name");
+  await state.client.updateDailyGoal(5);
+  assert.equal(state.user().muc_tieu_hang_ngay, 5);
   await state.client.changePassword("secret123", "newSecret123");
   assert.equal(state.user(), null);
   assert.equal(state.token(), null);

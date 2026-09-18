@@ -39,6 +39,8 @@ export default function ProgressScreen() {
   const [data, setData] = useState<ProgressData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [savingGoal, setSavingGoal] = useState<5 | 10 | 20 | null>(null);
+  const [goalMessage, setGoalMessage] = useState("");
 
   const load = useCallback(async () => {
     if (!user) return;
@@ -87,6 +89,21 @@ export default function ProgressScreen() {
         }),
     [data],
   );
+  const dailyGoal = user?.muc_tieu_hang_ngay ?? 20;
+
+  async function updateGoal(goal: 5 | 10 | 20) {
+    if (savingGoal || goal === dailyGoal) return;
+    setSavingGoal(goal);
+    setGoalMessage("");
+    try {
+      await client.updateDailyGoal(goal);
+      setGoalMessage(`Đã đặt mục tiêu ${goal} từ mỗi ngày.`);
+    } catch (saveError) {
+      setGoalMessage((saveError as Error).message);
+    } finally {
+      setSavingGoal(null);
+    }
+  }
 
   return (
     <SafeAreaView style={s.page}>
@@ -182,6 +199,64 @@ export default function ProgressScreen() {
                 value={data.thang_nay}
                 label="Tháng này"
               />
+            </View>
+
+            <View style={s.section}>
+              <Text style={s.sectionTitle}>Mục tiêu mỗi ngày</Text>
+              <View style={s.goalCard}>
+                <Text style={s.goalBody}>
+                  Chọn số từ phù hợp với thời gian của bạn. Trang chủ sẽ theo
+                  dõi tiến độ dựa trên mục tiêu này.
+                </Text>
+                <View style={s.goalOptions}>
+                  {([5, 10, 20] as const).map((goal) => {
+                    const selected = goal === dailyGoal;
+                    return (
+                      <Pressable
+                        key={goal}
+                        accessibilityRole="button"
+                        accessibilityState={{
+                          selected,
+                          disabled: !!savingGoal,
+                        }}
+                        disabled={!!savingGoal}
+                        style={[s.goalOption, selected && s.goalSelected]}
+                        onPress={() => void updateGoal(goal)}
+                      >
+                        {savingGoal === goal ? (
+                          <ActivityIndicator
+                            color={selected ? "white" : c.green}
+                          />
+                        ) : (
+                          <>
+                            <Text
+                              style={[
+                                s.goalNumber,
+                                selected && s.goalTextSelected,
+                              ]}
+                            >
+                              {goal}
+                            </Text>
+                            <Text
+                              style={[
+                                s.goalLabel,
+                                selected && s.goalTextSelected,
+                              ]}
+                            >
+                              từ
+                            </Text>
+                          </>
+                        )}
+                      </Pressable>
+                    );
+                  })}
+                </View>
+                {!!goalMessage && (
+                  <Text accessibilityRole="alert" style={s.goalMessage}>
+                    {goalMessage}
+                  </Text>
+                )}
+              </View>
             </View>
 
             <View style={s.section}>
@@ -405,6 +480,33 @@ const s = StyleSheet.create({
   periodNumber: { color: c.ink, fontSize: 22, fontWeight: "800" },
   periodLabel: { color: c.muted, fontSize: 11, textAlign: "center" },
   section: { gap: 12 },
+  goalCard: {
+    padding: 19,
+    borderRadius: 21,
+    backgroundColor: c.surface,
+    borderWidth: 1,
+    borderColor: c.line,
+    gap: 15,
+  },
+  goalBody: { color: c.muted, fontSize: 13, lineHeight: 21 },
+  goalOptions: { flexDirection: "row", gap: 10 },
+  goalOption: {
+    flex: 1,
+    minHeight: 70,
+    borderRadius: 17,
+    backgroundColor: c.soft,
+    borderWidth: 1,
+    borderColor: c.line,
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    gap: 4,
+  },
+  goalSelected: { backgroundColor: c.green, borderColor: c.green },
+  goalNumber: { color: c.ink, fontSize: 23, fontWeight: "800" },
+  goalLabel: { color: c.muted, fontSize: 12 },
+  goalTextSelected: { color: "white" },
+  goalMessage: { color: c.green, fontSize: 12, fontWeight: "600" },
   sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",

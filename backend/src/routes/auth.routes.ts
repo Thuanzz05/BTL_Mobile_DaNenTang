@@ -179,6 +179,9 @@ router.post(
  *               anh_dai_dien:
  *                 type: string
  *                 nullable: true
+ *               muc_tieu_hang_ngay:
+ *                 type: integer
+ *                 enum: [5, 10, 20]
  *     responses:
  *       200:
  *         description: Hồ sơ đã cập nhật
