@@ -16,5 +16,7 @@ export interface Word {
   url_hinh_anh?: string | null;
 }
 export const getTopics = () => api<Topic[]>("/topics?status=active");
+export const getTopic = (id: string) =>
+  api<Topic>(`/topics/${encodeURIComponent(id)}`);
 export const getWords = (id: string) =>
   api<Word[]>(`/words?topicId=${encodeURIComponent(id)}`);

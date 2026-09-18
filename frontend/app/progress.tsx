@@ -295,7 +295,14 @@ function TopicRow({ topic }: { topic: TopicProgress }) {
     ? Math.min(100, Math.round((learned / total) * 100))
     : 0;
   return (
-    <View style={s.topicCard}>
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={`Xem chủ đề ${topic.topic_name}`}
+      style={({ pressed }) => [s.topicCard, pressed && s.pressed]}
+      onPress={() =>
+        router.push({ pathname: "/topic", params: { topicId: topic.topic_id } })
+      }
+    >
       <View style={s.topicTop}>
         <View style={s.topicIcon}>
           <Ionicons name="library-outline" size={21} color={c.green} />
@@ -318,7 +325,7 @@ function TopicRow({ topic }: { topic: TopicProgress }) {
       <Text style={s.mastered}>
         {Number(topic.mastered_words)} từ đã ghi nhớ vững
       </Text>
-    </View>
+    </Pressable>
   );
 }
 
@@ -433,6 +440,7 @@ const s = StyleSheet.create({
     borderColor: c.line,
     gap: 12,
   },
+  pressed: { opacity: 0.68 },
   topicTop: { flexDirection: "row", alignItems: "center", gap: 12 },
   topicIcon: {
     width: 44,
