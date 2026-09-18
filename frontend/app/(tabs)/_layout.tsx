@@ -23,6 +23,15 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="explore"
+        options={{
+          title: "Ôn tập",
+          tabBarIcon: ({ color }) => (
+            <Ionicons name="refresh-outline" size={24} color={color} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="account"
         options={{
           title: "Tài khoản",
@@ -31,7 +40,6 @@ export default function TabLayout() {
           ),
         }}
       />
-      <Tabs.Screen name="explore" options={{ href: null }} />
     </Tabs>
   );
 }
