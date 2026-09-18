@@ -31,6 +31,7 @@ interface ProgressData {
   hom_nay: number;
   tuan_nay: number;
   thang_nay: number;
+  chuoi_ngay_hoc: number;
   theo_chu_de: TopicProgress[];
 }
 
@@ -176,6 +177,12 @@ export default function ProgressScreen() {
                     { width: `${Math.min(100, Number(data.ty_le))}%` },
                   ]}
                 />
+              </View>
+              <View style={s.streakBadge}>
+                <Ionicons name="flame" size={21} color="#8A5A2B" />
+                <Text style={s.streakText}>
+                  {Number(data.chuoi_ngay_hoc)} ngày học liên tiếp
+                </Text>
               </View>
               <Text style={s.heroBody}>
                 Bạn đã luyện {Number(data.tong_so_tu_da_hoc)} từ. Tiếp tục học
@@ -463,6 +470,17 @@ const s = StyleSheet.create({
     overflow: "hidden",
   },
   heroFill: { height: "100%", borderRadius: 5, backgroundColor: "#DCECBA" },
+  streakBadge: {
+    alignSelf: "flex-start",
+    minHeight: 42,
+    paddingHorizontal: 13,
+    borderRadius: 13,
+    backgroundColor: c.peach,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+  },
+  streakText: { color: "#704719", fontSize: 13, fontWeight: "800" },
   heroBody: { color: "#DFEBE2", fontSize: 14, lineHeight: 22 },
   periods: { flexDirection: "row", gap: 10 },
   periodCard: {

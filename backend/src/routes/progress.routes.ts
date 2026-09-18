@@ -41,6 +41,8 @@ const router = Router();
  *                       type: integer
  *                     thang_nay:
  *                       type: integer
+ *                     chuoi_ngay_hoc:
+ *                       type: integer
  */
 router.get('/', authMiddleware, ProgressController.getProgress);
 
