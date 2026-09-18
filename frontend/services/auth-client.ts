@@ -3,6 +3,7 @@ export interface User {
   ho_ten: string;
   email: string;
   anh_dai_dien?: string | null;
+  muc_tieu_hang_ngay: 5 | 10 | 20;
   vai_tro: "user" | "admin";
 }
 export interface Session {
@@ -66,6 +67,15 @@ export class AuthClient {
     const user = await this.authorized<User>("/auth/profile", {
       method: "PUT",
       body: JSON.stringify({ ho_ten: name.trim() }),
+    });
+    if (this.session) this.session = { ...this.session, user };
+    this.changed(user);
+    return user;
+  }
+  async updateDailyGoal(goal: 5 | 10 | 20) {
+    const user = await this.authorized<User>("/auth/profile", {
+      method: "PUT",
+      body: JSON.stringify({ muc_tieu_hang_ngay: goal }),
     });
     if (this.session) this.session = { ...this.session, user };
     this.changed(user);

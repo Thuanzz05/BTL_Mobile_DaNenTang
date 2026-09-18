@@ -68,6 +68,11 @@ export default function HomeScreen() {
       pathname: "/study",
       params: { topicId: topic.id, topicName: topic.ten },
     });
+  const openTopic = (topic: Topic) =>
+    router.push({
+      pathname: "/topic",
+      params: { topicId: topic.id },
+    });
   return (
     <SafeAreaView edges={["top"]} style={s.page}>
       <StatusBar style="dark" />
@@ -204,7 +209,7 @@ export default function HomeScreen() {
                   <TopicCard
                     key={topic.id}
                     topic={topic}
-                    onPress={() => study(topic)}
+                    onPress={() => openTopic(topic)}
                   />
                 ))}
                 {!filtered[i * 2 + 1] && <View style={s.spacer} />}

@@ -12,7 +12,7 @@ import { Ionicons } from "@expo/vector-icons";
 interface Dashboard {
   tien_do_hom_nay: { da_hoc: number; muc_tieu: number };
   so_tu_can_on: number;
-  tien_do: { tong_so_tu_da_hoc: number };
+  tien_do: { tong_so_tu_da_hoc: number; chuoi_ngay_hoc: number };
 }
 export function HomeProgress({
   onReview,
@@ -36,7 +36,7 @@ export function HomeProgress({
     return () => {
       active = false;
     };
-  }, [client, attempt]);
+  }, [client, attempt, user?.muc_tieu_hang_ngay]);
   const today = data?.tien_do_hom_nay;
   const progress = today
     ? Math.min(
@@ -81,6 +81,12 @@ export function HomeProgress({
             style={s.track}
           >
             <View style={[s.fill, fill.value]} />
+          </View>
+          <View style={s.streak}>
+            <Ionicons name="flame" size={19} color="#8A5A2B" />
+            <Text style={s.streakText}>
+              {data.tien_do.chuoi_ngay_hoc} ngày học liên tiếp
+            </Text>
           </View>
           <View style={s.row}>
             <Text style={s.body}>
@@ -130,6 +136,17 @@ const s = StyleSheet.create({
     overflow: "hidden",
   },
   fill: { height: "100%", backgroundColor: c.green, borderRadius: 4 },
+  streak: {
+    alignSelf: "flex-start",
+    minHeight: 38,
+    paddingHorizontal: 11,
+    borderRadius: 12,
+    backgroundColor: c.peach,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  streakText: { color: "#704719", fontSize: 12, fontWeight: "700" },
   retry: { minHeight: 44, justifyContent: "center" },
   review: {
     minHeight: 48,

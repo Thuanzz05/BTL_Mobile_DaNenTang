@@ -7,6 +7,7 @@ export interface NguoiDung {
   phuong_thuc_dang_nhap: 'local' | 'google';
   provider_id?: string;
   anh_dai_dien?: string;
+  muc_tieu_hang_ngay: 5 | 10 | 20;
   vai_tro: 'user' | 'admin';
   token_version: number;
   trang_thai: 'active' | 'inactive' | 'locked';

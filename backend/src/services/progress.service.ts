@@ -1,6 +1,7 @@
 import { query } from '../config/database';
 import { learningPeriodStarts } from '../utils/calendar.util';
 import { LearningService } from './learning.service';
+import { StatisticsService } from './statistics.service';
 
 export class ProgressService {
   /**
@@ -41,7 +42,7 @@ export class ProgressService {
    */
   static async getSummary(userId: string) {
     const starts = learningPeriodStarts();
-    const [overall, byTopic, counts] = await Promise.all([
+    const [overall, byTopic, counts, streak] = await Promise.all([
       this.getUserProgress(userId),
       this.getProgressByTopic(userId),
       query<any[]>(
@@ -53,6 +54,7 @@ export class ProgressService {
         WHERE p.nguoi_dung_id = ? AND k.ngay_tao <= NOW()`,
         [starts.today, starts.week, starts.month, userId]
       ),
+      StatisticsService.getLearningStreak(userId),
     ]);
     const remembered = overall.mastered + overall.remembered;
 
@@ -65,6 +67,7 @@ export class ProgressService {
       hom_nay: Number(counts[0].hom_nay),
       tuan_nay: Number(counts[0].tuan_nay),
       thang_nay: Number(counts[0].thang_nay),
+      chuoi_ngay_hoc: streak.streak,
       theo_chu_de: byTopic,
     };
   }

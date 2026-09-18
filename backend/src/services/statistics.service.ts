@@ -1,4 +1,5 @@
 import { query } from '../config/database';
+import { learningStreak } from '../utils/calendar.util';
 
 export class StatisticsService {
   static async getDashboardStats(userId: string) {
@@ -50,33 +51,15 @@ export class StatisticsService {
 
   static async getLearningStreak(userId: string) {
     const sql = `
-      SELECT DATE(bat_dau_luc) as date
+      SELECT DATE_FORMAT(DATE_ADD(bat_dau_luc, INTERVAL 7 HOUR), '%Y-%m-%d') AS date
       FROM phien_hoc_tap
       WHERE nguoi_dung_id = ? AND trang_thai = 'hoan-thanh'
-      GROUP BY DATE(bat_dau_luc)
+      GROUP BY date
       ORDER BY date DESC
-      LIMIT 30
     `;
 
-    const results: any = await query(sql, [userId]);
-
-    // Calculate streak
-    let streak = 0;
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    for (const row of results) {
-      const date = new Date(row.date);
-      date.setHours(0, 0, 0, 0);
-
-      const diff = Math.floor((today.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
-
-      if (diff === streak) {
-        streak++;
-      } else {
-        break;
-      }
-    }
+    const results = await query<{ date: string }[]>(sql, [userId]);
+    const streak = learningStreak(results.map((row) => row.date));
 
     return { streak, recentDates: results };
   }

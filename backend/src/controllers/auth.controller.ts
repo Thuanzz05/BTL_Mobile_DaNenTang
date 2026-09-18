@@ -68,9 +68,13 @@ export class AuthController {
   static async updateProfile(req: Request, res: Response, next: NextFunction) {
     try {
       const userId = req.user!.id;
-      const { ho_ten, anh_dai_dien } = req.body;
+      const { ho_ten, anh_dai_dien, muc_tieu_hang_ngay } = req.body;
 
-      const updated = await AuthService.updateProfile(userId, { ho_ten, anh_dai_dien });
+      const updated = await AuthService.updateProfile(userId, {
+        ho_ten,
+        anh_dai_dien,
+        muc_tieu_hang_ngay,
+      });
       return ResponseUtil.success(res, updated, 'Cập nhật hồ sơ thành công');
     } catch (error: any) {
       return next(error);

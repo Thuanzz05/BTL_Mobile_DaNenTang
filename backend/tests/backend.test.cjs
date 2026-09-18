@@ -10,7 +10,7 @@ test('SRS, business calendar and JWT validation', () => {
   process.env.JWT_SECRET = randomBytes(48).toString('hex');
   process.env.REFRESH_TOKEN_SECRET = randomBytes(48).toString('hex');
   const { nextReviewDate } = require('../dist/utils/srs.util');
-  const { learningPeriodStarts } = require('../dist/utils/calendar.util');
+  const { learningPeriodStarts, learningStreak } = require('../dist/utils/calendar.util');
   const { JwtUtil } = require('../dist/utils/jwt.util');
   const now = new Date('2026-09-13T10:00:00Z');
   assert.equal(nextReviewDate('chua-nho', 1, now).toISOString(), now.toISOString());
@@ -22,6 +22,10 @@ test('SRS, business calendar and JWT validation', () => {
   assert.equal(dates.today.toISOString(), '2026-09-13T17:00:00.000Z');
   assert.equal(dates.week.toISOString(), dates.today.toISOString());
   assert.equal(dates.month.toISOString(), '2026-08-31T17:00:00.000Z');
+  const streakNow = new Date('2026-09-18T12:00:00Z');
+  assert.equal(learningStreak(['2026-09-18', '2026-09-17', '2026-09-16'], streakNow), 3);
+  assert.equal(learningStreak(['2026-09-17', '2026-09-16'], streakNow), 2);
+  assert.equal(learningStreak(['2026-09-16'], streakNow), 0);
   JwtUtil.validateConfig();
   const payload = { id: 'test', email: 'test@example.com', vai_tro: 'user', token_version: 0 };
   const pair = JwtUtil.generateTokenPair(payload);
@@ -143,6 +147,17 @@ test('Backend HTTP and real MySQL regression tests', { timeout: 120000 }, async 
       assert.equal(
         (await api('PUT', '/api/auth/profile', { ho_ten: 'Tên mới' }, learner.accessToken)).ho_ten,
         'Tên mới'
+      );
+      assert.equal(
+        (await api('PUT', '/api/auth/profile', { muc_tieu_hang_ngay: 5 }, learner.accessToken))
+          .muc_tieu_hang_ngay,
+        5
+      );
+      await api('PUT', '/api/auth/profile', { muc_tieu_hang_ngay: 7 }, learner.accessToken, 400);
+      assert.equal(
+        (await api('GET', '/api/home/dashboard', undefined, learner.accessToken)).tien_do_hom_nay
+          .muc_tieu,
+        5
       );
       await api('POST', '/api/auth/refresh', { refreshToken: learner.refreshToken });
       await api('GET', '/api/admin/dashboard', undefined, learner.accessToken, 403);
@@ -338,6 +353,7 @@ test('Backend HTTP and real MySQL regression tests', { timeout: 120000 }, async 
       assert.equal(progressSummary.tong_so_tu_da_hoc, 5);
       assert.equal(progressSummary.hom_nay, 5);
       assert.equal(progressSummary.ty_le, 80);
+      assert.equal(progressSummary.chuoi_ngay_hoc, 1);
       const resume = await api(
         'GET',
         '/api/learning/result/' + session.phien_hoc_tap_id,

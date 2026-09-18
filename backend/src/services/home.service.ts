@@ -35,7 +35,7 @@ export class HomeService {
       nguoi_dung: user,
       tien_do_hom_nay: {
         da_hoc: progress.hom_nay,
-        muc_tieu: 20,
+        muc_tieu: user?.muc_tieu_hang_ngay ?? 20,
       },
       chu_de_pho_bien: topics,
       so_tu_can_on: review.so_tu_can_on,
