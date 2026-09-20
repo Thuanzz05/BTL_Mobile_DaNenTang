@@ -163,7 +163,19 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
               />
             </View>
             <View style={s.field}>
-              <Text style={s.label}>Mật khẩu</Text>
+              <View style={s.passwordLabelRow}>
+                <Text style={s.label}>Mật khẩu</Text>
+                {!register && (
+                  <Link
+                    href={{ pathname: "/forgot-password", params: { email } }}
+                    asChild
+                  >
+                    <Pressable accessibilityRole="button" disabled={busy}>
+                      <Text style={s.forgotLink}>Quên mật khẩu?</Text>
+                    </Pressable>
+                  </Link>
+                )}
+              </View>
               <View style={s.passwordRow}>
                 <TextInput
                   accessibilityLabel="Mật khẩu"
@@ -290,6 +302,12 @@ const s = StyleSheet.create({
   form: { gap: 18, marginTop: 8 },
   field: { gap: 8 },
   label: { fontSize: 14, fontWeight: "600", color: c.ink },
+  passwordLabelRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  forgotLink: { color: c.green, fontSize: 13, fontWeight: "700" },
   input: {
     minHeight: 54,
     padding: 15,

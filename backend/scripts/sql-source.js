@@ -4,6 +4,7 @@ const path = require('node:path');
 const businessTables = [
   'nguoi_dung',
   'token_lam_moi',
+  'ma_dat_lai_mat_khau',
   'chu_de',
   'tu_vung',
   'vi_du',
