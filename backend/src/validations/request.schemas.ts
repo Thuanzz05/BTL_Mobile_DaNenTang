@@ -84,6 +84,22 @@ export const schemas = {
     })
     .strict(),
   password: z.object({ mat_khau_cu: password, mat_khau_moi: password }).strict(),
+  forgotPassword: z
+    .object({
+      email: text(150)
+        .email()
+        .transform((value) => value.toLowerCase()),
+    })
+    .strict(),
+  resetPassword: z
+    .object({
+      email: text(150)
+        .email()
+        .transform((value) => value.toLowerCase()),
+      ma_xac_nhan: z.string().regex(/^\d{6}$/),
+      mat_khau_moi: password,
+    })
+    .strict(),
   start: z
     .object({ chu_de_id: identifier, tong_so_tu: z.number().int().min(5).max(50).default(20) })
     .strict(),

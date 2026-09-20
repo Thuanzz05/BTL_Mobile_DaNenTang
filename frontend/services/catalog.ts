@@ -14,6 +14,25 @@ export interface Word {
   loai_tu: string;
   url_am_thanh?: string | null;
   url_hinh_anh?: string | null;
+  chu_de_ten?: string;
+  da_yeu_thich?: boolean | number;
+}
+export interface WordExample {
+  id: string;
+  cau_tieng_anh: string;
+  cau_tieng_viet: string;
+}
+export interface WordDetail extends Word {
+  vi_du: WordExample[];
+}
+export interface WordSearchResult {
+  items: Word[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
 }
 export const getTopics = () => api<Topic[]>("/topics?status=active");
 export const getTopic = (id: string) =>

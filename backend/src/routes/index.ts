@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { validate } from '../middlewares/validate.middleware';
 import { querySchema } from '../validations/request.schemas';
+import achievementRoutes from './achievement.routes';
 import adminRoutes from './admin.routes';
 import authRoutes from './auth.routes';
 import favoriteRoutes from './favorite.routes';
@@ -27,6 +28,7 @@ router.use('/progress', progressRoutes);
 router.use('/history', historyRoutes);
 router.use('/favorites', favoriteRoutes);
 router.use('/home', homeRoutes);
+router.use('/achievements', achievementRoutes);
 router.use('/admin', adminRoutes);
 
 export default router;

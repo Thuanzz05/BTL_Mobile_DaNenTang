@@ -101,6 +101,30 @@ export class AuthController {
   }
 
   /**
+   * Gửi mã đặt lại mật khẩu nếu tài khoản hợp lệ
+   */
+  static async forgotPassword(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await AuthService.requestPasswordReset({ email: req.body.email });
+      return ResponseUtil.success(res, result, 'Nếu email tồn tại, mã xác nhận đã được gửi');
+    } catch (error: any) {
+      return next(error);
+    }
+  }
+
+  /**
+   * Đặt mật khẩu mới bằng mã xác nhận
+   */
+  static async resetPassword(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await AuthService.resetPassword(req.body);
+      return ResponseUtil.success(res, result, 'Đặt lại mật khẩu thành công');
+    } catch (error: any) {
+      return next(error);
+    }
+  }
+
+  /**
    * Refresh token
    */
   static async refreshToken(req: Request, res: Response, next: NextFunction) {

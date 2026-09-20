@@ -1,10 +1,22 @@
 import { Router } from 'express';
+import rateLimit from 'express-rate-limit';
 import { AuthController } from '../controllers/auth.controller';
 import { authMiddleware } from '../middlewares/auth.middleware';
 import { validate } from '../middlewares/validate.middleware';
 import { schemas } from '../validations/request.schemas';
 
 const router = Router();
+const passwordResetLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    success: false,
+    message: 'Bạn đã thử quá nhiều lần. Vui lòng đợi 15 phút.',
+    error: { code: 'RATE_LIMITED' },
+  },
+});
 
 /**
  * @swagger
@@ -90,6 +102,73 @@ router.post('/register', validate(schemas.register), AuthController.register);
  *         description: Invalid credentials
  */
 router.post('/login', validate(schemas.login), AuthController.login);
+
+/**
+ * @swagger
+ * /api/auth/forgot-password:
+ *   post:
+ *     security: []
+ *     summary: Yêu cầu mã đặt lại mật khẩu
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email]
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *     responses:
+ *       200:
+ *         description: Phản hồi chung, không tiết lộ email có tồn tại hay không
+ */
+router.post(
+  '/forgot-password',
+  passwordResetLimiter,
+  validate(schemas.forgotPassword),
+  AuthController.forgotPassword
+);
+
+/**
+ * @swagger
+ * /api/auth/reset-password:
+ *   post:
+ *     security: []
+ *     summary: Đặt mật khẩu mới bằng mã xác nhận
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [email, ma_xac_nhan, mat_khau_moi]
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *               ma_xac_nhan:
+ *                 type: string
+ *                 pattern: '^\\d{6}$'
+ *               mat_khau_moi:
+ *                 type: string
+ *                 format: password
+ *                 minLength: 6
+ *     responses:
+ *       200:
+ *         description: Đặt lại mật khẩu thành công
+ *       400:
+ *         description: Mã không đúng hoặc đã hết hạn
+ */
+router.post(
+  '/reset-password',
+  passwordResetLimiter,
+  validate(schemas.resetPassword),
+  AuthController.resetPassword
+);
 
 /**
  * @swagger

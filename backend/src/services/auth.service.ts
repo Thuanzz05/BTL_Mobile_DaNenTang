@@ -1,3 +1,4 @@
+import { createHmac, randomInt, timingSafeEqual } from 'node:crypto';
 import { query, transaction } from '../config/database';
 import { NguoiDung } from '../types/models';
 import { AppError } from '../utils/app-error';
@@ -5,6 +6,7 @@ import { JwtUtil } from '../utils/jwt.util';
 import { PasswordUtil } from '../utils/password.util';
 import { UuidUtil } from '../utils/uuid.util';
 import { schemas } from '../validations/request.schemas';
+import { PasswordResetEmailService } from './password-reset-email.service';
 
 export interface RegisterDto {
   ho_ten: string;
@@ -17,6 +19,10 @@ export interface LoginDto {
 }
 
 export class AuthService {
+  private static resetCodeHash(userId: string, code: string) {
+    return createHmac('sha256', process.env.JWT_SECRET!).update(`${userId}:${code}`).digest('hex');
+  }
+
   /**
    * Đăng ký tài khoản local và kiểm tra email trùng
    */
@@ -226,5 +232,95 @@ export class AuthService {
       );
       return { success: true, requiresLogin: true };
     });
+  }
+
+  /**
+   * Tạo mã xác nhận 6 số. Phản hồi không tiết lộ email có tồn tại hay không.
+   */
+  static async requestPasswordReset(input: { email: string }) {
+    const data = schemas.forgotPassword.parse(input);
+    const users = await query<NguoiDung[]>(
+      `SELECT id, ho_ten, email, mat_khau_hash, trang_thai FROM nguoi_dung
+       WHERE email = ? AND phuong_thuc_dang_nhap = 'local'`,
+      [data.email]
+    );
+    const user = users[0];
+    if (!user?.mat_khau_hash || user.trang_thai !== 'active') {
+      return { expiresInMinutes: 10 };
+    }
+
+    const code = String(randomInt(100000, 1000000));
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
+    await transaction(async (connection) => {
+      await connection.execute('DELETE FROM ma_dat_lai_mat_khau WHERE nguoi_dung_id = ?', [
+        user.id,
+      ]);
+      await connection.execute(
+        `INSERT INTO ma_dat_lai_mat_khau
+          (id, nguoi_dung_id, ma_hash, het_han_luc) VALUES (?, ?, ?, ?)`,
+        [UuidUtil.generate(), user.id, this.resetCodeHash(user.id, code), expiresAt]
+      );
+    });
+
+    const sent = await PasswordResetEmailService.send(user.email, user.ho_ten, code);
+    const exposeDevelopmentCode =
+      process.env.NODE_ENV === 'test' ||
+      (process.env.NODE_ENV === 'development' && process.env.PASSWORD_RESET_EXPOSE_CODE === 'true');
+    return {
+      expiresInMinutes: 10,
+      ...(exposeDevelopmentCode && !sent ? { ma_xac_nhan_thu_nghiem: code } : {}),
+    };
+  }
+
+  /**
+   * Xác nhận mã một lần, đổi mật khẩu và thu hồi toàn bộ phiên cũ.
+   */
+  static async resetPassword(input: { email: string; ma_xac_nhan: string; mat_khau_moi: string }) {
+    const data = schemas.resetPassword.parse(input);
+    const passwordHash = await PasswordUtil.hash(data.mat_khau_moi);
+    const changed = await transaction(async (connection) => {
+      const [rows]: any = await connection.execute(
+        `SELECT m.id, m.nguoi_dung_id, m.ma_hash
+         FROM ma_dat_lai_mat_khau m JOIN nguoi_dung n ON n.id = m.nguoi_dung_id
+         WHERE n.email = ? AND n.trang_thai = 'active'
+           AND m.da_su_dung_luc IS NULL AND m.het_han_luc > NOW() AND m.so_lan_thu < 5
+         ORDER BY m.ngay_tao DESC LIMIT 1 FOR UPDATE`,
+        [data.email]
+      );
+      const reset = rows[0];
+      if (!reset) {
+        return false;
+      }
+
+      const received = Buffer.from(this.resetCodeHash(reset.nguoi_dung_id, data.ma_xac_nhan));
+      const expected = Buffer.from(reset.ma_hash);
+      if (received.length !== expected.length || !timingSafeEqual(received, expected)) {
+        await connection.execute(
+          'UPDATE ma_dat_lai_mat_khau SET so_lan_thu = so_lan_thu + 1 WHERE id = ?',
+          [reset.id]
+        );
+        return false;
+      }
+
+      await connection.execute(
+        `UPDATE nguoi_dung SET mat_khau_hash = ?, token_version = token_version + 1
+         WHERE id = ?`,
+        [passwordHash, reset.nguoi_dung_id]
+      );
+      await connection.execute(
+        'UPDATE ma_dat_lai_mat_khau SET da_su_dung_luc = NOW() WHERE nguoi_dung_id = ? AND da_su_dung_luc IS NULL',
+        [reset.nguoi_dung_id]
+      );
+      await connection.execute(
+        'UPDATE token_lam_moi SET da_thu_hoi = TRUE WHERE nguoi_dung_id = ?',
+        [reset.nguoi_dung_id]
+      );
+      return true;
+    });
+
+    if (!changed) {
+      throw new AppError('Mã xác nhận không đúng hoặc đã hết hạn', 400, 'INVALID_RESET_CODE');
+    }
+    return { success: true };
   }
 }

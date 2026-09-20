@@ -63,6 +63,8 @@ test('Backend HTTP and real MySQL regression tests', { timeout: 120000 }, async 
     process.env.UPLOAD_DIR = uploadDirectory;
     process.env.NODE_ENV = 'test';
     process.env.RATE_LIMIT_MAX_REQUESTS = '10000';
+    delete process.env.RESEND_API_KEY;
+    delete process.env.PASSWORD_RESET_FROM;
     const app = require('../dist/app').default;
     pool = require('../dist/config/database').default;
     server = app.listen(0, '127.0.0.1');
@@ -120,6 +122,7 @@ test('Backend HTTP and real MySQL regression tests', { timeout: 120000 }, async 
       const user = await register('learner@test.local');
       learnerId = user.id;
       await register('other@test.local');
+      await register('reset@test.local');
       await api(
         'POST',
         '/api/auth/register',
@@ -162,8 +165,63 @@ test('Backend HTTP and real MySQL regression tests', { timeout: 120000 }, async 
       await api('POST', '/api/auth/refresh', { refreshToken: learner.refreshToken });
       await api('GET', '/api/admin/dashboard', undefined, learner.accessToken, 403);
       await api('GET', '/api/progress', undefined, undefined, 401);
+      await api('GET', '/api/achievements', undefined, undefined, 401);
       await api('GET', '/api/words?page=-1', undefined, undefined, 400);
       await api('GET', '/api/history?limit=abc', undefined, learner.accessToken, 400);
+
+      const resetSession = await login('reset@test.local');
+      const unknownReset = await api('POST', '/api/auth/forgot-password', {
+        email: 'unknown@test.local',
+      });
+      assert.equal(unknownReset.ma_xac_nhan_thu_nghiem, undefined);
+      const resetRequest = await api('POST', '/api/auth/forgot-password', {
+        email: 'reset@test.local',
+      });
+      assert.match(resetRequest.ma_xac_nhan_thu_nghiem, /^\d{6}$/);
+      await api(
+        'POST',
+        '/api/auth/reset-password',
+        {
+          email: 'reset@test.local',
+          ma_xac_nhan: '000000',
+          mat_khau_moi: 'NewReset123456',
+        },
+        undefined,
+        400
+      );
+      await api('POST', '/api/auth/reset-password', {
+        email: 'reset@test.local',
+        ma_xac_nhan: resetRequest.ma_xac_nhan_thu_nghiem,
+        mat_khau_moi: 'NewReset123456',
+      });
+      await api('GET', '/api/auth/me', undefined, resetSession.accessToken, 401);
+      await api(
+        'POST',
+        '/api/auth/login',
+        { email: 'reset@test.local', mat_khau: 'Test123456' },
+        undefined,
+        401
+      );
+      assert.equal(
+        (
+          await api('POST', '/api/auth/login', {
+            email: 'reset@test.local',
+            mat_khau: 'NewReset123456',
+          })
+        ).user.email,
+        'reset@test.local'
+      );
+      await api(
+        'POST',
+        '/api/auth/reset-password',
+        {
+          email: 'reset@test.local',
+          ma_xac_nhan: resetRequest.ma_xac_nhan_thu_nghiem,
+          mat_khau_moi: 'Another123456',
+        },
+        undefined,
+        400
+      );
     });
 
     await t.test('catalog CRUD, example editing and hidden topics', async () => {
@@ -227,6 +285,10 @@ test('Backend HTTP and real MySQL regression tests', { timeout: 120000 }, async 
       );
       assert.equal(filtered.items.length, 1);
       assert.equal(filtered.pagination.total, 1);
+      const publicSearch = await api('GET', '/api/words?search=Word0&limit=20');
+      assert.equal(publicSearch.items.length, 1);
+      assert.equal(publicSearch.items[0].id, words[0].id);
+      assert.equal((await api('GET', '/api/words/' + words[0].id)).chu_de_ten, topic.ten);
       await api('DELETE', '/api/admin/topics/' + topic.id, undefined, admin.accessToken, 409);
     });
 
@@ -354,6 +416,18 @@ test('Backend HTTP and real MySQL regression tests', { timeout: 120000 }, async 
       assert.equal(progressSummary.hom_nay, 5);
       assert.equal(progressSummary.ty_le, 80);
       assert.equal(progressSummary.chuoi_ngay_hoc, 1);
+      await connection.execute(
+        `INSERT INTO thanh_tich
+          (id, tieu_de, mo_ta, bieu_tuong, diem_thuong, loai, moc)
+         VALUES (?, 'Phiên đầu tiên', 'Hoàn thành một phiên học', 'medal', 50, 'completed_sessions', 1)`,
+        ['a0000000-0000-0000-0000-000000000001']
+      );
+      const achievements = await api('GET', '/api/achievements', undefined, learner.accessToken);
+      assert.equal(achievements.tong_so, 1);
+      assert.equal(achievements.da_mo_khoa, 1);
+      assert.equal(achievements.tong_diem, 50);
+      assert.equal(achievements.danh_sach[0].da_mo_khoa, true);
+      assert.equal(achievements.danh_sach[0].tien_do, 1);
       const resume = await api(
         'GET',
         '/api/learning/result/' + session.phien_hoc_tap_id,
@@ -617,7 +691,10 @@ test('Backend HTTP and real MySQL regression tests', { timeout: 120000 }, async 
       for (const route of [
         '/api/auth/refresh',
         '/api/auth/change-password',
+        '/api/auth/forgot-password',
+        '/api/auth/reset-password',
         '/api/progress',
+        '/api/achievements',
         '/api/home/dashboard',
         '/api/learning/review/start',
         '/api/admin/upload/image',
