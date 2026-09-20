@@ -241,6 +241,8 @@ CREATE TABLE thanh_tich (
     mo_ta TEXT NOT NULL,
     bieu_tuong VARCHAR(100) NOT NULL COMMENT 'Icon name: medal, flame, star, book...',
     diem_thuong INT NOT NULL DEFAULT 0,
+    loai VARCHAR(30) NULL COMMENT 'completed_sessions, streak, learned_words',
+    moc INT UNSIGNED NULL,
     ngay_tao TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -415,11 +417,11 @@ INSERT INTO tien_do_tu_vung (nguoi_dung_id, tu_vung_id, da_hoc, yeu_thich, so_la
 -- 9. THÀNH TÍCH
 -- ==========================================
 
-INSERT INTO thanh_tich (id, tieu_de, mo_ta, bieu_tuong, diem_thuong) VALUES
-('achv0001-0000-0000-0000-000000000001', 'Bước đầu tiên', 'Hoàn thành phiên học đầu tiên', 'medal', 50),
-('achv0002-0000-0000-0000-000000000002', 'Người chăm chỉ', 'Học 3 ngày liên tục', 'flame', 100),
-('achv0003-0000-0000-0000-000000000003', 'Học giả', 'Học được 50 từ mới', 'book', 200),
-('achv0004-0000-0000-0000-000000000004', 'Bậc thầy', 'Học được 100 từ mới', 'star', 500);
+INSERT INTO thanh_tich (id, tieu_de, mo_ta, bieu_tuong, diem_thuong, loai, moc) VALUES
+('achv0001-0000-0000-0000-000000000001', 'Bước đầu tiên', 'Hoàn thành phiên học đầu tiên', 'medal', 50, 'completed_sessions', 1),
+('achv0002-0000-0000-0000-000000000002', 'Người chăm chỉ', 'Học 3 ngày liên tục', 'flame', 100, 'streak', 3),
+('achv0003-0000-0000-0000-000000000003', 'Học giả', 'Học được 50 từ mới', 'book', 200, 'learned_words', 50),
+('achv0004-0000-0000-0000-000000000004', 'Bậc thầy', 'Học được 100 từ mới', 'star', 500, 'learned_words', 100);
 
 INSERT INTO thanh_tich_nguoi_dung (nguoi_dung_id, thanh_tich_id) VALUES
 ('user0001-0000-0000-0000-000000000001', 'achv0001-0000-0000-0000-000000000001');

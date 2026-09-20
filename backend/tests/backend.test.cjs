@@ -162,6 +162,7 @@ test('Backend HTTP and real MySQL regression tests', { timeout: 120000 }, async 
       await api('POST', '/api/auth/refresh', { refreshToken: learner.refreshToken });
       await api('GET', '/api/admin/dashboard', undefined, learner.accessToken, 403);
       await api('GET', '/api/progress', undefined, undefined, 401);
+      await api('GET', '/api/achievements', undefined, undefined, 401);
       await api('GET', '/api/words?page=-1', undefined, undefined, 400);
       await api('GET', '/api/history?limit=abc', undefined, learner.accessToken, 400);
     });
@@ -354,6 +355,18 @@ test('Backend HTTP and real MySQL regression tests', { timeout: 120000 }, async 
       assert.equal(progressSummary.hom_nay, 5);
       assert.equal(progressSummary.ty_le, 80);
       assert.equal(progressSummary.chuoi_ngay_hoc, 1);
+      await connection.execute(
+        `INSERT INTO thanh_tich
+          (id, tieu_de, mo_ta, bieu_tuong, diem_thuong, loai, moc)
+         VALUES (?, 'Phiên đầu tiên', 'Hoàn thành một phiên học', 'medal', 50, 'completed_sessions', 1)`,
+        ['a0000000-0000-0000-0000-000000000001']
+      );
+      const achievements = await api('GET', '/api/achievements', undefined, learner.accessToken);
+      assert.equal(achievements.tong_so, 1);
+      assert.equal(achievements.da_mo_khoa, 1);
+      assert.equal(achievements.tong_diem, 50);
+      assert.equal(achievements.danh_sach[0].da_mo_khoa, true);
+      assert.equal(achievements.danh_sach[0].tien_do, 1);
       const resume = await api(
         'GET',
         '/api/learning/result/' + session.phien_hoc_tap_id,
@@ -618,6 +631,7 @@ test('Backend HTTP and real MySQL regression tests', { timeout: 120000 }, async 
         '/api/auth/refresh',
         '/api/auth/change-password',
         '/api/progress',
+        '/api/achievements',
         '/api/home/dashboard',
         '/api/learning/review/start',
         '/api/admin/upload/image',

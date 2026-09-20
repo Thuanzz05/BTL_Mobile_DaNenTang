@@ -81,6 +81,18 @@ export default function AccountScreen() {
                 <Ionicons name="chevron-forward" size={20} color={c.muted} />
               </Pressable>
             </Link>
+            <Link href={"/achievements" as Href} asChild>
+              <Pressable accessibilityRole="button" style={s.menuItem}>
+                <View style={s.menuIcon}>
+                  <Ionicons name="trophy-outline" size={23} color={c.green} />
+                </View>
+                <View style={s.menuText}>
+                  <Text style={s.menuTitle}>Thành tích và huy hiệu</Text>
+                  <Text style={s.body}>Xem dấu mốc và huy hiệu đã mở khóa</Text>
+                </View>
+                <Ionicons name="chevron-forward" size={20} color={c.muted} />
+              </Pressable>
+            </Link>
             <Link href={"/favorites" as Href} asChild>
               <Pressable accessibilityRole="button" style={s.menuItem}>
                 <View style={s.menuIcon}>
