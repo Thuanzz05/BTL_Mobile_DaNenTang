@@ -68,8 +68,22 @@ export default function AchievementsScreen() {
       router.replace("/login");
       return;
     }
-    void load();
-  }, [load, ready, user]);
+    let active = true;
+    client
+      .authorized<AchievementData>("/achievements")
+      .then((value) => {
+        if (active) setData(value);
+      })
+      .catch((loadError) => {
+        if (active) setError((loadError as Error).message);
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+    return () => {
+      active = false;
+    };
+  }, [client, ready, user]);
 
   return (
     <SafeAreaView style={s.page}>

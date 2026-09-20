@@ -36,6 +36,7 @@ export default function RootLayout() {
           <Stack.Screen name="profile" options={{ headerShown: false }} />
           <Stack.Screen name="progress" options={{ headerShown: false }} />
           <Stack.Screen name="achievements" options={{ headerShown: false }} />
+          <Stack.Screen name="word" options={{ headerShown: false }} />
           <Stack.Screen name="topic" options={{ headerShown: false }} />
           <Stack.Screen name="study" options={{ headerShown: false }} />
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />

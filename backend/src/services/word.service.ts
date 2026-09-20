@@ -22,7 +22,7 @@ export class WordService {
    */
   static async getById(id: string, userId?: string, includeInactive = false) {
     const words = await query<any[]>(
-      `SELECT t.*, (y.id IS NOT NULL) AS da_yeu_thich FROM tu_vung t
+      `SELECT t.*, c.ten AS chu_de_ten, (y.id IS NOT NULL) AS da_yeu_thich FROM tu_vung t
       JOIN chu_de c ON t.chu_de_id = c.id
       LEFT JOIN yeu_thich y ON t.id = y.tu_vung_id AND y.nguoi_dung_id = ?
       WHERE t.id = ? ${includeInactive ? '' : "AND c.trang_thai = 'active' AND t.trang_thai = 'active'"}`,

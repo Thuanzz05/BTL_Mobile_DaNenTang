@@ -228,6 +228,10 @@ test('Backend HTTP and real MySQL regression tests', { timeout: 120000 }, async 
       );
       assert.equal(filtered.items.length, 1);
       assert.equal(filtered.pagination.total, 1);
+      const publicSearch = await api('GET', '/api/words?search=Word0&limit=20');
+      assert.equal(publicSearch.items.length, 1);
+      assert.equal(publicSearch.items[0].id, words[0].id);
+      assert.equal((await api('GET', '/api/words/' + words[0].id)).chu_de_ten, topic.ten);
       await api('DELETE', '/api/admin/topics/' + topic.id, undefined, admin.accessToken, 409);
     });
 
