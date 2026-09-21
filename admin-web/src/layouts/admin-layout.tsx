@@ -9,6 +9,7 @@ import {
   Leaf,
   LogOut,
   Menu,
+  Medal,
   UserRound,
   Users,
   X,
@@ -21,6 +22,7 @@ const links = [
   { to: '/topics', label: 'Chủ đề', icon: FolderOpen },
   { to: '/words', label: 'Từ vựng', icon: BookOpen },
   { to: '/users', label: 'Người dùng', icon: Users },
+  { to: '/achievements', label: 'Thành tích', icon: Medal },
   { to: '/statistics', label: 'Thống kê', icon: BarChart3 },
   { to: '/account', label: 'Tài khoản', icon: UserRound },
 ];

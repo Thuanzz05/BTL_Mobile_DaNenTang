@@ -23,6 +23,8 @@ Cấu hình mặc định dùng `/api`; Vite chuyển tiếp `/api` và `/upload
 - `/words`: tìm tiếng Anh/nghĩa tiếng Việt, lọc chủ đề/trạng thái từ, phân trang, ẩn/hiện và xóa.
 - `/words/new`, `/words/:id/edit`: từ loại, phiên âm, nghĩa, ví dụ, ảnh JPG/PNG và phát âm MP3.
 - `/users`: tìm tên/email, lọc trạng thái, phân trang, xem hồ sơ cơ bản, khóa/mở khóa.
+- `/achievements`: thêm/sửa huy hiệu, tìm tên, lọc loại điều kiện/trạng thái, phân trang, bật/tắt cấp mới và xóa khi chưa có người nhận.
+- `/achievements/:id/recipients`: tổng số người đã đạt, tìm tên/email, ngày nhận theo giờ Việt Nam và phân trang.
 - `/statistics`: nội dung được học nhiều và thống kê đúng/sai từ các câu server đã chấm; lọc ngày và ngưỡng số lượt.
 - `/account`: sửa tên, đổi mật khẩu, đăng xuất.
 
@@ -37,6 +39,16 @@ Chủ đề còn từ hoặc lịch sử không được xóa. Từ đã nằm t
 - Từ ẩn không xuất hiện trong thư viện, yêu thích, lượt học/ôn mới hoặc các đáp án nhiễu mới. Ẩn không xóa ví dụ, yêu thích, tiến độ hay lịch sử; hiện lại khôi phục khả năng sử dụng dữ liệu đó.
 - Phiên đã bắt đầu vẫn tiếp tục theo danh sách cũ. Các số liệu lịch sử giữ nguyên; số từ có thể học và số từ đến hạn ôn chỉ tính nội dung đang hiển thị.
 - Chạy `npm run db:migrate` trong `backend/` sau khi pull. Migration `003-word-visibility.js` giữ các từ cũ ở trạng thái hiển thị; chạy lại không đặt lại trạng thái đã chọn.
+
+## Quản lý thành tích
+
+- Sau khi pull, chạy `npm run db:migrate` trong `backend/`. Migration `008-achievement-admin.js` bổ sung trạng thái cấp thành tích và giữ nguyên huy hiệu/lịch sử cũ.
+- Trong menu **Thành tích**, tạo huy hiệu với tên, mô tả, một trong bốn biểu tượng, điểm thưởng và mốc cần đạt. Ba loại điều kiện là số phiên hoàn thành, số từ đã học và chuỗi ngày học hiện tại.
+- Việc xét và cấp huy hiệu diễn ra khi người học mở/tải lại trang thành tích, theo cơ chế hiện có của mobile.
+- **Tạm ngừng cấp** ẩn huy hiệu chưa đạt và không cấp cho người mới. Người đã nhận vẫn thấy huy hiệu, điểm và ngày nhận. Bật lại cho phép người đủ điều kiện tiếp tục nhận.
+- Khi đã có người nhận, chỉ sửa tên, mô tả, biểu tượng và trạng thái. Điều kiện/mốc/điểm bị khóa để bảo toàn kết quả đã trao; tạo huy hiệu mới nếu muốn thay đổi các thông số đó.
+- Chỉ xóa huy hiệu chưa có người nhận. Backend kiểm tra lại trong giao dịch, kể cả khi có người nhận ngay sau khi admin mở danh sách.
+- Nhấn số người đã đạt để xem danh sách và ngày nhận. Tổng người nhận của huy hiệu luôn được giữ riêng với số kết quả tìm kiếm.
 
 ## Cấu trúc code
 

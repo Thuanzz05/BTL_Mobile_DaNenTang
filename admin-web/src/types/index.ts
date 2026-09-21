@@ -51,6 +51,27 @@ export interface Page<T> {
   items: T[];
   pagination: { page: number; limit: number; total: number; totalPages: number };
 }
+export type AchievementType = 'completed_sessions' | 'learned_words' | 'streak';
+export interface Achievement {
+  id: string;
+  tieu_de: string;
+  mo_ta: string;
+  bieu_tuong: string;
+  diem_thuong: number;
+  loai: AchievementType | null;
+  moc: number | null;
+  trang_thai: 'active' | 'inactive';
+  so_nguoi_dat: number;
+}
+export interface AchievementRecipient {
+  id: string;
+  ho_ten: string;
+  email: string;
+  ngay_mo_khoa: string;
+}
+export interface AchievementRecipients extends Page<AchievementRecipient> {
+  achievement: Achievement;
+}
 export interface Dashboard {
   tong_nguoi_dung: number;
   tong_chu_de: number;

@@ -1515,6 +1515,29 @@ audio {
     margin-left: 0;
   }
 }
+.achievement-rules {
+  border: 0;
+  padding: 0;
+  margin: 18px 0 0;
+  min-width: 0;
+}
+.achievement-rules legend {
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+.achievement-preview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.achievement-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 22px;
+  margin-bottom: 22px;
+}
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

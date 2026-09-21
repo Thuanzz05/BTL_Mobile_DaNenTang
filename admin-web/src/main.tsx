@@ -12,6 +12,8 @@ import { WordEditorPage } from './pages/word-editor';
 import { UsersPage } from './pages/users';
 import { StatisticsPage } from './pages/statistics';
 import { AccountPage } from './pages/account';
+import { AchievementsPage } from './pages/achievements';
+import { AchievementRecipientsPage } from './pages/achievement-recipients';
 import { Notice } from './components/ui';
 import './styles/app.css';
 
@@ -80,6 +82,8 @@ function App() {
         <Route path="/words/new" element={<WordEditorPage />} />
         <Route path="/words/:id/edit" element={<WordEditorPage />} />
         <Route path="/users" element={<UsersPage />} />
+        <Route path="/achievements" element={<AchievementsPage />} />
+        <Route path="/achievements/:id/recipients" element={<AchievementRecipientsPage />} />
         <Route path="/statistics" element={<StatisticsPage />} />
         <Route path="/account" element={<AccountPage />} />
         <Route path="*" element={<Navigate to="/dashboard" replace />} />
