@@ -81,6 +81,10 @@ Quản trị:
 - `PUT /api/admin/users/:userId/status`: `trang_thai`.
 - `GET/POST /api/admin/topics`, `PUT/DELETE /api/admin/topics/:id`.
 - `GET/POST /api/admin/words`, `PUT/DELETE /api/admin/words/:id`.
+- `GET /api/admin/achievements?search=&type=completed_sessions&status=active&page=1&limit=15`: danh sách huy hiệu và số người đạt. `type` nhận `completed_sessions`, `learned_words`, `streak`.
+- `POST /api/admin/achievements`, `PUT/DELETE /api/admin/achievements/:id`: quản lý huy hiệu; dữ liệu gồm `tieu_de`, `mo_ta`, `bieu_tuong`, `diem_thuong`, `loai`, `moc`, `trang_thai`.
+- `GET /api/admin/achievements/:id/recipients?search=&page=1&limit=15`: người đã đạt, ngày nhận và phân trang; tìm tên/email.
+- Migration `008-achievement-admin.js` thêm trạng thái huy hiệu. Tắt cấp mới giữ huy hiệu/điểm/ngày nhận đã có; bật lại được xét ở `GET /api/achievements`. Huy hiệu đã trao không được xóa hoặc sửa điều kiện/mốc/điểm (409); vẫn sửa được thông tin mô tả. Giao dịch khóa huy hiệu khi xét cấp và khi sửa/xóa để bảo vệ lịch sử trước yêu cầu đồng thời.
 - `PUT /api/admin/words/:id` nhận `vi_du` để thay toàn bộ ví dụ; bỏ trường này thì giữ nguyên, gửi `[]` để xóa ví dụ.
 - `POST /api/admin/upload/image`: JPG/PNG, tối đa 2 MB.
 - `POST /api/admin/upload/audio`: MP3, tối đa 5 MB.

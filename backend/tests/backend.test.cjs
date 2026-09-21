@@ -573,6 +573,15 @@ test('Backend HTTP and real MySQL regression tests', { timeout: 120000 }, async 
       connection,
       admin,
     });
+    await require('./achievement-admin-integration.cjs')(t, {
+      api,
+      connection,
+      admin,
+      learner,
+      base,
+      topic,
+      words,
+    });
 
     await t.test(
       'locked and unlocked accounts cannot reuse old access or refresh tokens',
@@ -695,6 +704,9 @@ test('Backend HTTP and real MySQL regression tests', { timeout: 120000 }, async 
         '/api/auth/reset-password',
         '/api/progress',
         '/api/achievements',
+        '/api/admin/achievements',
+        '/api/admin/achievements/{id}',
+        '/api/admin/achievements/{id}/recipients',
         '/api/home/dashboard',
         '/api/learning/review/start',
         '/api/admin/upload/image',

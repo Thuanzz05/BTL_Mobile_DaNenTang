@@ -8,11 +8,13 @@ import { validate } from '../middlewares/validate.middleware';
 import { schemas, topicSchema, wordSchema } from '../validations/request.schemas';
 import { uploadAudio, uploadImage } from '../middlewares/upload.middleware';
 import { UploadController } from '../controllers/upload.controller';
+import adminAchievementRoutes from './admin-achievement.routes';
 
 const router = Router();
 
 // Áp dụng auth + admin middleware cho tất cả route admin
 router.use(authMiddleware, adminMiddleware);
+router.use('/achievements', adminAchievementRoutes);
 router.post('/upload/image', uploadImage, UploadController.uploadImage);
 router.post('/upload/audio', uploadAudio, UploadController.uploadAudio);
 

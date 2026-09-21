@@ -10,6 +10,7 @@
     "db:create": "node scripts/create-database.js",
     "db:migrate": "node scripts/run-migrations.js",
     "db:seed": "node scripts/seed-database.js",
+    "db:import-vocabulary": "node scripts/import-vocabulary.js",
     "lint": "eslint src scripts migrations tests",
     "format": "prettier --write \"src/**/*.ts\"",
     "test": "npm run build && node --test --test-isolation=none tests/*.test.cjs",

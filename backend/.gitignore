@@ -13,6 +13,9 @@ dist/
 # uploads
 uploads/
 
+# local catalog snapshots before importing vocabulary
+backups/
+
 # Visual Studio
 .vs/
 *.suo

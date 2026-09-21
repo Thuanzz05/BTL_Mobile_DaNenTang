@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { achievementType } from './achievement.schemas';
 
 export const identifier = z
   .string()
@@ -122,6 +123,7 @@ const positiveQueryNumber = (max: number) =>
     .transform(Number)
     .pipe(z.number().int().min(1).max(max));
 export const querySchema = z.object({
+  type: achievementType.optional(),
   page: positiveQueryNumber(1000000).optional(),
   limit: positiveQueryNumber(100).optional(),
   topicId: identifier.optional(),
