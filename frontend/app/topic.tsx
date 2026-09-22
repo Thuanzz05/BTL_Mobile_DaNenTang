@@ -198,32 +198,56 @@ export default function TopicScreen() {
                 </View>
                 <Ionicons name="arrow-forward" size={21} color={c.green} />
               </Pressable>
-              <Pressable
-                accessibilityRole="button"
-                disabled={total < 2}
-                style={({ pressed }) => [
-                  s.modeCard,
-                  s.quizCard,
-                  pressed && s.pressed,
-                  total < 2 && s.disabled,
-                ]}
-                onPress={() => setQuizOpen(true)}
-              >
-                <View style={s.modeIconQuiz}>
-                  <Ionicons
-                    name="help-circle-outline"
-                    size={28}
-                    color="#8A5A2B"
-                  />
-                </View>
-                <View style={s.modeText}>
-                  <Text style={s.modeTitle}>Ôn tập trắc nghiệm</Text>
-                  <Text style={s.modeBody}>
-                    Kiểm tra nghĩa của từ. Từ trả lời sai sẽ xuất hiện lại.
-                  </Text>
-                </View>
-                <Ionicons name="arrow-forward" size={21} color="#8A5A2B" />
-              </Pressable>
+              {user ? (
+                <Pressable
+                  accessibilityRole="button"
+                  disabled={total < 2}
+                  style={({ pressed }) => [
+                    s.modeCard,
+                    s.quizCard,
+                    pressed && s.pressed,
+                    total < 2 && s.disabled,
+                  ]}
+                  onPress={() => setQuizOpen(true)}
+                >
+                  <View style={s.modeIconQuiz}>
+                    <Ionicons
+                      name="help-circle-outline"
+                      size={28}
+                      color="#8A5A2B"
+                    />
+                  </View>
+                  <View style={s.modeText}>
+                    <Text style={s.modeTitle}>Ôn tập trắc nghiệm</Text>
+                    <Text style={s.modeBody}>
+                      Kiểm tra nghĩa của từ. Từ trả lời sai sẽ xuất hiện lại.
+                    </Text>
+                  </View>
+                  <Ionicons name="arrow-forward" size={21} color="#8A5A2B" />
+                </Pressable>
+              ) : (
+                <Pressable
+                  accessibilityRole="button"
+                  style={[s.modeCard, s.quizCard]}
+                  onPress={() => router.push("/login")}
+                >
+                  <View style={s.modeIconQuiz}>
+                    <Ionicons
+                      name="lock-closed-outline"
+                      size={25}
+                      color="#8A5A2B"
+                    />
+                  </View>
+                  <View style={s.modeText}>
+                    <Text style={s.modeTitle}>Đăng nhập để ôn tập</Text>
+                    <Text style={s.modeBody}>
+                      Trắc nghiệm và kết quả Leitner chỉ dành cho người học đã
+                      đăng nhập.
+                    </Text>
+                  </View>
+                  <Ionicons name="log-in-outline" size={21} color="#8A5A2B" />
+                </Pressable>
+              )}
             </View>
 
             {!!words.length && (
@@ -254,7 +278,7 @@ export default function TopicScreen() {
         )}
       </ScrollView>
 
-      {quizOpen && topic && (
+      {quizOpen && topic && user && (
         <FlashcardPreview
           topic={topic}
           onClose={() => setQuizOpen(false)}

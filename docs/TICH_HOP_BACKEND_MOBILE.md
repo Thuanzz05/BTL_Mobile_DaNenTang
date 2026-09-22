@@ -110,9 +110,9 @@ Nút thoát và Back Android trong modal trắc nghiệm dùng chung xác nhận
 - **Lưu để học sau**: về trang chủ, không gọi API dừng.
 - **Dừng phiên**: lưu yêu cầu dừng, gửi xong câu trả lời chờ trước, rồi gọi API dừng. Nếu mất mạng, yêu cầu dừng được giữ để thử lại. Trong lúc gửi, các hành động rời bài bị khóa.
 
-Phạm vi: phiên trắc nghiệm của tài khoản đã đăng nhập, một bản nháp mỗi tài khoản trên mỗi thiết bị. Vẫn cần mạng để chấm và lấy câu tiếp theo; có thể bấm **Thử gửi lại** hoặc mở **Tiếp tục bài học** khi có mạng. Nếu mở app lúc offline và chưa khôi phục đăng nhập được, trang chủ có **Thử kết nối lại**. Bài thử của khách và vị trí lật thẻ trước trắc nghiệm chưa được lưu qua lần mở app; xóa dữ liệu ứng dụng sẽ xóa các câu chưa gửi.
+Phạm vi: phiên trắc nghiệm của tài khoản đã đăng nhập, một bản nháp mỗi tài khoản trên mỗi thiết bị. Vẫn cần mạng để chấm và lấy câu tiếp theo; có thể bấm **Thử gửi lại** hoặc mở **Tiếp tục bài học** khi có mạng. Nếu mở app lúc offline và chưa khôi phục đăng nhập được, trang chủ có **Thử kết nối lại**. Khách chưa đăng nhập chỉ được tra cứu từ và lật flashcard học thử; frontend không tạo trắc nghiệm cục bộ, không gọi API học tập và không lưu kết quả. Vị trí lật thẻ không được lưu qua lần mở app; xóa dữ liệu ứng dụng sẽ xóa các câu chưa gửi của tài khoản đã đăng nhập.
 
-Code tách theo trách nhiệm: `services/quiz-session.ts` quản lý lưu/gửi lại, `hooks/use-quiz-session.ts` gắn tài khoản, `components/server-quiz.tsx` và `guest-quiz.tsx` hiển thị bài, `flashcard-preview.tsx` điều phối modal và Back, `resume-learning-card.tsx` hiển thị bài dở.
+Code tách theo trách nhiệm: `services/quiz-session.ts` quản lý lưu/gửi lại, `hooks/use-quiz-session.ts` gắn tài khoản, `components/server-quiz.tsx` hiển thị bài, `flashcard-preview.tsx` điều phối modal và Back, `resume-learning-card.tsx` hiển thị bài dở.
 
 ### 4. Quy tắc luyện tập và Leitner
 

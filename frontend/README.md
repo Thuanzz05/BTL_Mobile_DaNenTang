@@ -26,6 +26,6 @@ Kiểm thử logic phiên đăng nhập: `npm test`. Kiểm tra mobile cuối c�
 
 ## Trang luyện trắc nghiệm
 
-Bấm một chủ đề hoặc Bắt đầu học thử trên trang chủ để vào màn luyện trắc nghiệm. Mỗi câu có tối đa 4 nghĩa khác nhau lấy từ chủ đề (ít nhất 2). Chọn một lần, xem đúng/sai, bấm Câu tiếp theo. Không dùng nút tự đánh giá ghi nhớ.
+Khách chưa đăng nhập chỉ được tra cứu từ và học thử bằng cách lật flashcard; lượt học thử không tạo phiên và không lưu kết quả. Sau khi đăng nhập, người học có thể mở trắc nghiệm từ chủ đề hoặc sau khi xem hết flashcard. Mỗi câu có tối đa 4 nghĩa khác nhau lấy từ chủ đề (ít nhất 2). Chọn một lần, xem đúng/sai, bấm Câu tiếp theo. Không dùng nút tự đánh giá ghi nhớ.
 
 Sai: đặt lại chuỗi đúng, xếp từ lại sau hai câu khác khi còn đủ từ. Đúng: giãn bốn câu khi còn đủ từ. Khi đến hạn, ưu tiên từ sai nhiều; tránh lặp ngay nếu còn từ khác. Từ đạt khi đúng liên tiếp 2 + min(số lần sai, 2) lần. Nếu còn ít từ, khoảng cách rút ngắn. Khi từ hoàn thành, kết quả được đồng bộ với Leitner: không sai thì lên một ngăn, có sai thì về ngăn 1; lịch ngăn 1–5 là 1, 3, 7, 14 và 30 ngày.

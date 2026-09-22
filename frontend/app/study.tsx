@@ -1,5 +1,6 @@
 import { FlashcardPreview } from "@/components/flashcard-preview";
 import { palette as c } from "@/constants/palette";
+import { useAuth } from "@/contexts/auth-context";
 import { getWords, Topic, Word } from "@/services/catalog";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
@@ -30,6 +31,7 @@ const wordTypes: Record<string, string> = {
 };
 
 export default function StudyScreen() {
+  const { user } = useAuth();
   const params = useLocalSearchParams<{
     topicId?: string;
     topicName?: string;
@@ -188,17 +190,29 @@ export default function StudyScreen() {
               Bạn đã xem hết {words.length} flashcard.
             </Text>
             <Text style={s.muted}>
-              Bây giờ hãy ôn bằng trắc nghiệm. Từ trả lời sai sẽ tự quay lại sau
-              vài câu.
+              {user
+                ? "Bây giờ hãy ôn bằng trắc nghiệm. Từ trả lời sai sẽ tự quay lại sau vài câu."
+                : "Đây là lượt học thử nên kết quả không được lưu. Đăng nhập để ôn trắc nghiệm và theo dõi tiến độ."}
             </Text>
-            <Pressable
-              accessibilityRole="button"
-              style={s.primary}
-              onPress={() => setQuizOpen(true)}
-            >
-              <Text style={s.primaryText}>Ôn tập trắc nghiệm</Text>
-              <Ionicons name="arrow-forward" size={20} color="white" />
-            </Pressable>
+            {user ? (
+              <Pressable
+                accessibilityRole="button"
+                style={s.primary}
+                onPress={() => setQuizOpen(true)}
+              >
+                <Text style={s.primaryText}>Ôn tập trắc nghiệm</Text>
+                <Ionicons name="arrow-forward" size={20} color="white" />
+              </Pressable>
+            ) : (
+              <Pressable
+                accessibilityRole="button"
+                style={s.primary}
+                onPress={() => router.push("/login")}
+              >
+                <Text style={s.primaryText}>Đăng nhập để ôn tập</Text>
+                <Ionicons name="log-in-outline" size={20} color="white" />
+              </Pressable>
+            )}
             <Pressable
               accessibilityRole="button"
               style={s.secondary}
@@ -346,7 +360,7 @@ export default function StudyScreen() {
           </>
         )}
       </ScrollView>
-      {quizOpen && topic && (
+      {quizOpen && topic && user && (
         <FlashcardPreview
           topic={topic}
           onClose={() => router.replace("/")}

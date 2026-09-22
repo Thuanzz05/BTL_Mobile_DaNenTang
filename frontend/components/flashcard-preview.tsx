@@ -1,14 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Modal, Pressable, Text, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
 import { palette as c } from "@/constants/palette";
-import { getWords, Topic, Word } from "@/services/catalog";
+import { Topic } from "@/services/catalog";
 import { useAuth } from "@/contexts/auth-context";
 import { useQuizSession } from "@/hooks/use-quiz-session";
 import type { QuizExitHandle, QuizSession } from "@/types/quiz";
 import { ServerQuiz } from "./server-quiz";
-import { GuestQuiz } from "./guest-quiz";
 import { quizStyles as s } from "./quiz.styles";
 
 export function FlashcardPreview({
@@ -27,7 +25,6 @@ export function FlashcardPreview({
   const { ready, user, error: authError } = useAuth();
   const { client } = useQuizSession();
   const exitRef = useRef<QuizExitHandle>(null);
-  const [words, setWords] = useState<Word[] | null>(null);
   const [serverSession, setServerSession] = useState<QuizSession | null>(null);
   const [serverOwner, setServerOwner] = useState<string>();
   const [error, setError] = useState("");
@@ -72,11 +69,8 @@ export function FlashcardPreview({
             setServerOwner(userId);
             setServerSession(result.session);
           }
-        } else if (topicId && !resume && !reviewCount) {
-          const data = await getWords(topicId);
-          if (active) setWords(data);
         } else {
-          throw new Error("Hãy đăng nhập để tiếp tục bài học.");
+          throw new Error("Hãy đăng nhập để làm trắc nghiệm và lưu kết quả.");
         }
       } catch (failure) {
         if (active) setError((failure as Error).message);
@@ -103,8 +97,6 @@ export function FlashcardPreview({
     if (exitRef.current) exitRef.current.requestClose();
     else setConfirmExit(true);
   }
-  const enough =
-    words && new Set(words.map((w) => w.nghia_tieng_viet.trim())).size >= 2;
   return (
     <Modal
       visible={visible}
@@ -145,14 +137,6 @@ export function FlashcardPreview({
             onClose={onClose}
             onCompleted={onCompleted}
           />
-        ) : enough ? (
-          <GuestQuiz
-            ref={exitRef}
-            key={attempt}
-            words={words}
-            title={reviewCount ? "Ôn tập hôm nay" : topic?.ten || "Từ vựng"}
-            onClose={onClose}
-          />
         ) : (
           <View style={s.loading}>
             <Pressable
@@ -177,15 +161,6 @@ export function FlashcardPreview({
                 >
                   <Text style={s.white}>Thử lại</Text>
                 </Pressable>
-              </>
-            ) : words ? (
-              <>
-                <Ionicons name="library-outline" size={48} color={c.green} />
-                <Text style={s.title}>Chủ đề đang được bổ sung</Text>
-                <Text style={s.body}>
-                  Cần ít nhất 2 từ có nghĩa khác nhau để tạo câu hỏi. Hãy chọn
-                  chủ đề khác nhé.
-                </Text>
               </>
             ) : (
               <ActivityIndicator size="large" color={c.green} />
