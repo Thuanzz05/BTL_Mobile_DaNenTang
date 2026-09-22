@@ -15,12 +15,12 @@ Tiến độ trên trang chủ được tải lại sau phiên hoàn thành, ch�
 
 - API trắc nghiệm do server chọn câu và chấm đáp án, lưu mọi lượt đúng/sai.
 - Chụp nội dung từ và các lựa chọn lúc tạo phiên. Sửa từ vựng trong admin không làm thay đổi câu hỏi đang học.
-- Lưu mã yêu cầu để gửi lại không bị cộng lượt hoặc SRS lần nữa.
+- Lưu mã yêu cầu để gửi lại không bị cộng lượt hoặc cập nhật Leitner lần nữa.
 - Khôi phục câu đang làm, dừng phiên, tự hoàn thành khi tất cả từ đạt yêu cầu.
 - Thống kê đúng/sai theo khoảng ngày Việt Nam và ngưỡng số lượt mỗi từ.
 - Phiên đăng nhập web bằng cookie HttpOnly riêng; API token JSON của mobile vẫn giữ nguyên.
 
-Dữ liệu cũ có `phuong_thuc = danh_gia`; dữ liệu mới dùng `trac_nghiem` và `phien_ban_thuat_toan = adaptive-v1`. Migration không đổi các phiên cũ thành quiz và không tự suy diễn lịch sử trả lời.
+Dữ liệu cũ có `phuong_thuc = danh_gia`; dữ liệu mới dùng `trac_nghiem` và `phien_ban_thuat_toan = leitner-adaptive-v1`. Migration không đổi các phiên cũ thành quiz và không tự suy diễn lịch sử trả lời.
 
 ## Hợp đồng API trắc nghiệm đang dùng trên mobile
 
@@ -45,7 +45,7 @@ Kết quả trong `data`:
 ```json
 {
   "phien_hoc_tap_id": "<id-phiên>",
-  "phien_ban_thuat_toan": "adaptive-v1",
+  "phien_ban_thuat_toan": "leitner-adaptive-v1",
   "trang_thai": "dang-hoc",
   "tong_so_tu": 20,
   "so_tu_hoan_thanh": 0,
@@ -114,16 +114,19 @@ Phạm vi: phiên trắc nghiệm của tài khoản đã đăng nhập, một b
 
 Code tách theo trách nhiệm: `services/quiz-session.ts` quản lý lưu/gửi lại, `hooks/use-quiz-session.ts` gắn tài khoản, `components/server-quiz.tsx` và `guest-quiz.tsx` hiển thị bài, `flashcard-preview.tsx` điều phối modal và Back, `resume-learning-card.tsx` hiển thị bài dở.
 
-### 4. Quy tắc luyện tập
+### 4. Quy tắc luyện tập và Leitner
 
 Mỗi từ cần hai lượt đúng liên tiếp. Sai một lần cần ba lượt đúng liên tiếp; sai từ hai lần trở lên cần bốn. Trả lời sai đặt lại chuỗi đúng và đưa từ trở lại sớm hơn.
 
-Khi từ đạt yêu cầu:
-- không sai: SRS `da-nho`;
-- sai một lần: `chua-chac`;
-- sai từ hai lần: `chua-nho`.
+Khi từ đạt yêu cầu, backend cập nhật hệ thống Leitner 5 ngăn:
+- từ mới bắt đầu ở ngăn 1;
+- không sai trong phiên: lên một ngăn, tối đa ngăn 5;
+- có ít nhất một lần sai trong phiên: về ngăn 1;
+- lịch ôn ngăn 1–5: 1, 3, 7, 14 và 30 ngày.
 
-Một phiên chỉ cộng một lần ôn cho mỗi từ, trong khi bảng câu hỏi giữ đầy đủ mọi lượt. Đây là thuật toán luyện tập hiện tại, không phải bài kiểm tra giám sát hay hệ thống chống gian lận.
+Trạng thái tiến độ cũ vẫn được trả để tương thích: ngăn 1 là `chua-nho`, ngăn 2–4 là `da-nho`, ngăn 5 là `thuoc-long`. API danh sách ôn trả thêm `ngan_leitner` để giao diện hiển thị ngăn hiện tại.
+
+Một phiên chỉ cập nhật Leitner một lần cho mỗi từ, trong khi bảng câu hỏi giữ đầy đủ mọi lượt. Đây là thuật toán luyện tập hiện tại, không phải bài kiểm tra giám sát hay hệ thống chống gian lận.
 
 ### 5. Lỗi cần xử lý
 

@@ -196,10 +196,10 @@ CREATE TABLE ket_qua_hoc (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ==========================================
--- 6. TIẾN ĐỘ HỌC TẬP & SPACED REPETITION
+-- 6. TIẾN ĐỘ HỌC TẬP & LEITNER
 -- ==========================================
 
--- Bảng: Tiến độ học từ vựng (Spaced Repetition System)
+-- Bảng: Tiến độ học từ vựng (Leitner 5 ngăn)
 CREATE TABLE tien_do_tu_vung (
     nguoi_dung_id CHAR(36) NOT NULL,
     tu_vung_id CHAR(36) NOT NULL,
@@ -208,8 +208,9 @@ CREATE TABLE tien_do_tu_vung (
     da_hoc BOOLEAN NOT NULL DEFAULT FALSE,
     yeu_thich BOOLEAN NOT NULL DEFAULT FALSE,
     
-    -- Spaced Repetition System (SRS) - Thuật toán ôn tập thông minh
+    -- Leitner: đúng lên một ngăn, sai về ngăn 1
     so_lan_on_tap INT NOT NULL DEFAULT 0,
+    ngan_leitner TINYINT UNSIGNED NOT NULL DEFAULT 1 COMMENT 'Ngăn Leitner từ 1 đến 5',
     trang_thai_nho ENUM('chua-hoc', 'chua-nho', 'chua-chac', 'da-nho', 'thuoc-long') NOT NULL DEFAULT 'chua-hoc',
     ngay_on_tap_tiep_theo TIMESTAMP NULL COMMENT 'Ngày cần ôn tập lại từ này',
     lan_on_tap_cuoi TIMESTAMP NULL,
@@ -411,22 +412,22 @@ INSERT INTO ket_qua_hoc (id, phien_hoc_tap_id, tu_vung_id, trang_thai) VALUES
 ('result10-0000-0000-0000-000000000010', 'session1-0000-0000-0000-000000000001', 'word0010-0000-0000-0000-000000000010', 'chua-chac');
 
 -- ==========================================
--- 8. TIẾN ĐỘ TỪ VỰNG (Spaced Repetition)
+-- 8. TIẾN ĐỘ TỪ VỰNG (Leitner)
 -- ==========================================
 
-INSERT INTO tien_do_tu_vung (nguoi_dung_id, tu_vung_id, da_hoc, yeu_thich, so_lan_on_tap, trang_thai_nho, ngay_on_tap_tiep_theo, lan_on_tap_cuoi) VALUES
+INSERT INTO tien_do_tu_vung (nguoi_dung_id, tu_vung_id, da_hoc, yeu_thich, so_lan_on_tap, ngan_leitner, trang_thai_nho, ngay_on_tap_tiep_theo, lan_on_tap_cuoi) VALUES
 -- Từ đã học và CẦN ÔN TẬP HÔM NAY
-('user0001-0000-0000-0000-000000000001', 'word0001-0000-0000-0000-000000000001', TRUE, TRUE, 3, 'da-nho', DATE_SUB(NOW(), INTERVAL 1 HOUR), DATE_SUB(NOW(), INTERVAL 2 DAY)),
-('user0001-0000-0000-0000-000000000001', 'word0003-0000-0000-0000-000000000003', TRUE, FALSE, 1, 'chua-nho', NOW(), DATE_SUB(NOW(), INTERVAL 1 DAY)),
-('user0001-0000-0000-0000-000000000001', 'word0007-0000-0000-0000-000000000007', TRUE, FALSE, 1, 'chua-nho', NOW(), DATE_SUB(NOW(), INTERVAL 1 DAY)),
+('user0001-0000-0000-0000-000000000001', 'word0001-0000-0000-0000-000000000001', TRUE, TRUE, 3, 4, 'da-nho', DATE_SUB(NOW(), INTERVAL 1 HOUR), DATE_SUB(NOW(), INTERVAL 2 DAY)),
+('user0001-0000-0000-0000-000000000001', 'word0003-0000-0000-0000-000000000003', TRUE, FALSE, 1, 1, 'chua-nho', NOW(), DATE_SUB(NOW(), INTERVAL 1 DAY)),
+('user0001-0000-0000-0000-000000000001', 'word0007-0000-0000-0000-000000000007', TRUE, FALSE, 1, 1, 'chua-nho', NOW(), DATE_SUB(NOW(), INTERVAL 1 DAY)),
 
 -- Từ đã học, chưa cần ôn
-('user0001-0000-0000-0000-000000000001', 'word0002-0000-0000-0000-000000000002', TRUE, FALSE, 1, 'da-nho', DATE_ADD(NOW(), INTERVAL 2 DAY), DATE_SUB(NOW(), INTERVAL 1 DAY)),
-('user0001-0000-0000-0000-000000000001', 'word0004-0000-0000-0000-000000000004', TRUE, FALSE, 1, 'da-nho', DATE_ADD(NOW(), INTERVAL 3 DAY), DATE_SUB(NOW(), INTERVAL 1 DAY)),
+('user0001-0000-0000-0000-000000000001', 'word0002-0000-0000-0000-000000000002', TRUE, FALSE, 1, 2, 'da-nho', DATE_ADD(NOW(), INTERVAL 2 DAY), DATE_SUB(NOW(), INTERVAL 1 DAY)),
+('user0001-0000-0000-0000-000000000001', 'word0004-0000-0000-0000-000000000004', TRUE, FALSE, 1, 2, 'da-nho', DATE_ADD(NOW(), INTERVAL 3 DAY), DATE_SUB(NOW(), INTERVAL 1 DAY)),
 
 -- Từ yêu thích nhưng chưa học
-('user0001-0000-0000-0000-000000000001', 'word0005-0000-0000-0000-000000000005', FALSE, TRUE, 0, 'chua-hoc', NULL, NULL),
-('user0001-0000-0000-0000-000000000001', 'word0011-0000-0000-0000-000000000011', FALSE, TRUE, 0, 'chua-hoc', NULL, NULL);
+('user0001-0000-0000-0000-000000000001', 'word0005-0000-0000-0000-000000000005', FALSE, TRUE, 0, 1, 'chua-hoc', NULL, NULL),
+('user0001-0000-0000-0000-000000000001', 'word0011-0000-0000-0000-000000000011', FALSE, TRUE, 0, 1, 'chua-hoc', NULL, NULL);
 
 -- ==========================================
 -- 9. THÀNH TÍCH

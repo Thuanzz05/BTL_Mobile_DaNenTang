@@ -251,6 +251,10 @@ async function verifyBehavior(t, { api, connection, admin }) {
 
       await setStatus('active');
       await setStatus('active');
+      await connection.execute(
+        'UPDATE tien_do_tu_vung SET ngay_on_tap_tiep_theo = DATE_SUB(NOW(), INTERVAL 1 DAY) WHERE nguoi_dung_id = ? AND tu_vung_id = ?',
+        [user.id, target.id]
+      );
       assert.equal((await api('GET', '/api/favorites', undefined, token))[0].id, target.id);
       assert.equal((await api('GET', '/api/learning/review', undefined, token)).so_tu_can_on, 1);
       const review = await api('POST', '/api/learning/review/start', {}, token, 201);

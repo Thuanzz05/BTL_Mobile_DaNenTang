@@ -1,6 +1,6 @@
 import { randomInt } from 'crypto';
 
-export const QUIZ_VERSION = 'adaptive-v1';
+export const QUIZ_VERSION = 'leitner-adaptive-v1';
 
 export interface QuizWordState {
   id: string;

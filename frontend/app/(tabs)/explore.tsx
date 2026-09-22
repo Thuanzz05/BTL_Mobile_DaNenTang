@@ -19,6 +19,7 @@ import type { Word } from "@/services/catalog";
 interface ReviewWord extends Word {
   trang_thai_nho: string;
   so_lan_on_tap: number;
+  ngan_leitner: number;
   ngay_on_tap_tiep_theo: string;
 }
 
@@ -140,8 +141,8 @@ export default function ReviewScreen() {
                 </View>
               </View>
               <Text style={s.heroBody}>
-                Từ chưa chắc và từ đến hạn được ưu tiên. Nếu trả lời sai, từ đó
-                sẽ xuất hiện lại trong bài.
+                Leitner ưu tiên từ đến hạn. Trả lời đúng để lên ngăn tiếp theo;
+                trả lời sai, từ trở về ngăn 1 và xuất hiện lại trong bài.
               </Text>
               <Pressable
                 accessibilityRole="button"
@@ -232,7 +233,7 @@ export default function ReviewScreen() {
                     </View>
                     <View style={s.reviewBadge}>
                       <Text style={s.reviewBadgeText}>
-                        {Number(word.so_lan_on_tap) || 0} lượt
+                        Ngăn {Number(word.ngan_leitner) || 1}
                       </Text>
                     </View>
                   </View>
