@@ -128,6 +128,7 @@ async function verifyBehavior(t, { api, connection, admin }) {
         token
       );
       assert.equal(publicWords.length, 6);
+      assert.equal(publicWords[0].vi_du[0].cau_tieng_anh, 'Keep this example.');
       const search = await api('GET', '/api/words?search=Visibility&status=inactive');
       assert.equal(search.pagination.total, 6);
       assert.ok(search.items.every((word) => word.trang_thai === 'active'));

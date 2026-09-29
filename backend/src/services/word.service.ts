@@ -5,16 +5,27 @@ import { UuidUtil } from '../utils/uuid.util';
 
 export class WordService {
   /**
-   * Lấy từ vựng của chủ đề đang hiển thị, kèm trạng thái yêu thích
+   * Lấy từ vựng của chủ đề đang hiển thị, kèm trạng thái yêu thích và ví dụ
    */
   static async getByTopic(topicId: string, userId?: string) {
-    return query(
+    const words = await query<any[]>(
       `SELECT t.*, (y.id IS NOT NULL) AS da_yeu_thich
       FROM tu_vung t JOIN chu_de c ON t.chu_de_id = c.id AND c.trang_thai = 'active'
       LEFT JOIN yeu_thich y ON t.id = y.tu_vung_id AND y.nguoi_dung_id = ?
       WHERE t.chu_de_id = ? AND t.trang_thai = 'active' ORDER BY t.thu_tu_hien_thi, t.id`,
       [userId || null, topicId]
     );
+    if (!words.length) return [];
+
+    const examples = await query<any[]>(
+      `SELECT id, tu_vung_id, cau_tieng_anh, cau_tieng_viet
+       FROM vi_du WHERE tu_vung_id IN (?) ORDER BY thu_tu_hien_thi, id`,
+      [words.map((word) => word.id)]
+    );
+    return words.map((word) => ({
+      ...word,
+      vi_du: examples.filter((example) => example.tu_vung_id === word.id),
+    }));
   }
 
   /**

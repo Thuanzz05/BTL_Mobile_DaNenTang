@@ -322,6 +322,17 @@ export default function StudyScreen() {
                   {!!word.phien_am && (
                     <Text style={s.phonetic}>{word.phien_am}</Text>
                   )}
+                  {!!word.vi_du?.[0] && (
+                    <View style={s.example}>
+                      <Text style={s.exampleLabel}>VÍ DỤ</Text>
+                      <Text style={s.exampleEnglish}>
+                        {word.vi_du[0].cau_tieng_anh}
+                      </Text>
+                      <Text style={s.exampleVietnamese}>
+                        {word.vi_du[0].cau_tieng_viet}
+                      </Text>
+                    </View>
+                  )}
                 </View>
                 <Text style={[s.flipHint, s.flipHintBack]}>
                   Chạm vào thẻ để lật lại
@@ -505,6 +516,34 @@ const s = StyleSheet.create({
     justifyContent: "center",
   },
   rule: { width: 48, height: 2, marginVertical: 5, backgroundColor: c.line },
+  example: {
+    width: "100%",
+    gap: 5,
+    marginTop: 3,
+    padding: 13,
+    borderRadius: 15,
+    backgroundColor: "rgba(255, 255, 255, 0.58)",
+  },
+  exampleLabel: {
+    color: "#8A5A2B",
+    fontSize: 10,
+    fontWeight: "800",
+    letterSpacing: 1.1,
+    textAlign: "center",
+  },
+  exampleEnglish: {
+    color: c.ink,
+    fontSize: 15,
+    lineHeight: 21,
+    fontWeight: "700",
+    textAlign: "center",
+  },
+  exampleVietnamese: {
+    color: "#7A674F",
+    fontSize: 13,
+    lineHeight: 19,
+    textAlign: "center",
+  },
   flipHint: { color: c.muted, fontSize: 12, textAlign: "center" },
   flipHintBack: { color: "#7A674F" },
   tip: {

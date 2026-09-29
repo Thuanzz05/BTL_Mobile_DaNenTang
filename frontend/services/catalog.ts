@@ -5,6 +5,11 @@ export interface Topic {
   mo_ta: string | null;
   word_count: number;
 }
+export interface WordExample {
+  id: string;
+  cau_tieng_anh: string;
+  cau_tieng_viet: string;
+}
 export interface Word {
   id: string;
   chu_de_id: string;
@@ -16,11 +21,7 @@ export interface Word {
   url_hinh_anh?: string | null;
   chu_de_ten?: string;
   da_yeu_thich?: boolean | number;
-}
-export interface WordExample {
-  id: string;
-  cau_tieng_anh: string;
-  cau_tieng_viet: string;
+  vi_du?: WordExample[];
 }
 export interface WordDetail extends Word {
   vi_du: WordExample[];
