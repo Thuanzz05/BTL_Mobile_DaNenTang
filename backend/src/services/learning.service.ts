@@ -3,7 +3,12 @@ import pool, { query, transaction } from '../config/database';
 import { schemas } from '../validations/request.schemas';
 import { PhienHocTap, TrangThaiNhoTu } from '../types/models';
 import { AppError } from '../utils/app-error';
-import { nextReviewDate } from '../utils/srs.util';
+import {
+  leitnerStatus,
+  nextLeitnerBox,
+  nextReviewDate,
+  normalizeLeitnerBox,
+} from '../utils/srs.util';
 import { UuidUtil } from '../utils/uuid.util';
 import { QUIZ_VERSION, shuffled } from '../utils/quiz.util';
 
@@ -341,9 +346,7 @@ export class LearningService {
     });
   }
 
-  /**
-   * Cập nhật số lần ôn và lịch SRS trong giao dịch lưu kết quả
-   */
+  /** Cập nhật ngăn Leitner và lịch ôn trong giao dịch lưu kết quả. */
   static async updateWordProgress(
     connection: PoolConnection,
     userId: string,
@@ -351,11 +354,14 @@ export class LearningService {
     status: TrangThaiNhoTu
   ) {
     const [existing]: any = await connection.execute(
-      'SELECT so_lan_on_tap FROM tien_do_tu_vung WHERE nguoi_dung_id = ? AND tu_vung_id = ? FOR UPDATE',
+      'SELECT so_lan_on_tap, ngan_leitner FROM tien_do_tu_vung WHERE nguoi_dung_id = ? AND tu_vung_id = ? FOR UPDATE',
       [userId, wordId]
     );
 
     const count = Number(existing[0]?.so_lan_on_tap || 0) + 1;
+    const currentBox = normalizeLeitnerBox(existing[0]?.ngan_leitner);
+    const nextBox = nextLeitnerBox(currentBox, status === 'da-nho');
+    const progressStatus = leitnerStatus(nextBox);
 
     // Đồng bộ cờ yêu thích cả khi đây là lần đầu tạo bản ghi tiến độ
     const [favorites]: any = await connection.execute(
@@ -366,17 +372,26 @@ export class LearningService {
     await connection.execute(
       `INSERT INTO tien_do_tu_vung (
          nguoi_dung_id, tu_vung_id, da_hoc, yeu_thich, trang_thai_nho,
-         so_lan_on_tap, lan_on_tap_cuoi, ngay_on_tap_tiep_theo
+         so_lan_on_tap, ngan_leitner, lan_on_tap_cuoi, ngay_on_tap_tiep_theo
        )
-       VALUES (?, ?, TRUE, ?, ?, ?, NOW(), IF(? = 'chua-nho', NOW(), ?))
+       VALUES (?, ?, TRUE, ?, ?, ?, ?, NOW(), ?)
        ON DUPLICATE KEY UPDATE
          da_hoc = TRUE,
          yeu_thich = VALUES(yeu_thich),
          trang_thai_nho = VALUES(trang_thai_nho),
          so_lan_on_tap = VALUES(so_lan_on_tap),
+         ngan_leitner = VALUES(ngan_leitner),
          lan_on_tap_cuoi = NOW(),
          ngay_on_tap_tiep_theo = VALUES(ngay_on_tap_tiep_theo)`,
-      [userId, wordId, favorites.length > 0, status, count, status, nextReviewDate(status, count)]
+      [
+        userId,
+        wordId,
+        favorites.length > 0,
+        progressStatus,
+        count,
+        nextBox,
+        nextReviewDate(nextBox),
+      ]
     );
   }
 
@@ -492,7 +507,7 @@ export class LearningService {
     }
 
     const words = await query<any[]>(
-      'SELECT t.*, p.trang_thai_nho, p.so_lan_on_tap, p.ngay_on_tap_tiep_theo ' +
+      'SELECT t.*, p.trang_thai_nho, p.so_lan_on_tap, p.ngan_leitner, p.ngay_on_tap_tiep_theo ' +
         dueSql +
         ' ORDER BY p.ngay_on_tap_tiep_theo, t.id LIMIT ?',
       [userId, limit]

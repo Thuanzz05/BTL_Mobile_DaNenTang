@@ -96,7 +96,7 @@ module.exports = async function quizIntegration(
       );
       const sessionId = start.phien_hoc_tap_id;
       const route = '/api/quiz/' + sessionId;
-      assert.equal(start.phien_ban_thuat_toan, 'adaptive-v1');
+      assert.equal(start.phien_ban_thuat_toan, 'leitner-adaptive-v1');
       assert.equal(start.cau_hoi.lua_chon.length, 4);
       assert.equal(start.cau_hoi.dap_an_dung_id, undefined);
       assert.equal(start.cau_hoi.nghia_tieng_viet, undefined);
@@ -218,6 +218,8 @@ module.exports = async function quizIntegration(
       );
       assert.equal(progress.length, 5);
       assert.ok(progress.every((word) => word.so_lan_on_tap === 1));
+      assert.equal(progress.filter((word) => word.ngan_leitner === 1).length, 1);
+      assert.equal(progress.filter((word) => word.ngan_leitner === 2).length, 4);
       const [[activities]] = await connection.query(
         "SELECT COUNT(*) AS count FROM hoat_dong_hoc_tap WHERE nguoi_dung_id = ? AND loai_hoat_dong = 'hoan_thanh_session'",
         [other.user.id]

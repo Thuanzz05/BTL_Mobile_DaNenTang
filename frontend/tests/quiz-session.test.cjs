@@ -32,7 +32,7 @@ function load(name, imports = {}) {
   );
   return exports;
 }
-const { QuizSessionClient } = load("quiz-session", { "./quiz": load("quiz") });
+const { QuizSessionClient } = load("quiz-session");
 const failure = (code = "OFFLINE") => Object.assign(new Error(code), { code });
 const start = {
   kind: "topic",

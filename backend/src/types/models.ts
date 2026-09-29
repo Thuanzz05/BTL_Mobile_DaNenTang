@@ -92,6 +92,7 @@ export interface TienDoTuVung {
   da_hoc: boolean;
   yeu_thich: boolean;
   so_lan_on_tap: number;
+  ngan_leitner: number;
   trang_thai_nho: TrangThaiTienDo;
   ngay_on_tap_tiep_theo?: Date;
   lan_on_tap_cuoi?: Date;

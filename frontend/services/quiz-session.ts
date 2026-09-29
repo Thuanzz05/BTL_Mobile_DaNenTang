@@ -4,7 +4,13 @@ import type {
   QuizSession,
   QuizStart,
 } from "../types/quiz";
-import { requestId } from "./quiz";
+
+function requestId(random = Math.random): string {
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (value) => {
+    const number = Math.floor(random() * 16);
+    return (value === "x" ? number : (number & 3) | 8).toString(16);
+  });
+}
 
 export interface QuizStorage {
   read(key: string): Promise<string | null>;
