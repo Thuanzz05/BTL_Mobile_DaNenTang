@@ -10,9 +10,10 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
+import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { palette as c } from "@/constants/palette";
+import { Fonts } from "@/constants/theme";
 import { useAuth } from "@/contexts/auth-context";
 
 interface StudySession {
@@ -139,10 +140,10 @@ export default function HistoryScreen() {
           style={s.back}
           onPress={() => router.back()}
         >
-          <Ionicons name="arrow-back" size={24} color={c.ink} />
+          <Feather name="arrow-left" size={23} color={c.ink} />
         </Pressable>
         <View style={s.headerText}>
-          <Text style={s.eyebrow}>HÀNH TRÌNH CỦA BẠN</Text>
+          <Text style={s.eyebrow}>Hành trình của bạn</Text>
           <Text style={s.heading}>Lịch sử học tập</Text>
         </View>
       </View>
@@ -189,7 +190,7 @@ export default function HistoryScreen() {
         ) : sessions.length === 0 && !error ? (
           <View style={s.empty}>
             <View style={s.emptyIcon}>
-              <Ionicons name="time-outline" size={38} color={c.green} />
+              <Feather name="clock" size={34} color={c.green} />
             </View>
             <Text style={s.emptyTitle}>Chưa có buổi học nào</Text>
             <Text style={s.body}>
@@ -219,11 +220,11 @@ export default function HistoryScreen() {
               >
                 <View style={s.cardTop}>
                   <View style={s.sessionIcon}>
-                    <Ionicons
+                    <Feather
                       name={
                         session.phuong_thuc === "trac_nghiem"
-                          ? "refresh"
-                          : "book-outline"
+                          ? "refresh-cw"
+                          : "book-open"
                       }
                       size={22}
                       color={c.green}
@@ -281,10 +282,10 @@ export default function HistoryScreen() {
               style={s.back}
               onPress={() => setSelected(null)}
             >
-              <Ionicons name="close" size={24} color={c.ink} />
+              <Feather name="x" size={23} color={c.ink} />
             </Pressable>
             <View style={s.headerText}>
-              <Text style={s.eyebrow}>CHI TIẾT BUỔI HỌC</Text>
+              <Text style={s.eyebrow}>Chi tiết buổi học</Text>
               <Text style={s.heading}>
                 {selected?.topic_name || "Ôn tập tổng hợp"}
               </Text>
@@ -307,7 +308,7 @@ export default function HistoryScreen() {
                     )}
                     <Text style={s.meaning}>{result.nghia_tieng_viet}</Text>
                   </View>
-                  <Ionicons name="book-outline" size={22} color={c.green} />
+                  <Feather name="book-open" size={20} color={c.green} />
                 </View>
               ))
             )}
@@ -341,7 +342,7 @@ const s = StyleSheet.create({
     color: c.green,
     fontSize: 10,
     fontWeight: "700",
-    letterSpacing: 1.3,
+    letterSpacing: 0.2,
   },
   heading: { color: c.ink, fontSize: 25, fontWeight: "800" },
   content: {
@@ -354,18 +355,22 @@ const s = StyleSheet.create({
   },
   summary: {
     padding: 20,
-    borderRadius: 22,
-    backgroundColor: c.green,
+    borderRadius: 10,
+    backgroundColor: c.surface,
+    borderWidth: 1,
+    borderColor: c.line,
+    borderLeftWidth: 5,
+    borderLeftColor: c.green,
     flexDirection: "row",
     alignItems: "center",
   },
   summaryItem: { flex: 1, alignItems: "center", gap: 4 },
-  summaryNumber: { color: "white", fontSize: 26, fontWeight: "800" },
-  summaryLabel: { color: "#DCECE4", fontSize: 13 },
-  divider: { width: 1, height: 42, backgroundColor: "#4F866F" },
+  summaryNumber: { color: c.ink, fontSize: 26, fontWeight: "800" },
+  summaryLabel: { color: c.muted, fontSize: 13 },
+  divider: { width: 1, height: 42, backgroundColor: c.line },
   card: {
     padding: 18,
-    borderRadius: 20,
+    borderRadius: 10,
     backgroundColor: c.surface,
     borderWidth: 1,
     borderColor: c.line,
@@ -375,7 +380,7 @@ const s = StyleSheet.create({
   sessionIcon: {
     width: 44,
     height: 44,
-    borderRadius: 14,
+    borderRadius: 8,
     backgroundColor: c.soft,
     alignItems: "center",
     justifyContent: "center",
@@ -404,7 +409,7 @@ const s = StyleSheet.create({
   detailLink: { color: c.green, fontSize: 13, fontWeight: "700" },
   wordCard: {
     padding: 17,
-    borderRadius: 18,
+    borderRadius: 10,
     backgroundColor: c.surface,
     borderWidth: 1,
     borderColor: c.line,
@@ -413,13 +418,18 @@ const s = StyleSheet.create({
     gap: 12,
   },
   wordText: { flex: 1, gap: 4 },
-  word: { color: c.ink, fontSize: 19, fontWeight: "800" },
+  word: {
+    color: c.ink,
+    fontFamily: Fonts.serif,
+    fontSize: 21,
+    fontWeight: "700",
+  },
   meaning: { color: c.ink, fontSize: 14 },
   empty: { paddingVertical: 54, alignItems: "center", gap: 16 },
   emptyIcon: {
     width: 76,
     height: 76,
-    borderRadius: 25,
+    borderRadius: 10,
     backgroundColor: c.soft,
     alignItems: "center",
     justifyContent: "center",
@@ -429,7 +439,7 @@ const s = StyleSheet.create({
   button: {
     minHeight: 52,
     paddingHorizontal: 22,
-    borderRadius: 15,
+    borderRadius: 8,
     backgroundColor: c.green,
     alignItems: "center",
     justifyContent: "center",
@@ -437,7 +447,7 @@ const s = StyleSheet.create({
   white: { color: "white", fontSize: 15, fontWeight: "700" },
   message: {
     padding: 16,
-    borderRadius: 16,
+    borderRadius: 8,
     backgroundColor: "#FCECE8",
     gap: 8,
   },

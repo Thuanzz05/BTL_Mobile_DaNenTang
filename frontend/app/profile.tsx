@@ -11,7 +11,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
+import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { palette as c } from "@/constants/palette";
 import { useAuth } from "@/contexts/auth-context";
@@ -85,10 +85,10 @@ export default function ProfileScreen() {
             style={s.back}
             onPress={() => router.back()}
           >
-            <Ionicons name="arrow-back" size={24} color={c.ink} />
+            <Feather name="arrow-left" size={23} color={c.ink} />
           </Pressable>
           <View>
-            <Text style={s.eyebrow}>TÀI KHOẢN CỦA BẠN</Text>
+            <Text style={s.eyebrow}>Tài khoản của bạn</Text>
             <Text style={s.heading}>Hồ sơ và mật khẩu</Text>
           </View>
         </View>
@@ -113,7 +113,7 @@ export default function ProfileScreen() {
 
               <View style={s.card}>
                 <View style={s.sectionTitle}>
-                  <Ionicons name="person-outline" size={22} color={c.green} />
+                  <Feather name="user" size={21} color={c.green} />
                   <Text style={s.title}>Thông tin cá nhân</Text>
                 </View>
                 <View style={s.field}>
@@ -147,11 +147,7 @@ export default function ProfileScreen() {
 
               <View style={s.card}>
                 <View style={s.sectionTitle}>
-                  <Ionicons
-                    name="lock-closed-outline"
-                    size={22}
-                    color={c.green}
-                  />
+                  <Feather name="lock" size={22} color={c.green} />
                   <Text style={s.title}>Đổi mật khẩu</Text>
                 </View>
                 <Text style={s.body}>
@@ -256,7 +252,7 @@ const s = StyleSheet.create({
     color: c.green,
     fontSize: 10,
     fontWeight: "700",
-    letterSpacing: 1.3,
+    letterSpacing: 0.2,
   },
   heading: { color: c.ink, fontSize: 25, fontWeight: "800" },
   content: {
@@ -269,7 +265,7 @@ const s = StyleSheet.create({
   },
   card: {
     padding: 20,
-    borderRadius: 22,
+    borderRadius: 10,
     backgroundColor: c.surface,
     borderWidth: 1,
     borderColor: c.line,
@@ -283,7 +279,7 @@ const s = StyleSheet.create({
   input: {
     minHeight: 52,
     padding: 14,
-    borderRadius: 14,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: c.line,
     backgroundColor: c.background,
@@ -298,7 +294,7 @@ const s = StyleSheet.create({
   },
   button: {
     minHeight: 52,
-    borderRadius: 14,
+    borderRadius: 8,
     backgroundColor: c.green,
     alignItems: "center",
     justifyContent: "center",

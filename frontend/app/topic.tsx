@@ -8,10 +8,11 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
+import { Feather } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import { FlashcardPreview } from "@/components/flashcard-preview";
 import { palette as c } from "@/constants/palette";
+import { Fonts } from "@/constants/theme";
 import { useAuth } from "@/contexts/auth-context";
 import { getTopic, getWords, type Topic, type Word } from "@/services/catalog";
 
@@ -99,7 +100,7 @@ export default function TopicScreen() {
             style={s.back}
             onPress={() => router.back()}
           >
-            <Ionicons name="arrow-back" size={24} color={c.ink} />
+            <Feather name="arrow-left" size={23} color={c.ink} />
           </Pressable>
           <Text style={s.headerTitle}>Chi tiết chủ đề</Text>
           <View style={s.headerSpace} />
@@ -107,7 +108,7 @@ export default function TopicScreen() {
 
         {!topicId ? (
           <Message
-            icon="alert-circle-outline"
+            icon="alert-circle"
             title="Không tìm thấy chủ đề"
             body="Hãy quay lại trang chủ và chọn một chủ đề khác."
             action="Về trang chủ"
@@ -120,7 +121,7 @@ export default function TopicScreen() {
           </View>
         ) : error || !topic ? (
           <Message
-            icon="cloud-offline-outline"
+            icon="wifi-off"
             title="Chưa tải được chủ đề"
             body={error || "Chủ đề không tồn tại."}
             action="Thử lại"
@@ -133,10 +134,10 @@ export default function TopicScreen() {
         ) : (
           <>
             <View style={s.hero}>
-              <View style={s.heroIcon}>
-                <Ionicons name="library-outline" size={34} color="white" />
-              </View>
-              <Text style={s.eyebrow}>CHỦ ĐỀ TỪ VỰNG</Text>
+              <Text style={s.heroMark}>
+                CHỦ ĐỀ {String(total).padStart(2, "0")}
+              </Text>
+              <Text style={s.eyebrow}>Chủ đề từ vựng</Text>
               <Text style={s.title}>{topic.ten}</Text>
               <Text style={s.description}>
                 {topic.mo_ta ||
@@ -144,11 +145,9 @@ export default function TopicScreen() {
               </Text>
               <View style={s.heroMeta}>
                 <View style={s.metaItem}>
-                  <Ionicons name="albums-outline" size={18} color="#DCECE4" />
                   <Text style={s.metaText}>{total} từ vựng</Text>
                 </View>
                 <View style={s.metaItem}>
-                  <Ionicons name="time-outline" size={18} color="#DCECE4" />
                   <Text style={s.metaText}>
                     Khoảng {Math.max(3, Math.ceil(total / 4))} phút
                   </Text>
@@ -160,7 +159,7 @@ export default function TopicScreen() {
               <View style={s.progressCard}>
                 <View style={s.progressHeading}>
                   <View>
-                    <Text style={s.cardLabel}>TIẾN ĐỘ CỦA BẠN</Text>
+                    <Text style={s.cardLabel}>Tiến độ của bạn</Text>
                     <Text style={s.progressTitle}>
                       {learned}/{total} từ đã học
                     </Text>
@@ -188,7 +187,7 @@ export default function TopicScreen() {
                 onPress={startFlashcards}
               >
                 <View style={s.modeIconPrimary}>
-                  <Ionicons name="copy-outline" size={27} color="white" />
+                  <Feather name="copy" size={24} color="white" />
                 </View>
                 <View style={s.modeText}>
                   <Text style={s.modeTitle}>Học bằng flashcard</Text>
@@ -197,7 +196,7 @@ export default function TopicScreen() {
                     sai.
                   </Text>
                 </View>
-                <Ionicons name="arrow-forward" size={21} color={c.green} />
+                <Feather name="arrow-right" size={20} color={c.green} />
               </Pressable>
               {user ? (
                 <Pressable
@@ -212,11 +211,7 @@ export default function TopicScreen() {
                   onPress={() => setQuizOpen(true)}
                 >
                   <View style={s.modeIconQuiz}>
-                    <Ionicons
-                      name="help-circle-outline"
-                      size={28}
-                      color="#8A5A2B"
-                    />
+                    <Feather name="help-circle" size={28} color={c.rust} />
                   </View>
                   <View style={s.modeText}>
                     <Text style={s.modeTitle}>Ôn từ đến hạn</Text>
@@ -225,7 +220,7 @@ export default function TopicScreen() {
                       quay lại cuối hàng đợi.
                     </Text>
                   </View>
-                  <Ionicons name="arrow-forward" size={21} color="#8A5A2B" />
+                  <Feather name="arrow-right" size={20} color={c.rust} />
                 </Pressable>
               ) : (
                 <Pressable
@@ -234,11 +229,7 @@ export default function TopicScreen() {
                   onPress={() => router.push("/login")}
                 >
                   <View style={s.modeIconQuiz}>
-                    <Ionicons
-                      name="lock-closed-outline"
-                      size={25}
-                      color="#8A5A2B"
-                    />
+                    <Feather name="lock" size={25} color={c.rust} />
                   </View>
                   <View style={s.modeText}>
                     <Text style={s.modeTitle}>Đăng nhập để ôn tập</Text>
@@ -247,7 +238,7 @@ export default function TopicScreen() {
                       đăng nhập.
                     </Text>
                   </View>
-                  <Ionicons name="log-in-outline" size={21} color="#8A5A2B" />
+                  <Feather name="log-in" size={20} color={c.rust} />
                 </Pressable>
               )}
             </View>
@@ -260,9 +251,6 @@ export default function TopicScreen() {
                 </View>
                 {words.slice(0, 4).map((word) => (
                   <View key={word.id} style={s.wordRow}>
-                    <View style={s.wordNumber}>
-                      <Ionicons name="leaf-outline" size={19} color={c.green} />
-                    </View>
                     <View style={s.wordText}>
                       <Text style={s.word}>{word.tu_tieng_anh}</Text>
                       {!!word.phien_am && (
@@ -298,7 +286,7 @@ function Message({
   action,
   onPress,
 }: {
-  icon: keyof typeof Ionicons.glyphMap;
+  icon: keyof typeof Feather.glyphMap;
   title: string;
   body: string;
   action: string;
@@ -306,7 +294,7 @@ function Message({
 }) {
   return (
     <View style={s.center}>
-      <Ionicons name={icon} size={48} color={c.muted} />
+      <Feather name={icon} size={43} color={c.muted} />
       <Text style={s.messageTitle}>{title}</Text>
       <Text style={s.body}>{body}</Text>
       <Pressable accessibilityRole="button" style={s.primary} onPress={onPress}>
@@ -330,7 +318,7 @@ const s = StyleSheet.create({
   back: {
     width: 44,
     height: 44,
-    borderRadius: 14,
+    borderRadius: 8,
     backgroundColor: c.surface,
     borderWidth: 1,
     borderColor: c.line,
@@ -345,30 +333,31 @@ const s = StyleSheet.create({
     textAlign: "center",
   },
   headerSpace: { width: 44 },
-  hero: { padding: 25, borderRadius: 27, backgroundColor: c.green, gap: 13 },
-  heroIcon: {
-    width: 62,
-    height: 62,
-    borderRadius: 21,
-    backgroundColor: "#397B62",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 3,
+  hero: {
+    padding: 24,
+    borderRadius: 10,
+    backgroundColor: c.surface,
+    borderWidth: 1,
+    borderColor: c.line,
+    borderLeftWidth: 5,
+    borderLeftColor: c.green,
+    gap: 13,
   },
+  heroMark: { color: c.rust, fontSize: 10, fontWeight: "800" },
   eyebrow: {
-    color: "#CFE5D8",
+    color: c.green,
     fontSize: 10,
     fontWeight: "800",
-    letterSpacing: 1.5,
+    letterSpacing: 0.2,
   },
-  title: { color: "white", fontSize: 32, fontWeight: "800" },
-  description: { color: "#DFEBE2", fontSize: 14, lineHeight: 22 },
+  title: { color: c.ink, fontSize: 32, fontWeight: "800" },
+  description: { color: c.muted, fontSize: 14, lineHeight: 22 },
   heroMeta: { flexDirection: "row", flexWrap: "wrap", gap: 16, marginTop: 3 },
   metaItem: { flexDirection: "row", alignItems: "center", gap: 7 },
-  metaText: { color: "#DCECE4", fontSize: 12, fontWeight: "600" },
+  metaText: { color: c.ink, fontSize: 12, fontWeight: "600" },
   progressCard: {
     padding: 19,
-    borderRadius: 21,
+    borderRadius: 10,
     backgroundColor: c.surface,
     borderWidth: 1,
     borderColor: c.line,
@@ -383,7 +372,7 @@ const s = StyleSheet.create({
     color: c.green,
     fontSize: 9,
     fontWeight: "800",
-    letterSpacing: 1.2,
+    letterSpacing: 0.2,
     marginBottom: 4,
   },
   progressTitle: { color: c.ink, fontSize: 17, fontWeight: "700" },
@@ -407,7 +396,7 @@ const s = StyleSheet.create({
   modeCard: {
     padding: 17,
     minHeight: 105,
-    borderRadius: 21,
+    borderRadius: 10,
     backgroundColor: c.surface,
     borderWidth: 1,
     borderColor: c.line,
@@ -419,7 +408,7 @@ const s = StyleSheet.create({
   modeIconPrimary: {
     width: 52,
     height: 52,
-    borderRadius: 17,
+    borderRadius: 10,
     backgroundColor: c.green,
     alignItems: "center",
     justifyContent: "center",
@@ -427,7 +416,7 @@ const s = StyleSheet.create({
   modeIconQuiz: {
     width: 52,
     height: 52,
-    borderRadius: 17,
+    borderRadius: 10,
     backgroundColor: "#F2DDBE",
     alignItems: "center",
     justifyContent: "center",
@@ -440,7 +429,7 @@ const s = StyleSheet.create({
   disabled: { opacity: 0.45 },
   wordRow: {
     padding: 14,
-    borderRadius: 17,
+    borderRadius: 10,
     backgroundColor: c.surface,
     borderWidth: 1,
     borderColor: c.line,
@@ -448,16 +437,13 @@ const s = StyleSheet.create({
     alignItems: "center",
     gap: 11,
   },
-  wordNumber: {
-    width: 38,
-    height: 38,
-    borderRadius: 13,
-    backgroundColor: c.soft,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   wordText: { flex: 1, gap: 2 },
-  word: { color: c.ink, fontSize: 16, fontWeight: "700" },
+  word: {
+    color: c.ink,
+    fontFamily: Fonts.serif,
+    fontSize: 18,
+    fontWeight: "700",
+  },
   phonetic: { color: c.muted, fontSize: 11 },
   meaning: { maxWidth: "38%", color: c.ink, fontSize: 13, textAlign: "right" },
   center: {
@@ -477,7 +463,7 @@ const s = StyleSheet.create({
     minHeight: 52,
     minWidth: 180,
     paddingHorizontal: 22,
-    borderRadius: 15,
+    borderRadius: 8,
     backgroundColor: c.green,
     alignItems: "center",
     justifyContent: "center",

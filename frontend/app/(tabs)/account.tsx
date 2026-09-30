@@ -8,7 +8,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
+import { Feather } from "@expo/vector-icons";
 import { Href, Link } from "expo-router";
 import { useAuth } from "@/contexts/auth-context";
 import { palette as c } from "@/constants/palette";
@@ -35,7 +35,9 @@ export default function AccountScreen() {
       <ScrollView contentContainerStyle={s.content}>
         <Text style={s.heading}>Tài khoản</Text>
         <View style={s.avatar}>
-          <Ionicons name="person-outline" size={40} color={c.green} />
+          <Text style={s.avatarText}>
+            {user?.ho_ten.trim().charAt(0).toUpperCase() || "W"}
+          </Text>
         </View>
         {!ready ? (
           <ActivityIndicator color={c.green} />
@@ -44,77 +46,58 @@ export default function AccountScreen() {
             <Text style={s.title}>{user.ho_ten}</Text>
             <Text style={s.body}>{user.email}</Text>
             <View style={s.info}>
-              <Ionicons
-                name="shield-checkmark-outline"
-                size={23}
-                color={c.green}
-              />
               <Text style={s.body}>
                 Bạn đã đăng nhập. Tiến độ cá nhân được lấy từ tài khoản của bạn.
               </Text>
             </View>
             <Link href={"/profile" as Href} asChild>
               <Pressable accessibilityRole="button" style={s.menuItem}>
-                <View style={s.menuIcon}>
-                  <Ionicons name="create-outline" size={23} color={c.green} />
-                </View>
+                <Text style={s.menuMark}>01</Text>
                 <View style={s.menuText}>
                   <Text style={s.menuTitle}>Hồ sơ và mật khẩu</Text>
                   <Text style={s.body}>Cập nhật tên hoặc đổi mật khẩu</Text>
                 </View>
-                <Ionicons name="chevron-forward" size={20} color={c.muted} />
+                <Feather name="chevron-right" size={19} color={c.muted} />
               </Pressable>
             </Link>
             <Link href={"/progress" as Href} asChild>
               <Pressable accessibilityRole="button" style={s.menuItem}>
-                <View style={s.menuIcon}>
-                  <Ionicons
-                    name="stats-chart-outline"
-                    size={23}
-                    color={c.green}
-                  />
-                </View>
+                <Text style={s.menuMark}>02</Text>
                 <View style={s.menuText}>
                   <Text style={s.menuTitle}>Thống kê tiến độ</Text>
                   <Text style={s.body}>Theo dõi kết quả và từng chủ đề</Text>
                 </View>
-                <Ionicons name="chevron-forward" size={20} color={c.muted} />
+                <Feather name="chevron-right" size={19} color={c.muted} />
               </Pressable>
             </Link>
             <Link href={"/achievements" as Href} asChild>
               <Pressable accessibilityRole="button" style={s.menuItem}>
-                <View style={s.menuIcon}>
-                  <Ionicons name="trophy-outline" size={23} color={c.green} />
-                </View>
+                <Text style={s.menuMark}>03</Text>
                 <View style={s.menuText}>
                   <Text style={s.menuTitle}>Thành tích và huy hiệu</Text>
                   <Text style={s.body}>Xem dấu mốc và huy hiệu đã mở khóa</Text>
                 </View>
-                <Ionicons name="chevron-forward" size={20} color={c.muted} />
+                <Feather name="chevron-right" size={19} color={c.muted} />
               </Pressable>
             </Link>
             <Link href={"/favorites" as Href} asChild>
               <Pressable accessibilityRole="button" style={s.menuItem}>
-                <View style={s.menuIcon}>
-                  <Ionicons name="heart-outline" size={23} color={c.green} />
-                </View>
+                <Text style={s.menuMark}>04</Text>
                 <View style={s.menuText}>
                   <Text style={s.menuTitle}>Từ yêu thích</Text>
                   <Text style={s.body}>Xem lại những từ bạn đã lưu</Text>
                 </View>
-                <Ionicons name="chevron-forward" size={20} color={c.muted} />
+                <Feather name="chevron-right" size={19} color={c.muted} />
               </Pressable>
             </Link>
             <Link href={"/history" as Href} asChild>
               <Pressable accessibilityRole="button" style={s.menuItem}>
-                <View style={s.menuIcon}>
-                  <Ionicons name="time-outline" size={23} color={c.green} />
-                </View>
+                <Text style={s.menuMark}>05</Text>
                 <View style={s.menuText}>
                   <Text style={s.menuTitle}>Lịch sử học tập</Text>
                   <Text style={s.body}>Xem lại các buổi học gần đây</Text>
                 </View>
-                <Ionicons name="chevron-forward" size={20} color={c.muted} />
+                <Feather name="chevron-right" size={19} color={c.muted} />
               </Pressable>
             </Link>
             <Pressable
@@ -186,16 +169,17 @@ const s = StyleSheet.create({
   avatar: {
     height: 88,
     width: 88,
-    borderRadius: 28,
+    borderRadius: 10,
     backgroundColor: c.soft,
     justifyContent: "center",
     alignItems: "center",
     marginTop: 20,
   },
+  avatarText: { color: c.green, fontSize: 32, fontWeight: "800" },
   body: { color: c.muted, fontSize: 15, lineHeight: 24, flexShrink: 1 },
   info: {
     backgroundColor: c.soft,
-    borderRadius: 18,
+    borderRadius: 10,
     padding: 18,
     flexDirection: "row",
     gap: 12,
@@ -203,7 +187,7 @@ const s = StyleSheet.create({
   button: {
     padding: 17,
     backgroundColor: c.green,
-    borderRadius: 15,
+    borderRadius: 8,
     alignItems: "center",
     minHeight: 54,
   },
@@ -213,7 +197,7 @@ const s = StyleSheet.create({
   menuItem: {
     minHeight: 72,
     padding: 14,
-    borderRadius: 18,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: c.line,
     backgroundColor: c.surface,
@@ -221,14 +205,7 @@ const s = StyleSheet.create({
     alignItems: "center",
     gap: 12,
   },
-  menuIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    backgroundColor: c.soft,
-    alignItems: "center",
-    justifyContent: "center",
-  },
+  menuMark: { width: 28, color: c.rust, fontSize: 11, fontWeight: "800" },
   menuText: { flex: 1 },
   menuTitle: { color: c.ink, fontSize: 16, fontWeight: "700" },
 });

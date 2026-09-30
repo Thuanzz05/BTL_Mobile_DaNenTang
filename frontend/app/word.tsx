@@ -8,10 +8,11 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
+import { Feather } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import { usePronunciation } from "@/hooks/use-pronunciation";
 import { palette as c } from "@/constants/palette";
+import { Fonts } from "@/constants/theme";
 import { useAuth } from "@/contexts/auth-context";
 import { api } from "@/services/api";
 import type { WordDetail } from "@/services/catalog";
@@ -100,7 +101,7 @@ export default function WordScreen() {
           style={s.headerButton}
           onPress={() => router.back()}
         >
-          <Ionicons name="arrow-back" size={24} color={c.ink} />
+          <Feather name="arrow-left" size={23} color={c.ink} />
         </Pressable>
         <Text style={s.headerTitle}>Chi tiết từ vựng</Text>
         <Pressable
@@ -115,8 +116,8 @@ export default function WordScreen() {
           {saving ? (
             <ActivityIndicator color={c.green} />
           ) : (
-            <Ionicons
-              name={word?.da_yeu_thich ? "heart" : "heart-outline"}
+            <Feather
+              name="heart"
               size={24}
               color={word?.da_yeu_thich ? c.green : c.ink}
             />
@@ -193,17 +194,14 @@ export default function WordScreen() {
                 onPress={pronounce}
                 style={s.speakButton}
               >
-                <Ionicons name="volume-high" size={21} color={c.ink} />
+                <Feather name="volume-2" size={20} color="white" />
                 <Text style={s.speakText}>Nghe phát âm</Text>
               </Pressable>
             </View>
 
             <View style={s.meaningCard}>
-              <View style={s.sectionIcon}>
-                <Ionicons name="language-outline" size={23} color={c.green} />
-              </View>
               <View style={s.sectionBody}>
-                <Text style={s.label}>NGHĨA TIẾNG VIỆT</Text>
+                <Text style={s.label}>Nghĩa tiếng Việt</Text>
                 <Text style={s.meaning}>{word.nghia_tieng_viet}</Text>
               </View>
             </View>
@@ -228,11 +226,7 @@ export default function WordScreen() {
                 ))
               ) : (
                 <View style={s.noExample}>
-                  <Ionicons
-                    name="chatbubble-ellipses-outline"
-                    size={26}
-                    color={c.muted}
-                  />
+                  <Feather name="message-circle" size={26} color={c.muted} />
                   <Text style={s.body}>Từ này chưa có câu ví dụ.</Text>
                 </View>
               )}
@@ -264,7 +258,7 @@ function Message({
   return (
     <View style={s.center}>
       <View style={s.emptyIcon}>
-        <Ionicons name="book-outline" size={38} color={c.green} />
+        <Feather name="book-open" size={34} color={c.green} />
       </View>
       <Text style={s.messageTitle}>{title}</Text>
       <Text style={s.body}>{body}</Text>
@@ -293,7 +287,7 @@ const s = StyleSheet.create({
   headerButton: {
     width: 44,
     height: 44,
-    borderRadius: 14,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: c.line,
     backgroundColor: c.surface,
@@ -315,7 +309,16 @@ const s = StyleSheet.create({
     paddingBottom: 45,
     gap: 18,
   },
-  hero: { padding: 25, borderRadius: 27, backgroundColor: c.green, gap: 8 },
+  hero: {
+    padding: 25,
+    borderRadius: 10,
+    backgroundColor: c.surface,
+    borderWidth: 1,
+    borderColor: c.line,
+    borderLeftWidth: 5,
+    borderLeftColor: c.green,
+    gap: 8,
+  },
   heroTop: {
     flexDirection: "row",
     alignItems: "center",
@@ -329,55 +332,52 @@ const s = StyleSheet.create({
   },
   typeText: { color: c.ink, fontSize: 11, fontWeight: "800" },
   topic: {
-    color: "#D5E8DD",
+    color: c.green,
     fontSize: 11,
     fontWeight: "700",
-    textTransform: "uppercase",
   },
-  english: { color: "white", fontSize: 40, fontWeight: "900", marginTop: 12 },
-  phonetic: { color: "#D9E9DF", fontSize: 16 },
+  english: {
+    color: c.ink,
+    fontFamily: Fonts.serif,
+    fontSize: 42,
+    fontWeight: "700",
+    marginTop: 12,
+  },
+  phonetic: { color: c.muted, fontSize: 16 },
   speakButton: {
     alignSelf: "flex-start",
     marginTop: 13,
     minHeight: 48,
     paddingHorizontal: 16,
-    borderRadius: 15,
-    backgroundColor: "#DCECBA",
+    borderRadius: 8,
+    backgroundColor: c.green,
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
   },
-  speakText: { color: c.ink, fontSize: 14, fontWeight: "800" },
+  speakText: { color: "white", fontSize: 14, fontWeight: "800" },
   meaningCard: {
     padding: 19,
-    borderRadius: 21,
+    borderRadius: 10,
     backgroundColor: c.surface,
     borderWidth: 1,
     borderColor: c.line,
     flexDirection: "row",
     gap: 14,
   },
-  sectionIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
-    backgroundColor: c.soft,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   sectionBody: { flex: 1, gap: 6 },
   label: {
     color: c.green,
     fontSize: 10,
     fontWeight: "800",
-    letterSpacing: 1.1,
+    letterSpacing: 0.2,
   },
   meaning: { color: c.ink, fontSize: 21, fontWeight: "700", lineHeight: 29 },
   section: { gap: 12 },
   sectionTitle: { color: c.ink, fontSize: 20, fontWeight: "800" },
   exampleCard: {
     padding: 17,
-    borderRadius: 19,
+    borderRadius: 10,
     backgroundColor: c.surface,
     borderWidth: 1,
     borderColor: c.line,
@@ -396,6 +396,7 @@ const s = StyleSheet.create({
   exampleBody: { flex: 1, gap: 7 },
   exampleEnglish: {
     color: c.ink,
+    fontFamily: Fonts.serif,
     fontSize: 16,
     fontWeight: "700",
     lineHeight: 23,
@@ -403,7 +404,7 @@ const s = StyleSheet.create({
   exampleVietnamese: { color: c.muted, fontSize: 14, lineHeight: 21 },
   noExample: {
     minHeight: 105,
-    borderRadius: 19,
+    borderRadius: 10,
     backgroundColor: c.surface,
     alignItems: "center",
     justifyContent: "center",
@@ -413,7 +414,7 @@ const s = StyleSheet.create({
   emptyIcon: {
     width: 76,
     height: 76,
-    borderRadius: 25,
+    borderRadius: 10,
     backgroundColor: c.soft,
     alignItems: "center",
     justifyContent: "center",
@@ -428,7 +429,7 @@ const s = StyleSheet.create({
   retryButton: {
     paddingHorizontal: 20,
     paddingVertical: 13,
-    borderRadius: 14,
+    borderRadius: 8,
     backgroundColor: c.green,
   },
   retryText: { color: "white", fontWeight: "800" },
@@ -436,6 +437,6 @@ const s = StyleSheet.create({
     color: c.danger,
     backgroundColor: "#FCECE8",
     padding: 15,
-    borderRadius: 15,
+    borderRadius: 8,
   },
 });

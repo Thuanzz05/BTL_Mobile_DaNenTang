@@ -11,7 +11,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
+import { Feather } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import { palette as c } from "@/constants/palette";
 import { api } from "@/services/api";
@@ -88,7 +88,7 @@ export default function ResetPasswordScreen() {
       <SafeAreaView style={s.page}>
         <View style={s.successContent}>
           <View style={s.successIcon}>
-            <Ionicons name="checkmark" size={39} color="white" />
+            <Feather name="check" size={36} color="white" />
           </View>
           <Text style={s.title}>Mật khẩu đã được đổi</Text>
           <Text style={s.centerBody}>
@@ -105,7 +105,7 @@ export default function ResetPasswordScreen() {
             }
           >
             <Text style={s.buttonText}>Đăng nhập bằng mật khẩu mới</Text>
-            <Ionicons name="arrow-forward" size={20} color="white" />
+            <Feather name="arrow-right" size={20} color="white" />
           </Pressable>
         </View>
       </SafeAreaView>
@@ -129,12 +129,12 @@ export default function ResetPasswordScreen() {
             disabled={busy}
             onPress={() => router.back()}
           >
-            <Ionicons name="arrow-back" size={24} color={c.ink} />
+            <Feather name="arrow-left" size={23} color={c.ink} />
           </Pressable>
           <View style={s.icon}>
-            <Ionicons name="shield-checkmark-outline" size={32} color="white" />
+            <Feather name="shield" size={29} color="white" />
           </View>
-          <Text style={s.eyebrow}>BẢO MẬT TÀI KHOẢN</Text>
+          <Text style={s.eyebrow}>Bảo mật tài khoản</Text>
           <Text style={s.title}>Tạo mật khẩu mới</Text>
           <Text style={s.body}>
             Nhập mã xác nhận và chọn mật khẩu mới cho tài khoản của bạn.
@@ -142,7 +142,7 @@ export default function ResetPasswordScreen() {
 
           {params.development === "1" && (
             <View style={s.devNotice}>
-              <Ionicons name="code-slash-outline" size={20} color={c.green} />
+              <Feather name="hash" size={19} color={c.green} />
               <Text style={s.devText}>
                 Môi trường local: mã thử nghiệm đã được điền tự động.
               </Text>
@@ -203,8 +203,8 @@ export default function ResetPasswordScreen() {
                   onPress={() => setVisible((value) => !value)}
                   style={s.eye}
                 >
-                  <Ionicons
-                    name={visible ? "eye-off-outline" : "eye-outline"}
+                  <Feather
+                    name={visible ? "eye-off" : "eye"}
                     size={22}
                     color={c.muted}
                   />
@@ -288,7 +288,7 @@ const s = StyleSheet.create({
   icon: {
     width: 62,
     height: 62,
-    borderRadius: 20,
+    borderRadius: 10,
     backgroundColor: c.green,
     alignItems: "center",
     justifyContent: "center",
@@ -298,7 +298,7 @@ const s = StyleSheet.create({
     color: c.green,
     fontSize: 10,
     fontWeight: "800",
-    letterSpacing: 1.5,
+    letterSpacing: 0.2,
   },
   title: { color: c.ink, fontSize: 34, fontWeight: "800", letterSpacing: -1 },
   body: { color: c.muted, fontSize: 15, lineHeight: 23 },
@@ -314,7 +314,7 @@ const s = StyleSheet.create({
   input: {
     minHeight: 54,
     paddingHorizontal: 15,
-    borderRadius: 14,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: c.line,
     backgroundColor: c.surface,
@@ -324,7 +324,7 @@ const s = StyleSheet.create({
   codeInput: { fontSize: 20, fontWeight: "800", letterSpacing: 7 },
   passwordRow: {
     minHeight: 54,
-    borderRadius: 14,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: c.line,
     backgroundColor: c.surface,
@@ -336,7 +336,7 @@ const s = StyleSheet.create({
   button: {
     minHeight: 56,
     paddingHorizontal: 16,
-    borderRadius: 16,
+    borderRadius: 8,
     backgroundColor: c.green,
     flexDirection: "row",
     alignItems: "center",
@@ -353,7 +353,7 @@ const s = StyleSheet.create({
   },
   devNotice: {
     padding: 14,
-    borderRadius: 14,
+    borderRadius: 8,
     backgroundColor: c.soft,
     flexDirection: "row",
     alignItems: "center",
@@ -380,7 +380,7 @@ const s = StyleSheet.create({
   successIcon: {
     width: 80,
     height: 80,
-    borderRadius: 27,
+    borderRadius: 10,
     backgroundColor: c.green,
     alignItems: "center",
     justifyContent: "center",

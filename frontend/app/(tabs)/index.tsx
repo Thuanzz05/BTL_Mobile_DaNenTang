@@ -1,7 +1,7 @@
 import { useAuth } from "@/contexts/auth-context";
 import { HomeProgress } from "@/components/home-progress";
 import { ResumeLearningCard } from "@/components/resume-learning-card";
-import { Ionicons } from "@expo/vector-icons";
+import { Feather } from "@expo/vector-icons";
 import { Link, router } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import {
@@ -19,6 +19,7 @@ import { StatusBar } from "expo-status-bar";
 import { TopicCard } from "@/components/topic-card";
 import { FlashcardPreview } from "@/components/flashcard-preview";
 import { palette as c } from "@/constants/palette";
+import { Fonts } from "@/constants/theme";
 import { getTopics, Topic } from "@/services/catalog";
 
 export default function HomeScreen() {
@@ -91,7 +92,7 @@ export default function HomeScreen() {
         <View style={s.row}>
           <View style={s.brand}>
             <View style={s.logo}>
-              <Ionicons name="layers" size={23} color="white" />
+              <Feather name="book-open" size={20} color="white" />
             </View>
             <Text style={s.brandText}>
               Wordleaf<Text style={s.brandDot}>.</Text>
@@ -100,18 +101,15 @@ export default function HomeScreen() {
           <Link href={user ? "/(tabs)/account" : "/login"} asChild>
             <Pressable accessibilityRole="button" style={s.login}>
               <Text style={s.link}>{user ? "Tài khoản" : "Đăng nhập"}</Text>
-              <Ionicons name="arrow-forward" size={16} color={c.green} />
+              <Feather name="arrow-right" size={16} color={c.green} />
             </Pressable>
           </Link>
         </View>
         <View style={s.greeting}>
-          <Text style={s.eyebrow}>MỖI NGÀY MỘT CHÚT TIẾN BỘ</Text>
-          <Text style={s.heading}>
-            Từ mới hôm nay,{"\n"}tự tin hơn ngày mai.
-          </Text>
+          <Text style={s.eyebrow}>Sổ từ vựng mỗi ngày</Text>
+          <Text style={s.heading}>Ghi lại một từ.{"\n"}Nhớ thêm một điều.</Text>
           <Text style={s.body}>
-            Cùng xây vốn từ tiếng Anh của bạn,{"\n"}bắt đầu từ một tấm
-            flashcard.
+            Học bằng flashcard, nghe cách đọc và quay lại ôn đúng lúc.
           </Text>
         </View>
         {!ready && <ActivityIndicator color={c.green} />}
@@ -127,16 +125,16 @@ export default function HomeScreen() {
         <View style={s.hero}>
           <View style={s.row}>
             <View style={s.badge}>
-              <Ionicons name="sparkles-outline" size={15} color={c.green} />
-              <Text style={s.badgeText}>GÓC HỌC TẬP</Text>
+              <Text style={s.badgeMark}>01</Text>
+              <Text style={s.badgeText}>Bắt đầu một phiên học</Text>
             </View>
-            <Ionicons name="leaf-outline" size={38} color="#B4CFAE" />
+            <Text style={s.heroMark}>wordleaf / 01</Text>
           </View>
-          <Text style={s.heroTitle}>Một thẻ nhỏ.{"\n"}Một điều mới.</Text>
+          <Text style={s.heroTitle}>Mở bộ thẻ đầu tiên</Text>
           <Text style={s.heroBody}>
             {user
               ? "Lật thẻ, nghe phát âm, xem nghĩa.\nSau đó ôn lại bằng trắc nghiệm."
-              : "Lật thẻ, nghe phát âm và xem nghĩa.\nHọc thử không lưu kết quả."}
+              : "Lật thẻ, nghe phát âm và xem nghĩa. Học thử không lưu kết quả."}
           </Text>
           <Pressable
             accessibilityRole="button"
@@ -147,12 +145,12 @@ export default function HomeScreen() {
             <Text style={s.ctaText}>
               {user ? "Học flashcard" : "Học flashcard miễn phí"}
             </Text>
-            <Ionicons name="arrow-forward" size={20} color={c.ink} />
+            <Feather name="arrow-right" size={20} color="white" />
           </Pressable>
           <Text style={s.heroNote}>
             {user
               ? "Kết quả tự động lưu vào tài khoản"
-              : "Miễn phí · Không cần tài khoản"}
+              : "Miễn phí, không cần tài khoản"}
           </Text>
         </View>
         <View style={s.section}>
@@ -161,7 +159,7 @@ export default function HomeScreen() {
             <Text style={s.count}>{topics.length} chủ đề</Text>
           </View>
           <View style={s.search}>
-            <Ionicons name="search-outline" size={20} color={c.muted} />
+            <Feather name="search" size={19} color={c.muted} />
             <TextInput
               accessibilityLabel="Tìm chủ đề"
               placeholder="Tìm chủ đề yêu thích..."
@@ -177,7 +175,7 @@ export default function HomeScreen() {
                 onPress={() => setSearch("")}
                 style={s.clear}
               >
-                <Ionicons name="close-circle" size={20} color={c.muted} />
+                <Feather name="x-circle" size={19} color={c.muted} />
               </Pressable>
             )}
           </View>
@@ -196,7 +194,7 @@ export default function HomeScreen() {
             </View>
           ) : !filtered.length ? (
             <View style={s.empty}>
-              <Ionicons name="search-outline" size={30} color={c.muted} />
+              <Feather name="search" size={28} color={c.muted} />
               <Text style={s.body}>
                 {search
                   ? "Không tìm thấy chủ đề phù hợp."
@@ -204,25 +202,17 @@ export default function HomeScreen() {
               </Text>
             </View>
           ) : (
-            Array.from({ length: Math.ceil(filtered.length / 2) }, (_, i) => (
-              <View key={filtered[i * 2].id} style={s.topicRow}>
-                {filtered.slice(i * 2, i * 2 + 2).map((topic) => (
-                  <TopicCard
-                    key={topic.id}
-                    topic={topic}
-                    onPress={() => openTopic(topic)}
-                  />
-                ))}
-                {!filtered[i * 2 + 1] && <View style={s.spacer} />}
-              </View>
+            filtered.map((topic) => (
+              <TopicCard
+                key={topic.id}
+                topic={topic}
+                onPress={() => openTopic(topic)}
+              />
             ))
           )}
         </View>
         {!user && ready && (
           <View style={s.join}>
-            <View style={s.joinIcon}>
-              <Ionicons name="bookmark-outline" size={24} color={c.green} />
-            </View>
             <View style={s.spacer}>
               <Text style={s.joinTitle}>Lưu lại từng bước tiến</Text>
               <Text style={s.body}>
@@ -231,7 +221,7 @@ export default function HomeScreen() {
               <Link href="/register" asChild>
                 <Pressable accessibilityRole="button" style={s.register}>
                   <Text style={s.link}>Tạo tài khoản miễn phí</Text>
-                  <Ionicons name="arrow-forward" size={17} color={c.green} />
+                  <Feather name="arrow-right" size={17} color={c.green} />
                 </Pressable>
               </Link>
             </View>
@@ -258,7 +248,7 @@ const s = StyleSheet.create({
   page: { flex: 1, backgroundColor: c.background },
   content: {
     padding: 22,
-    gap: 28,
+    gap: 24,
     maxWidth: 650,
     width: "100%",
     alignSelf: "center",
@@ -275,7 +265,7 @@ const s = StyleSheet.create({
     width: 38,
     height: 38,
     backgroundColor: c.green,
-    borderRadius: 13,
+    borderRadius: 6,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -288,57 +278,69 @@ const s = StyleSheet.create({
   brandDot: { color: c.green },
   login: { minHeight: 44, flexDirection: "row", alignItems: "center", gap: 7 },
   link: { color: c.green, fontSize: 14, fontWeight: "700" },
-  greeting: { gap: 12 },
+  greeting: {
+    gap: 10,
+    paddingVertical: 20,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    borderColor: c.line,
+  },
   eyebrow: {
-    fontSize: 10,
-    fontWeight: "700",
-    letterSpacing: 1.7,
+    fontSize: 13,
+    fontWeight: "600",
     color: c.green,
   },
   heading: {
-    fontSize: 32,
-    lineHeight: 41,
-    letterSpacing: -1,
+    fontFamily: Fonts.sans,
+    fontSize: 36,
+    lineHeight: 46,
     fontWeight: "800",
     color: c.ink,
   },
   body: { fontSize: 14, color: c.muted, lineHeight: 23 },
-  hero: { padding: 24, borderRadius: 26, backgroundColor: c.green, gap: 14 },
+  hero: {
+    padding: 22,
+    borderRadius: 10,
+    backgroundColor: c.surface,
+    borderWidth: 1,
+    borderColor: c.line,
+    borderLeftWidth: 5,
+    borderLeftColor: c.rust,
+    gap: 14,
+  },
   badge: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: "#E1EFCE",
-    paddingVertical: 7,
-    paddingHorizontal: 10,
-    borderRadius: 8,
+    paddingVertical: 4,
   },
   badgeText: {
-    fontSize: 10,
-    fontWeight: "800",
-    letterSpacing: 1,
-    color: c.green,
+    fontSize: 12,
+    fontWeight: "600",
+    color: c.rust,
   },
+  badgeMark: { color: c.rust, fontSize: 10, fontWeight: "800" },
+  heroMark: { color: c.muted, fontSize: 11 },
   heroTitle: {
-    fontSize: 30,
-    lineHeight: 37,
-    color: "white",
-    fontWeight: "700",
-    letterSpacing: -0.6,
+    fontFamily: Fonts.sans,
+    fontSize: 29,
+    lineHeight: 36,
+    color: c.ink,
+    fontWeight: "800",
   },
-  heroBody: { color: "#DFEBE2", fontSize: 14, lineHeight: 23 },
+  heroBody: { color: c.muted, fontSize: 14, lineHeight: 23 },
   cta: {
     minHeight: 52,
-    borderRadius: 15,
-    backgroundColor: "#DCECBA",
+    borderRadius: 8,
+    backgroundColor: c.green,
     paddingHorizontal: 19,
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginTop: 6,
   },
-  ctaText: { color: c.ink, fontWeight: "700", fontSize: 16 },
-  heroNote: { fontSize: 11, color: "#DFEBE2", textAlign: "center" },
+  ctaText: { color: "white", fontWeight: "700", fontSize: 16 },
+  heroNote: { fontSize: 11, color: c.muted },
   disabled: { opacity: 0.5 },
   section: { gap: 14 },
   sectionTitle: {
@@ -350,7 +352,7 @@ const s = StyleSheet.create({
   count: { color: c.muted, fontSize: 12 },
   search: {
     minHeight: 50,
-    borderRadius: 15,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: c.line,
     flexDirection: "row",
@@ -361,17 +363,19 @@ const s = StyleSheet.create({
   },
   input: { flex: 1, color: c.ink, fontSize: 14, paddingVertical: 14 },
   clear: { padding: 12 },
-  topicRow: { flexDirection: "row", gap: 12 },
   spacer: { flex: 1 },
   empty: { paddingVertical: 22, alignItems: "center", gap: 12 },
   join: {
     flexDirection: "row",
     gap: 12,
     padding: 19,
-    backgroundColor: c.soft,
-    borderRadius: 20,
+    backgroundColor: c.surface,
+    borderWidth: 1,
+    borderColor: c.line,
+    borderLeftWidth: 4,
+    borderLeftColor: c.green,
+    borderRadius: 8,
   },
-  joinIcon: { paddingTop: 2 },
   joinTitle: { fontSize: 16, fontWeight: "700", color: c.ink, marginBottom: 6 },
   register: {
     minHeight: 44,

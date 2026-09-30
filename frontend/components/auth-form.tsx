@@ -12,9 +12,10 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Link, router, useLocalSearchParams } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
+import { Feather } from "@expo/vector-icons";
 import { useAuth } from "@/contexts/auth-context";
 import { palette as c } from "@/constants/palette";
+import { Fonts } from "@/constants/theme";
 
 export function AuthForm({ mode }: { mode: "login" | "register" }) {
   const register = mode === "register";
@@ -99,16 +100,11 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
             onPress={() => router.dismissTo("/")}
             disabled={busy}
           >
-            <Ionicons name="arrow-back" size={24} color={c.ink} />
+            <Feather name="arrow-left" size={23} color={c.ink} />
           </Pressable>
-          <View style={s.logo}>
-            <Ionicons name="layers" size={30} color="white" />
-          </View>
-          <Text style={s.eyebrow}>WORDLEAF · HỌC MỖI NGÀY</Text>
+          <Text style={s.eyebrow}>Wordleaf</Text>
           <Text style={s.title}>
-            {register
-              ? "Hành trình mới,\nbắt đầu từ bạn."
-              : "Chào mừng\nbạn trở lại."}
+            {register ? "Tạo tài khoản" : "Đăng nhập"}
           </Text>
           <Text style={s.body}>
             {register
@@ -197,8 +193,8 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
                   style={s.eye}
                   onPress={() => setVisible((v) => !v)}
                 >
-                  <Ionicons
-                    name={visible ? "eye-off-outline" : "eye-outline"}
+                  <Feather
+                    name={visible ? "eye-off" : "eye"}
                     size={22}
                     color={c.muted}
                   />
@@ -239,7 +235,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
                   <Text style={s.buttonText}>
                     {register ? "Tạo tài khoản" : "Đăng nhập"}
                   </Text>
-                  <Ionicons name="arrow-forward" size={20} color="white" />
+                  <Feather name="arrow-right" size={20} color="white" />
                 </>
               )}
             </Pressable>
@@ -277,26 +273,18 @@ const s = StyleSheet.create({
     paddingBottom: 40,
   },
   back: { width: 44, height: 44, justifyContent: "center" },
-  logo: {
-    width: 58,
-    height: 58,
-    backgroundColor: c.green,
-    borderRadius: 19,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   eyebrow: {
-    fontSize: 10,
+    fontFamily: Fonts.serif,
+    fontSize: 22,
     fontWeight: "700",
-    letterSpacing: 1.5,
     color: c.green,
   },
   title: {
-    fontSize: 35,
+    fontFamily: Fonts.sans,
+    fontSize: 38,
     fontWeight: "800",
-    lineHeight: 44,
+    lineHeight: 46,
     color: c.ink,
-    letterSpacing: -1,
   },
   body: { fontSize: 14, color: c.muted, lineHeight: 22 },
   form: { gap: 18, marginTop: 8 },
@@ -313,7 +301,7 @@ const s = StyleSheet.create({
     padding: 15,
     borderWidth: 1,
     borderColor: c.line,
-    borderRadius: 14,
+    borderRadius: 7,
     backgroundColor: c.surface,
     color: c.ink,
     fontSize: 16,
@@ -323,7 +311,7 @@ const s = StyleSheet.create({
     minHeight: 54,
     borderWidth: 1,
     borderColor: c.line,
-    borderRadius: 14,
+    borderRadius: 7,
     backgroundColor: c.surface,
     alignItems: "center",
   },
@@ -332,7 +320,7 @@ const s = StyleSheet.create({
   button: {
     minHeight: 54,
     padding: 16,
-    borderRadius: 15,
+    borderRadius: 8,
     backgroundColor: c.green,
     flexDirection: "row",
     alignItems: "center",
@@ -345,14 +333,14 @@ const s = StyleSheet.create({
     color: c.danger,
     backgroundColor: "#FBE8E3",
     padding: 14,
-    borderRadius: 12,
+    borderRadius: 6,
     lineHeight: 22,
   },
   success: {
     color: c.green,
     backgroundColor: c.soft,
     padding: 14,
-    borderRadius: 12,
+    borderRadius: 6,
     lineHeight: 22,
   },
   switch: {
