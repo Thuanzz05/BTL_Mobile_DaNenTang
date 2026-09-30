@@ -3,7 +3,12 @@ import pool, { query, transaction } from '../config/database';
 import { schemas } from '../validations/request.schemas';
 import { PhienHocTap, TrangThaiNhoTu } from '../types/models';
 import { AppError } from '../utils/app-error';
-import { nextReviewDate } from '../utils/srs.util';
+import {
+  leitnerStatus,
+  nextLeitnerBox,
+  nextReviewDate,
+  normalizeLeitnerBox,
+} from '../utils/srs.util';
 import { UuidUtil } from '../utils/uuid.util';
 import { QUIZ_VERSION, shuffled } from '../utils/quiz.util';
 
@@ -57,6 +62,121 @@ const dueSql = `FROM tien_do_tu_vung p
   WHERE p.nguoi_dung_id = ? AND p.da_hoc = TRUE AND p.ngay_on_tap_tiep_theo <= NOW()`;
 
 export class LearningService {
+  /** Một phiên flashcard đang học cho mỗi chủ đề; mở lại tiếp tục từ thẻ chưa xem. */
+  static async startFlashcards(userId: string, topicId: string) {
+    return transaction(async (connection) => {
+      await lockUser(connection, userId);
+      const [topics]: any = await connection.execute(
+        "SELECT id FROM chu_de WHERE id = ? AND trang_thai = 'active' FOR SHARE",
+        [topicId]
+      );
+      if (!topics.length) {
+        throw new AppError('Chủ đề không tồn tại hoặc đã ẩn', 404, 'TOPIC_NOT_FOUND');
+      }
+      const [sessions]: any = await connection.execute(
+        "SELECT * FROM phien_hoc_tap WHERE nguoi_dung_id = ? AND chu_de_id = ? AND phuong_thuc = 'flashcard' AND trang_thai = 'dang-hoc' ORDER BY bat_dau_luc DESC LIMIT 1",
+        [userId, topicId]
+      );
+      if (sessions.length) {
+        const [words]: any = await connection.execute(
+          'SELECT t.*, m.da_xem_luc FROM phien_hoc_tu m JOIN tu_vung t ON t.id = m.tu_vung_id WHERE m.phien_hoc_tap_id = ? ORDER BY m.thu_tu',
+          [sessions[0].id]
+        );
+        return {
+          phien_hoc_tap_id: sessions[0].id,
+          danh_sach_tu: await withExamples(words, connection),
+        };
+      }
+      const [users]: any = await connection.execute(
+        'SELECT muc_tieu_hang_ngay FROM nguoi_dung WHERE id = ?',
+        [userId]
+      );
+      const [words]: any = await connection.query(
+        "SELECT t.* FROM tu_vung t LEFT JOIN tien_do_tu_vung p ON p.tu_vung_id = t.id AND p.nguoi_dung_id = ? WHERE t.chu_de_id = ? AND t.trang_thai = 'active' AND COALESCE(p.da_hoc, FALSE) = FALSE ORDER BY t.thu_tu_hien_thi, t.id LIMIT ? FOR SHARE",
+        [userId, topicId, Number(users[0].muc_tieu_hang_ngay)]
+      );
+      if (!words.length) {
+        throw new AppError(
+          'Bạn đã học hết từ mới trong chủ đề. Hãy ôn các từ đến hạn.',
+          404,
+          'NO_NEW_WORDS'
+        );
+      }
+      return this.createSession(connection, userId, topicId, words, 'hoc_moi', 'flashcard');
+    });
+  }
+
+  static async viewFlashcard(userId: string, sessionId: string, wordId: string) {
+    return transaction(async (connection) => {
+      await lockUser(connection, userId);
+      const session = await sessionForUser(connection, userId, sessionId, true);
+      if (session.phuong_thuc !== 'flashcard') {
+        throw new AppError('Đây không phải phiên flashcard', 409, 'NOT_FLASHCARD_SESSION');
+      }
+      const [words]: any = await connection.execute(
+        'SELECT * FROM phien_hoc_tu WHERE phien_hoc_tap_id = ? ORDER BY thu_tu',
+        [sessionId]
+      );
+      const word = words.find((item: any) => item.tu_vung_id === wordId);
+      if (!word) {
+        throw new AppError('Từ không thuộc phiên học', 400, 'WORD_NOT_IN_SESSION');
+      }
+      if (word.da_xem_luc) {
+        return { da_xem: true };
+      }
+      if (session.trang_thai !== 'dang-hoc') {
+        throw new AppError('Phiên học đã kết thúc', 409, 'SESSION_CLOSED');
+      }
+      if (words.find((item: any) => !item.da_xem_luc)?.tu_vung_id !== wordId) {
+        throw new AppError('Hãy xem lần lượt các thẻ', 409, 'CARD_OUT_OF_ORDER');
+      }
+      await connection.execute(
+        'UPDATE phien_hoc_tu SET da_xem_luc = NOW() WHERE phien_hoc_tap_id = ? AND tu_vung_id = ?',
+        [sessionId, wordId]
+      );
+      return { da_xem: true };
+    });
+  }
+
+  static async completeFlashcards(userId: string, sessionId: string) {
+    return transaction(async (connection) => {
+      await lockUser(connection, userId);
+      const session = await sessionForUser(connection, userId, sessionId, true);
+      if (session.phuong_thuc !== 'flashcard') {
+        throw new AppError('Đây không phải phiên flashcard', 409, 'NOT_FLASHCARD_SESSION');
+      }
+      if (session.trang_thai === 'hoan-thanh') {
+        return this.completeLockedSession(connection, session);
+      }
+      if (session.trang_thai !== 'dang-hoc') {
+        throw new AppError('Phiên học đã kết thúc', 409, 'SESSION_CLOSED');
+      }
+      const [words]: any = await connection.execute(
+        'SELECT * FROM phien_hoc_tu WHERE phien_hoc_tap_id = ?',
+        [sessionId]
+      );
+      if (words.length !== session.tong_so_tu || words.some((word: any) => !word.da_xem_luc)) {
+        throw new AppError('Hãy xem hết các thẻ trước khi hoàn thành', 409, 'SESSION_INCOMPLETE');
+      }
+      for (const word of words) {
+        await connection.execute(
+          "INSERT INTO ket_qua_hoc (id, phien_hoc_tap_id, tu_vung_id, trang_thai) VALUES (?, ?, ?, 'da-xem')",
+          [UuidUtil.generate(), sessionId, word.tu_vung_id]
+        );
+        // Bản ghi yêu thích có thể đã tồn tại; không hạ ngăn của từ đã được học ở phiên khác.
+        await connection.execute(
+          'INSERT IGNORE INTO tien_do_tu_vung (nguoi_dung_id, tu_vung_id) VALUES (?, ?)',
+          [userId, word.tu_vung_id]
+        );
+        await connection.execute(
+          "UPDATE tien_do_tu_vung SET da_hoc = TRUE, ngan_leitner = 1, trang_thai_nho = 'chua-nho', ngay_on_tap_tiep_theo = ? WHERE nguoi_dung_id = ? AND tu_vung_id = ? AND da_hoc = FALSE",
+          [nextReviewDate(1), userId, word.tu_vung_id]
+        );
+      }
+      return this.completeLockedSession(connection, session);
+    });
+  }
+
   /** Gọi sau lockUser: cùng mã khởi tạo luôn trả về cùng một phiên. */
   private static async replayStart(
     connection: PoolConnection,
@@ -64,7 +184,8 @@ export class LearningService {
     topicId: string | null,
     wordCount: number,
     method: string,
-    requestId?: string
+    requestId?: string,
+    type = topicId ? 'hoc_moi' : 'on_tap'
   ) {
     if (!requestId) {
       return null;
@@ -83,7 +204,7 @@ export class LearningService {
       session.chu_de_id !== topicId ||
       session.so_tu_yeu_cau !== wordCount ||
       session.phuong_thuc !== method ||
-      session.loai_phien !== (topicId ? 'hoc_moi' : 'on_tap')
+      session.loai_phien !== type
     ) {
       throw new AppError('Mã khởi tạo đã được dùng cho bài khác', 409, 'IDEMPOTENCY_CONFLICT');
     }
@@ -108,7 +229,7 @@ export class LearningService {
     topicId: string | null,
     words: any[],
     type: 'hoc_moi' | 'on_tap',
-    method: 'danh_gia' | 'trac_nghiem',
+    method: 'danh_gia' | 'trac_nghiem' | 'flashcard',
     requestId?: string,
     requestedCount?: number
   ) {
@@ -256,19 +377,32 @@ export class LearningService {
     userId: string,
     wordCount = 50,
     method: 'danh_gia' | 'trac_nghiem' = 'danh_gia',
-    requestId?: string
+    requestId?: string,
+    topicId: string | null = null
   ) {
     schemas.review.parse({ tong_so_tu: wordCount });
 
     return transaction(async (connection) => {
       await lockUser(connection, userId);
-      const replay = await this.replayStart(connection, userId, null, wordCount, method, requestId);
+      const replay = await this.replayStart(
+        connection,
+        userId,
+        topicId,
+        wordCount,
+        method,
+        requestId,
+        'on_tap'
+      );
       if (replay) {
         return replay;
       }
       const [words]: any = await connection.query(
-        'SELECT t.* ' + dueSql + ' ORDER BY p.ngay_on_tap_tiep_theo, t.id LIMIT ? FOR SHARE',
-        [userId, wordCount]
+        'SELECT t.* ' +
+          dueSql +
+          (topicId ? ' AND t.chu_de_id = ?' : '') +
+          " AND NOT EXISTS (SELECT 1 FROM phien_hoc_tu m JOIN phien_hoc_tap s ON s.id = m.phien_hoc_tap_id WHERE m.tu_vung_id = t.id AND s.nguoi_dung_id = p.nguoi_dung_id AND s.phuong_thuc = 'trac_nghiem' AND s.trang_thai = 'dang-hoc')" +
+          ' ORDER BY p.ngay_on_tap_tiep_theo, t.id LIMIT ? FOR SHARE',
+        topicId ? [userId, topicId, wordCount] : [userId, wordCount]
       );
       if (!words.length) {
         throw new AppError('Không có từ đến hạn ôn tập', 404, 'NO_REVIEW_WORDS');
@@ -276,7 +410,7 @@ export class LearningService {
       return this.createSession(
         connection,
         userId,
-        null,
+        topicId,
         words,
         'on_tap',
         method,
@@ -301,7 +435,7 @@ export class LearningService {
       await lockUser(connection, userId);
       const session = await sessionForUser(connection, userId, sessionId, true);
 
-      if (session.phuong_thuc === 'trac_nghiem') {
+      if (session.phuong_thuc !== 'danh_gia') {
         throw new AppError(
           'Phiên trắc nghiệm phải nộp đáp án qua API quiz',
           409,
@@ -341,9 +475,7 @@ export class LearningService {
     });
   }
 
-  /**
-   * Cập nhật số lần ôn và lịch SRS trong giao dịch lưu kết quả
-   */
+  /** Cập nhật ngăn Leitner và lịch ôn trong giao dịch lưu kết quả. */
   static async updateWordProgress(
     connection: PoolConnection,
     userId: string,
@@ -351,11 +483,14 @@ export class LearningService {
     status: TrangThaiNhoTu
   ) {
     const [existing]: any = await connection.execute(
-      'SELECT so_lan_on_tap FROM tien_do_tu_vung WHERE nguoi_dung_id = ? AND tu_vung_id = ? FOR UPDATE',
+      'SELECT so_lan_on_tap, ngan_leitner FROM tien_do_tu_vung WHERE nguoi_dung_id = ? AND tu_vung_id = ? FOR UPDATE',
       [userId, wordId]
     );
 
     const count = Number(existing[0]?.so_lan_on_tap || 0) + 1;
+    const currentBox = normalizeLeitnerBox(existing[0]?.ngan_leitner);
+    const nextBox = nextLeitnerBox(currentBox, status === 'da-nho');
+    const progressStatus = leitnerStatus(nextBox);
 
     // Đồng bộ cờ yêu thích cả khi đây là lần đầu tạo bản ghi tiến độ
     const [favorites]: any = await connection.execute(
@@ -366,17 +501,26 @@ export class LearningService {
     await connection.execute(
       `INSERT INTO tien_do_tu_vung (
          nguoi_dung_id, tu_vung_id, da_hoc, yeu_thich, trang_thai_nho,
-         so_lan_on_tap, lan_on_tap_cuoi, ngay_on_tap_tiep_theo
+         so_lan_on_tap, ngan_leitner, lan_on_tap_cuoi, ngay_on_tap_tiep_theo
        )
-       VALUES (?, ?, TRUE, ?, ?, ?, NOW(), IF(? = 'chua-nho', NOW(), ?))
+       VALUES (?, ?, TRUE, ?, ?, ?, ?, NOW(), ?)
        ON DUPLICATE KEY UPDATE
          da_hoc = TRUE,
          yeu_thich = VALUES(yeu_thich),
          trang_thai_nho = VALUES(trang_thai_nho),
          so_lan_on_tap = VALUES(so_lan_on_tap),
+         ngan_leitner = VALUES(ngan_leitner),
          lan_on_tap_cuoi = NOW(),
          ngay_on_tap_tiep_theo = VALUES(ngay_on_tap_tiep_theo)`,
-      [userId, wordId, favorites.length > 0, status, count, status, nextReviewDate(status, count)]
+      [
+        userId,
+        wordId,
+        favorites.length > 0,
+        progressStatus,
+        count,
+        nextBox,
+        nextReviewDate(nextBox),
+      ]
     );
   }
 
@@ -468,7 +612,7 @@ export class LearningService {
         [sessionId]
       );
       const [words]: any = await connection.execute(
-        `SELECT t.*, k.trang_thai FROM phien_hoc_tu p JOIN tu_vung t ON p.tu_vung_id = t.id
+        `SELECT t.*, p.da_xem_luc, k.trang_thai FROM phien_hoc_tu p JOIN tu_vung t ON p.tu_vung_id = t.id
          LEFT JOIN ket_qua_hoc k ON k.phien_hoc_tap_id = p.phien_hoc_tap_id AND k.tu_vung_id = p.tu_vung_id
          WHERE p.phien_hoc_tap_id = ? ORDER BY p.thu_tu`,
         [sessionId]
@@ -492,7 +636,7 @@ export class LearningService {
     }
 
     const words = await query<any[]>(
-      'SELECT t.*, p.trang_thai_nho, p.so_lan_on_tap, p.ngay_on_tap_tiep_theo ' +
+      'SELECT t.*, p.trang_thai_nho, p.so_lan_on_tap, p.ngan_leitner, p.ngay_on_tap_tiep_theo ' +
         dueSql +
         ' ORDER BY p.ngay_on_tap_tiep_theo, t.id LIMIT ?',
       [userId, limit]

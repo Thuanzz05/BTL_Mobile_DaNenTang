@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { Feather } from "@expo/vector-icons";
 import { useAuth } from "@/contexts/auth-context";
 import { useQuizSession } from "@/hooks/use-quiz-session";
 import { palette as c } from "@/constants/palette";
@@ -32,7 +32,7 @@ export function ResumeLearningCard({ onUpdated }: { onUpdated: () => void }) {
     <>
       {(draft || error) && (
         <View style={s.card}>
-          <Ionicons name="bookmark-outline" size={24} color={c.green} />
+          <Feather name="bookmark" size={22} color={c.green} />
           <Text style={s.title}>{draft?.start.title || "Bài học đã lưu"}</Text>
           <Text style={s.body}>
             {error ||
@@ -74,7 +74,7 @@ export function ResumeLearningCard({ onUpdated }: { onUpdated: () => void }) {
 }
 
 const s = StyleSheet.create({
-  card: { padding: 20, gap: 10, borderRadius: 20, backgroundColor: c.soft },
+  card: { padding: 20, gap: 10, borderRadius: 10, backgroundColor: c.soft },
   title: { fontSize: 18, fontWeight: "700", color: c.ink },
   body: { fontSize: 14, lineHeight: 22, color: c.muted },
   button: { minHeight: 44, justifyContent: "center" },

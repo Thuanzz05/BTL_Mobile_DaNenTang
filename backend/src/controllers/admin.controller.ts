@@ -4,6 +4,18 @@ import { ResponseUtil } from '../utils/response.util';
 import { AdminReportService } from '../services/admin-report.service';
 
 export class AdminController {
+  static async deleteUser(req: Request, res: Response, next: NextFunction) {
+    try {
+      return ResponseUtil.success(
+        res,
+        await AdminService.deleteUser(req.params.userId),
+        'Đã xóa người học và dữ liệu cá nhân liên quan'
+      );
+    } catch (error) {
+      return next(error);
+    }
+  }
+
   static async getQuizStatistics(req: Request, res: Response, next: NextFunction) {
     try {
       const data = await AdminReportService.quiz({

@@ -21,7 +21,7 @@ const validateId = validate(z.object({ id: identifier }), 'params');
  *         mo_ta: { type: string, maxLength: 5000 }
  *         bieu_tuong: { type: string, enum: [medal, flame, book, star] }
  *         diem_thuong: { type: integer, minimum: 0, maximum: 1000000 }
- *         loai: { type: string, enum: [completed_sessions, learned_words, streak] }
+ *         loai: { type: string, enum: [completed_sessions, learned_words, mastered_words, streak] }
  *         moc: { type: integer, minimum: 1, maximum: 1000000 }
  *         trang_thai: { type: string, enum: [active, inactive], default: active }
  * /api/admin/achievements:
@@ -30,7 +30,7 @@ const validateId = validate(z.object({ id: identifier }), 'params');
  *     tags: [Admin]
  *     parameters:
  *       - { in: query, name: search, schema: { type: string } }
- *       - { in: query, name: type, schema: { type: string, enum: [completed_sessions, learned_words, streak] } }
+ *       - { in: query, name: type, schema: { type: string, enum: [completed_sessions, learned_words, mastered_words, streak] } }
  *       - { in: query, name: status, schema: { type: string, enum: [active, inactive] } }
  *       - { in: query, name: page, schema: { type: integer, minimum: 1 } }
  *       - { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 100 } }
@@ -67,7 +67,7 @@ const validateId = validate(z.object({ id: identifier }), 'params');
  *               mo_ta: { type: string, maxLength: 5000 }
  *               bieu_tuong: { type: string, enum: [medal, flame, book, star] }
  *               diem_thuong: { type: integer, minimum: 0, maximum: 1000000 }
- *               loai: { type: string, enum: [completed_sessions, learned_words, streak] }
+ *               loai: { type: string, enum: [completed_sessions, learned_words, mastered_words, streak] }
  *               moc: { type: integer, minimum: 1, maximum: 1000000 }
  *               trang_thai: { type: string, enum: [active, inactive] }
  *     responses:

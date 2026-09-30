@@ -1,6 +1,11 @@
 import { z } from 'zod';
 
-export const achievementType = z.enum(['completed_sessions', 'learned_words', 'streak']);
+export const achievementType = z.enum([
+  'completed_sessions',
+  'learned_words',
+  'mastered_words',
+  'streak',
+]);
 
 export const achievementSchema = z
   .object({

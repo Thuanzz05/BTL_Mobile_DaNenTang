@@ -11,7 +11,7 @@ import {
   Text,
   View,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { Feather } from "@expo/vector-icons";
 import { palette as c } from "@/constants/palette";
 import { useAuth } from "@/contexts/auth-context";
 import { QuizSessionClient } from "@/services/quiz-session";
@@ -135,14 +135,13 @@ export function ServerQuiz({
           style={s.close}
           onPress={requestClose}
         >
-          <Ionicons name="close" size={24} color={c.ink} />
+          <Feather name="x" size={23} color={c.ink} />
         </Pressable>
         <View style={s.headerText}>
-          <Text style={s.overline}>ÔN TẬP TRẮC NGHIỆM</Text>
+          <Text style={s.overline}>Ôn tập trắc nghiệm</Text>
           <Text style={s.topic}>{title}</Text>
         </View>
         <View style={s.counter}>
-          <Ionicons name="layers-outline" size={17} color={c.green} />
           <Text style={s.link}>
             {session.so_tu_hoan_thanh}/{session.tong_so_tu}
           </Text>
@@ -202,7 +201,7 @@ export function ServerQuiz({
         </View>
       ) : session.trang_thai !== "dang-hoc" || !question ? (
         <View style={s.card}>
-          <Ionicons name="checkmark-circle" size={64} color={c.green} />
+          <Feather name="check-circle" size={58} color={c.green} />
           <Text style={s.title}>
             {session.trang_thai === "bo-do"
               ? "Phiên học đã dừng"
@@ -214,6 +213,12 @@ export function ServerQuiz({
               {session.so_luot_dung}/{session.so_luot_tra_loi} lượt đúng
             </Text>
             <Text style={s.body}>Tỷ lệ đúng {session.ty_le_dung ?? 0}%</Text>
+            {session.so_tu_dung_lan_dau !== undefined && (
+              <Text style={s.body}>
+                {session.so_tu_dung_lan_dau} từ đúng ngay ·{" "}
+                {session.so_tu_can_luyen_lai} từ cần luyện lại
+              </Text>
+            )}
           </View>
           <Pressable
             accessibilityRole="button"
@@ -230,9 +235,6 @@ export function ServerQuiz({
             <Text style={s.small}>Anh → Việt</Text>
           </View>
           <View style={s.card}>
-            <View style={s.icon}>
-              <Ionicons name="leaf-outline" size={28} color={c.green} />
-            </View>
             <Text style={s.overline}>TỪ NÀY CÓ NGHĨA LÀ GÌ?</Text>
             <Text style={s.word}>{question.tu_tieng_anh}</Text>
             <Text style={s.phonetic}>
@@ -260,8 +262,8 @@ export function ServerQuiz({
                   </View>
                   <Text style={s.optionText}>{choice.noi_dung}</Text>
                   {(right || wrong) && (
-                    <Ionicons
-                      name={right ? "checkmark-circle" : "close-circle"}
+                    <Feather
+                      name={right ? "check-circle" : "x-circle"}
                       size={22}
                       color={right ? c.green : c.danger}
                     />
@@ -312,13 +314,7 @@ export function ServerQuiz({
                 disabled={busy}
                 onPress={saveWord}
               >
-                <Ionicons
-                  name={
-                    saved.has(question.tu_vung_id) ? "heart" : "heart-outline"
-                  }
-                  size={20}
-                  color={c.green}
-                />
+                <Feather name="heart" size={20} color={c.green} />
                 <Text style={s.link}>
                   {saved.has(question.tu_vung_id)
                     ? "Đã lưu vào yêu thích"
@@ -335,7 +331,7 @@ export function ServerQuiz({
                     ? "Xem kết quả"
                     : "Câu tiếp theo"}
                 </Text>
-                <Ionicons name="arrow-forward" size={19} color="white" />
+                <Feather name="arrow-right" size={19} color="white" />
               </Pressable>
             </View>
           )}

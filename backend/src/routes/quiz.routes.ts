@@ -12,7 +12,7 @@ router.use(authMiddleware);
  * @swagger
  * /api/quiz/start:
  *   post:
- *     summary: Tạo phiên trắc nghiệm được server chấm (từ 5 đến 50 từ)
+ *     summary: Ôn từ đến hạn trong chủ đề, được server chấm (1–50 từ)
  *     tags: [Quiz]
  *     security: [{ bearerAuth: [] }]
  *     requestBody:
@@ -25,7 +25,7 @@ router.use(authMiddleware);
  *             properties:
  *               chu_de_id: { type: string }
  *               ma_yeu_cau: { type: string, format: uuid, description: Giữ nguyên mã khi thử tạo lại phiên sau mất mạng }
- *               tong_so_tu: { type: integer, minimum: 5, maximum: 50, default: 20 }
+ *               tong_so_tu: { type: integer, minimum: 1, maximum: 50, default: 50 }
  *     responses:
  *       201: { description: Phiên và câu hỏi đầu tiên; không trả đáp án đúng }
  * /api/quiz/review/start:
@@ -45,7 +45,11 @@ router.use(authMiddleware);
  *       201: { description: Phiên ôn và câu hỏi }
  */
 const startRequest = { ma_yeu_cau: z.string().uuid().optional() };
-router.post('/start', validate(schemas.start.extend(startRequest)), QuizController.start);
+router.post(
+  '/start',
+  validate(schemas.review.extend({ chu_de_id: identifier, ...startRequest })),
+  QuizController.start
+);
 router.post('/review/start', validate(schemas.review.extend(startRequest)), QuizController.review);
 router.use('/:sessionId', validate(z.object({ sessionId: identifier }), 'params'));
 

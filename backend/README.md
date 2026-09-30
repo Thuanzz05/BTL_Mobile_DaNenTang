@@ -10,7 +10,7 @@ Backend dùng Node.js 24+, Express, TypeScript và MySQL 8.0+.
 - `src/middlewares/`: xác thực, phân quyền, kiểm tra đầu vào, upload và xử lý lỗi.
 - `src/validations/`: schema kiểm tra body/query.
 - `src/config/`: cấu hình database, upload và Swagger.
-- `src/utils/`: response, lỗi nghiệp vụ, JWT, mật khẩu, SRS và lịch học.
+- `src/utils/`: response, lỗi nghiệp vụ, JWT, mật khẩu, Leitner và lịch học.
 - `migrations/`: nâng cấp cấu trúc dữ liệu có theo dõi phiên bản.
 - `tests/`: kiểm thử API với MySQL riêng, bao gồm lỗi và yêu cầu đồng thời.
 
@@ -104,7 +104,9 @@ Trắc nghiệm được server chấm và web admin:
 - Mỗi cặp phiên–từ chỉ có một kết quả. Gửi lại cùng đánh giá trả thành công mà không tăng lần ôn. Gửi đánh giá khác cho từ đã nộp trả 409; muốn đánh giá lại, tạo phiên ôn mới.
 - Kết quả và tiến độ được cập nhật trong một giao dịch. Khi một bước thất bại, toàn bộ thay đổi của lần nộp bị hoàn tác.
 - Hoàn thành yêu cầu đủ kết quả, chỉ ghi một hoạt động kể cả khi client gửi lại.
-- Từ đã nhớ vẫn xuất hiện trong danh sách ôn khi đến hạn. Lịch SRS: đã nhớ 1/3/7/14/30 ngày; chưa chắc 1 ngày; chưa nhớ ôn ngay.
+- Mỗi từ mới bắt đầu ở ngăn 1 của hệ thống Leitner. Hoàn thành từ mà không trả lời sai sẽ đưa thẻ lên một ngăn; có ít nhất một lần sai sẽ đưa thẻ về ngăn 1.
+- Lịch ôn của các ngăn 1–5 lần lượt là 1, 3, 7, 14 và 30 ngày. Ngăn 5 được giữ ở ngăn 5 và tiếp tục ôn mỗi 30 ngày.
+- Trong một phiên trắc nghiệm, từ trả lời sai vẫn được đưa trở lại sớm và cần thêm lượt đúng liên tiếp trước khi hoàn thành. Cơ chế này giúp luyện lại ngay; Leitner quyết định lịch ôn giữa các ngày.
 - Phiên ôn có thể gồm nhiều chủ đề và cho phép 1–50 từ để không bỏ sót các danh sách ôn nhỏ.
 - Số từ cần ôn là tổng số thực tế, không bị cắt theo `limit`.
 - Ngày/tuần/tháng học tính theo UTC+7; tuần bắt đầu thứ Hai. Timestamp được đọc/ghi bằng kết nối UTC.
@@ -126,6 +128,6 @@ Các tình huống chính: đăng ký/đăng nhập, validation, phân quyền, 
 
 ## Công việc còn lại ngoài đợt sửa backend này
 
-- Chuyển luồng trắc nghiệm mobile sang `/api/quiz`, lưu ID phiên để khôi phục. Bản mobile hiện tại đã lưu kết quả SRS cuối phiên và có hồ sơ, lịch sử, yêu thích; giao diện được giữ nguyên.
+- Bản mobile đã dùng `/api/quiz`, lưu ID phiên để khôi phục và đồng bộ ngăn Leitner khi hoàn thành từng từ.
 - Đăng nhập Google cần bổ sung luồng xác minh token Google và cấu hình OAuth.
 - Thành tích/điểm thưởng vẫn là phần mở rộng, chưa có API nghiệp vụ hoàn chỉnh.

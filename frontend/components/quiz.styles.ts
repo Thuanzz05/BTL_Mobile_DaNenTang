@@ -1,5 +1,6 @@
 import { StyleSheet } from "react-native";
 import { palette as c } from "@/constants/palette";
+import { Fonts } from "@/constants/theme";
 
 export const quizStyles = StyleSheet.create({
   page: { flex: 1, backgroundColor: c.background },
@@ -30,7 +31,7 @@ export const quizStyles = StyleSheet.create({
     color: c.muted,
     fontSize: 10,
     fontWeight: "700",
-    letterSpacing: 1.3,
+    letterSpacing: 0.2,
   },
   topic: { color: c.ink, fontSize: 17, fontWeight: "700" },
   counter: {
@@ -55,18 +56,20 @@ export const quizStyles = StyleSheet.create({
     backgroundColor: c.surface,
     borderWidth: 1,
     borderColor: c.line,
-    borderRadius: 26,
+    borderRadius: 10,
     padding: 26,
-    alignItems: "center",
+    alignItems: "flex-start",
+    borderLeftWidth: 5,
+    borderLeftColor: c.green,
     gap: 17,
   },
-  icon: { backgroundColor: c.soft, padding: 13, borderRadius: 18 },
   word: {
     fontSize: 38,
+    fontFamily: Fonts.serif,
     fontWeight: "800",
     letterSpacing: -1,
     color: c.ink,
-    textAlign: "center",
+    textAlign: "left",
   },
   phonetic: { fontSize: 16, color: c.muted },
   title: { fontSize: 25, color: c.ink, fontWeight: "700", textAlign: "center" },
@@ -81,7 +84,7 @@ export const quizStyles = StyleSheet.create({
     backgroundColor: c.surface,
     borderWidth: 1,
     borderColor: c.line,
-    borderRadius: 16,
+    borderRadius: 8,
   },
   letter: {
     height: 34,
@@ -94,7 +97,7 @@ export const quizStyles = StyleSheet.create({
   optionText: { color: c.ink, fontSize: 16, flex: 1, lineHeight: 23 },
   right: { borderColor: c.green, backgroundColor: "#EDF6EB" },
   wrong: { borderColor: c.danger, backgroundColor: "#FCECE8" },
-  feedback: { padding: 18, borderRadius: 18, backgroundColor: c.soft, gap: 10 },
+  feedback: { padding: 18, borderRadius: 10, backgroundColor: c.soft, gap: 10 },
   feedbackWrong: { backgroundColor: "#FAEDE5" },
   feedbackTitle: { fontSize: 17, color: c.green, fontWeight: "700" },
   error: { color: c.danger },
@@ -102,7 +105,7 @@ export const quizStyles = StyleSheet.create({
     minHeight: 50,
     padding: 16,
     backgroundColor: c.green,
-    borderRadius: 14,
+    borderRadius: 8,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",

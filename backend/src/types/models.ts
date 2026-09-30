@@ -64,7 +64,7 @@ export interface PhienHocTap {
   nguoi_dung_id: string;
   chu_de_id: string | null;
   loai_phien: 'hoc_moi' | 'on_tap';
-  phuong_thuc: 'danh_gia' | 'trac_nghiem';
+  phuong_thuc: 'danh_gia' | 'trac_nghiem' | 'flashcard';
   phien_ban_thuat_toan: string | null;
   tong_so_tu: number;
   bat_dau_luc: Date;
@@ -79,7 +79,7 @@ export interface KetQuaHoc {
   id: string;
   phien_hoc_tap_id: string;
   tu_vung_id: string;
-  trang_thai: TrangThaiNhoTu;
+  trang_thai: TrangThaiNhoTu | 'da-xem';
   ngay_tao: Date;
 }
 
@@ -92,6 +92,7 @@ export interface TienDoTuVung {
   da_hoc: boolean;
   yeu_thich: boolean;
   so_lan_on_tap: number;
+  ngan_leitner: number;
   trang_thai_nho: TrangThaiTienDo;
   ngay_on_tap_tiep_theo?: Date;
   lan_on_tap_cuoi?: Date;
