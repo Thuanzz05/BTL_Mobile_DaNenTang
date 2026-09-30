@@ -11,7 +11,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
+import { Feather } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import { palette as c } from "@/constants/palette";
 import { api } from "@/services/api";
@@ -79,13 +79,13 @@ export default function ForgotPasswordScreen() {
             disabled={busy}
             onPress={() => router.back()}
           >
-            <Ionicons name="arrow-back" size={24} color={c.ink} />
+            <Feather name="arrow-left" size={23} color={c.ink} />
           </Pressable>
 
           <View style={s.icon}>
-            <Ionicons name="key-outline" size={31} color="white" />
+            <Feather name="key" size={28} color="white" />
           </View>
-          <Text style={s.eyebrow}>KHÔI PHỤC TÀI KHOẢN</Text>
+          <Text style={s.eyebrow}>Khôi phục tài khoản</Text>
           <Text style={s.title}>Quên mật khẩu?</Text>
           <Text style={s.body}>
             Nhập email đã đăng ký. Chúng tôi sẽ gửi mã xác nhận có hiệu lực
@@ -102,7 +102,7 @@ export default function ForgotPasswordScreen() {
             <View style={s.field}>
               <Text style={s.label}>Email</Text>
               <View style={s.inputRow}>
-                <Ionicons name="mail-outline" size={21} color={c.muted} />
+                <Feather name="mail" size={20} color={c.muted} />
                 <TextInput
                   accessibilityLabel="Email"
                   value={email}
@@ -130,7 +130,7 @@ export default function ForgotPasswordScreen() {
               ) : (
                 <>
                   <Text style={s.buttonText}>Gửi mã xác nhận</Text>
-                  <Ionicons name="arrow-forward" size={20} color="white" />
+                  <Feather name="arrow-right" size={20} color="white" />
                 </>
               )}
             </Pressable>
@@ -164,7 +164,7 @@ const s = StyleSheet.create({
   icon: {
     width: 62,
     height: 62,
-    borderRadius: 20,
+    borderRadius: 10,
     backgroundColor: c.green,
     alignItems: "center",
     justifyContent: "center",
@@ -174,7 +174,7 @@ const s = StyleSheet.create({
     color: c.green,
     fontSize: 10,
     fontWeight: "800",
-    letterSpacing: 1.5,
+    letterSpacing: 0.2,
   },
   title: { color: c.ink, fontSize: 35, fontWeight: "800", letterSpacing: -1 },
   body: { color: c.muted, fontSize: 15, lineHeight: 23 },
@@ -184,7 +184,7 @@ const s = StyleSheet.create({
   inputRow: {
     minHeight: 56,
     paddingHorizontal: 15,
-    borderRadius: 15,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: c.line,
     backgroundColor: c.surface,
@@ -195,7 +195,7 @@ const s = StyleSheet.create({
   input: { flex: 1, color: c.ink, fontSize: 16, paddingVertical: 14 },
   button: {
     minHeight: 56,
-    borderRadius: 16,
+    borderRadius: 8,
     backgroundColor: c.green,
     flexDirection: "row",
     alignItems: "center",

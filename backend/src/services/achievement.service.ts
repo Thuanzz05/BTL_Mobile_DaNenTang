@@ -8,7 +8,7 @@ interface AchievementRow extends RowDataPacket {
   mo_ta: string;
   bieu_tuong: string;
   diem_thuong: number;
-  loai: 'completed_sessions' | 'streak' | 'learned_words' | null;
+  loai: 'completed_sessions' | 'streak' | 'learned_words' | 'mastered_words' | null;
   moc: number | null;
   ngay_mo_khoa: Date | null;
   trang_thai: 'active' | 'inactive';
@@ -22,12 +22,14 @@ export class AchievementService {
           (SELECT COUNT(*) FROM phien_hoc_tap
             WHERE nguoi_dung_id = ? AND trang_thai = 'hoan-thanh') AS completed_sessions,
           (SELECT COUNT(*) FROM tien_do_tu_vung
-            WHERE nguoi_dung_id = ? AND da_hoc = TRUE) AS learned_words`,
-        [userId, userId]
+            WHERE nguoi_dung_id = ? AND da_hoc = TRUE) AS learned_words,
+          (SELECT COUNT(*) FROM tien_do_tu_vung WHERE nguoi_dung_id = ? AND da_hoc = TRUE AND ngan_leitner = 5) AS mastered_words`,
+        [userId, userId, userId]
       ),
       StatisticsService.getLearningStreak(userId),
     ]);
     const values = {
+      mastered_words: Number(counts[0]?.mastered_words || 0),
       completed_sessions: Number(counts[0]?.completed_sessions || 0),
       streak: streak.streak,
       learned_words: Number(counts[0]?.learned_words || 0),
@@ -62,7 +64,7 @@ export class AchievementService {
 
   private static async unlockAndRead(
     userId: string,
-    values: Record<'completed_sessions' | 'learned_words' | 'streak', number>
+    values: Record<'completed_sessions' | 'learned_words' | 'mastered_words' | 'streak', number>
   ) {
     return transaction(async (connection) => {
       // Cùng khóa với thao tác sửa/xóa để không cấp huy hiệu theo điều kiện đã cũ.

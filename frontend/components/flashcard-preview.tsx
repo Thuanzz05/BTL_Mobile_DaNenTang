@@ -60,7 +60,7 @@ export function FlashcardPreview({
                 : {
                     kind: "topic",
                     topicId,
-                    count: Math.min(20, Math.max(5, wordCount)),
+                    count: Math.min(20, Math.max(1, wordCount)),
                     title: topicTitle,
                   },
           );

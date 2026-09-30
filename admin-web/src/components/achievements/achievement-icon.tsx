@@ -3,6 +3,7 @@ import type { AchievementType } from '../../types';
 
 export const achievementTypes: Record<AchievementType, string> = {
   completed_sessions: 'Phiên học hoàn thành',
+  mastered_words: 'Từ đã thuộc (ngăn 5)',
   learned_words: 'Từ vựng đã học',
   streak: 'Ngày học liên tiếp',
 };

@@ -33,6 +33,7 @@ async function verifyUpgrade(connection, database) {
 }
 
 async function verifyBehavior(t, { api, connection, admin }) {
+  const legacySession = require('./legacy-session.cjs')(connection);
   await t.test(
     'word visibility filters new content while preserving learning and favorites',
     async () => {
@@ -74,14 +75,14 @@ async function verifyBehavior(t, { api, connection, admin }) {
       assert.equal(words[0].trang_thai, 'active');
       assert.equal(words[7].trang_thai, 'inactive');
       const token = learner.accessToken;
-      const legacy = await api(
+      const legacy = await legacySession(
         'POST',
         '/api/learning/start',
         { chu_de_id: topic.id, tong_so_tu: 50 },
         token,
         201
       );
-      const quiz = await api(
+      const quiz = await legacySession(
         'POST',
         '/api/quiz/start',
         { chu_de_id: topic.id, tong_so_tu: 50 },
@@ -128,6 +129,7 @@ async function verifyBehavior(t, { api, connection, admin }) {
         token
       );
       assert.equal(publicWords.length, 6);
+      assert.equal(publicWords[0].vi_du[0].cau_tieng_anh, 'Keep this example.');
       const search = await api('GET', '/api/words?search=Visibility&status=inactive');
       assert.equal(search.pagination.total, 6);
       assert.ok(search.items.every((word) => word.trang_thai === 'active'));
@@ -174,10 +176,10 @@ async function verifyBehavior(t, { api, connection, admin }) {
       assert.equal(favorite.count, 1);
       assert.equal((await api('GET', '/api/learning/review', undefined, token)).so_tu_can_on, 0);
       assert.equal((await api('GET', '/api/home/dashboard', undefined, token)).so_tu_can_on, 0);
-      await api('POST', '/api/learning/review/start', {}, token, 404);
+      await legacySession('POST', '/api/learning/review/start', {}, token, 404);
       await api('POST', '/api/quiz/review/start', {}, token, 404);
 
-      const fresh = await api(
+      const fresh = await legacySession(
         'POST',
         '/api/learning/start',
         { chu_de_id: topic.id, tong_so_tu: 50 },
@@ -188,7 +190,7 @@ async function verifyBehavior(t, { api, connection, admin }) {
       assert.ok(
         fresh.danh_sach_tu.every((word) => word.id !== target.id && word.id !== words[7].id)
       );
-      const freshQuiz = await api(
+      const freshQuiz = await legacySession(
         'POST',
         '/api/quiz/start',
         { chu_de_id: topic.id, tong_so_tu: 50 },
@@ -257,7 +259,9 @@ async function verifyBehavior(t, { api, connection, admin }) {
       );
       assert.equal((await api('GET', '/api/favorites', undefined, token))[0].id, target.id);
       assert.equal((await api('GET', '/api/learning/review', undefined, token)).so_tu_can_on, 1);
-      const review = await api('POST', '/api/learning/review/start', {}, token, 201);
+      await api('POST', '/api/quiz/' + quiz.phien_hoc_tap_id + '/stop', {}, token);
+      await api('POST', '/api/quiz/' + freshQuiz.phien_hoc_tap_id + '/stop', {}, token);
+      const review = await legacySession('POST', '/api/learning/review/start', {}, token, 201);
       assert.equal(review.danh_sach_tu[0].id, target.id);
       const reviewQuiz = await api('POST', '/api/quiz/review/start', {}, token, 201);
       assert.equal(reviewQuiz.cau_hoi.tu_vung_id, target.id);
@@ -289,8 +293,20 @@ async function verifyBehavior(t, { api, connection, admin }) {
           admin.accessToken
         );
       }
-      await api('POST', '/api/learning/start', { chu_de_id: topic.id, tong_so_tu: 5 }, token, 409);
-      await api('POST', '/api/quiz/start', { chu_de_id: topic.id, tong_so_tu: 5 }, token, 409);
+      await legacySession(
+        'POST',
+        '/api/learning/start',
+        { chu_de_id: topic.id, tong_so_tu: 5 },
+        token,
+        409
+      );
+      await legacySession(
+        'POST',
+        '/api/quiz/start',
+        { chu_de_id: topic.id, tong_so_tu: 5 },
+        token,
+        409
+      );
       await api('DELETE', '/api/favorites/' + target.id, undefined, token);
       await setStatus('active');
       assert.equal((await api('GET', '/api/favorites', undefined, token)).length, 0);

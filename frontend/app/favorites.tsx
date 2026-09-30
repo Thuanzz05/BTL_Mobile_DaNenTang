@@ -9,10 +9,11 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
+import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { useAuth } from "@/contexts/auth-context";
 import { palette as c } from "@/constants/palette";
+import { Fonts } from "@/constants/theme";
 import type { Word } from "@/services/catalog";
 
 interface FavoriteWord extends Word {
@@ -85,10 +86,10 @@ export default function FavoritesScreen() {
           style={s.back}
           onPress={() => router.back()}
         >
-          <Ionicons name="arrow-back" size={24} color={c.ink} />
+          <Feather name="arrow-left" size={23} color={c.ink} />
         </Pressable>
         <View style={s.headerText}>
-          <Text style={s.eyebrow}>THƯ VIỆN CỦA BẠN</Text>
+          <Text style={s.eyebrow}>Thư viện của bạn</Text>
           <Text style={s.heading}>Từ yêu thích</Text>
         </View>
         <View style={s.count}>
@@ -124,7 +125,7 @@ export default function FavoritesScreen() {
         ) : words.length === 0 && !error ? (
           <View style={s.empty}>
             <View style={s.emptyIcon}>
-              <Ionicons name="heart-outline" size={38} color={c.green} />
+              <Feather name="heart" size={34} color={c.green} />
             </View>
             <Text style={s.emptyTitle}>Chưa có từ yêu thích</Text>
             <Text style={s.body}>
@@ -160,7 +161,7 @@ export default function FavoritesScreen() {
                 {removing === word.id ? (
                   <ActivityIndicator color={c.green} />
                 ) : (
-                  <Ionicons name="heart" size={24} color={c.green} />
+                  <Feather name="heart" size={22} color={c.green} />
                 )}
               </Pressable>
             </View>
@@ -191,14 +192,14 @@ const s = StyleSheet.create({
     color: c.green,
     fontSize: 10,
     fontWeight: "700",
-    letterSpacing: 1.3,
+    letterSpacing: 0.2,
   },
   heading: { color: c.ink, fontSize: 25, fontWeight: "800" },
   count: {
     minWidth: 42,
     height: 42,
     paddingHorizontal: 10,
-    borderRadius: 14,
+    borderRadius: 8,
     backgroundColor: c.soft,
     alignItems: "center",
     justifyContent: "center",
@@ -214,7 +215,7 @@ const s = StyleSheet.create({
   },
   card: {
     padding: 18,
-    borderRadius: 20,
+    borderRadius: 10,
     backgroundColor: c.surface,
     borderWidth: 1,
     borderColor: c.line,
@@ -223,14 +224,19 @@ const s = StyleSheet.create({
     gap: 12,
   },
   wordInfo: { flex: 1, gap: 5 },
-  topic: { color: c.green, fontSize: 10, fontWeight: "700", letterSpacing: 1 },
-  word: { color: c.ink, fontSize: 21, fontWeight: "800" },
+  topic: { color: c.green, fontSize: 10, fontWeight: "700" },
+  word: {
+    color: c.ink,
+    fontFamily: Fonts.serif,
+    fontSize: 22,
+    fontWeight: "700",
+  },
   phonetic: { color: c.muted, fontSize: 13 },
   meaning: { color: c.ink, fontSize: 15 },
   remove: {
     width: 48,
     height: 48,
-    borderRadius: 16,
+    borderRadius: 8,
     backgroundColor: c.soft,
     alignItems: "center",
     justifyContent: "center",
@@ -239,7 +245,7 @@ const s = StyleSheet.create({
   emptyIcon: {
     width: 76,
     height: 76,
-    borderRadius: 25,
+    borderRadius: 10,
     backgroundColor: c.soft,
     alignItems: "center",
     justifyContent: "center",
@@ -249,7 +255,7 @@ const s = StyleSheet.create({
   button: {
     minHeight: 52,
     paddingHorizontal: 22,
-    borderRadius: 15,
+    borderRadius: 8,
     backgroundColor: c.green,
     alignItems: "center",
     justifyContent: "center",
@@ -257,7 +263,7 @@ const s = StyleSheet.create({
   white: { color: "white", fontSize: 15, fontWeight: "700" },
   message: {
     padding: 16,
-    borderRadius: 16,
+    borderRadius: 8,
     backgroundColor: "#FCECE8",
     gap: 8,
   },

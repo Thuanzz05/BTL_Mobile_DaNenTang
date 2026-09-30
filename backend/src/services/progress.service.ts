@@ -13,7 +13,9 @@ export class ProgressService {
       COALESCE(SUM(trang_thai_nho = 'thuoc-long'), 0) AS mastered,
       COALESCE(SUM(trang_thai_nho = 'da-nho'), 0) AS remembered,
       COALESCE(SUM(trang_thai_nho = 'chua-chac'), 0) AS uncertain,
-      COALESCE(SUM(trang_thai_nho = 'chua-nho'), 0) AS forgotten
+      COALESCE(SUM(trang_thai_nho = 'chua-nho'), 0) AS forgotten,
+      COALESCE(SUM(ngan_leitner <= 2), 0) AS new_words,
+      COALESCE(SUM(ngan_leitner BETWEEN 3 AND 4), 0) AS consolidating
       FROM tien_do_tu_vung WHERE nguoi_dung_id = ? AND da_hoc = TRUE`,
       [userId]
     );
@@ -28,7 +30,8 @@ export class ProgressService {
     return query(
       `SELECT c.id AS topic_id, c.ten AS topic_name, COUNT(t.id) AS total_words,
       COUNT(CASE WHEN p.da_hoc = TRUE THEN 1 END) AS learned_words,
-      COUNT(CASE WHEN p.trang_thai_nho = 'thuoc-long' THEN 1 END) AS mastered_words
+      COUNT(CASE WHEN p.da_hoc = TRUE AND p.ngan_leitner = 5 THEN 1 END) AS mastered_words,
+      COUNT(CASE WHEN p.da_hoc = TRUE AND p.ngay_on_tap_tiep_theo <= NOW() THEN 1 END) AS due_words
       FROM chu_de c LEFT JOIN tu_vung t ON c.id = t.chu_de_id AND t.trang_thai = 'active'
       LEFT JOIN tien_do_tu_vung p ON t.id = p.tu_vung_id AND p.nguoi_dung_id = ?
       WHERE c.trang_thai = 'active' ${topicId ? 'AND c.id = ?' : ''}
@@ -42,7 +45,7 @@ export class ProgressService {
    */
   static async getSummary(userId: string) {
     const starts = learningPeriodStarts();
-    const [overall, byTopic, counts, streak] = await Promise.all([
+    const [overall, byTopic, counts, streak, activity, due] = await Promise.all([
       this.getUserProgress(userId),
       this.getProgressByTopic(userId),
       query<any[]>(
@@ -55,15 +58,32 @@ export class ProgressService {
         [starts.today, starts.week, starts.month, userId]
       ),
       StatisticsService.getLearningStreak(userId),
+      query<any[]>(
+        "SELECT DATE_FORMAT(DATE_ADD(k.ngay_tao, INTERVAL 7 HOUR), '%Y-%m-%d') AS ngay, COUNT(DISTINCT k.tu_vung_id) AS so_tu FROM ket_qua_hoc k JOIN phien_hoc_tap p ON p.id = k.phien_hoc_tap_id WHERE p.nguoi_dung_id = ? AND k.ngay_tao >= ? AND k.ngay_tao <= NOW() GROUP BY ngay ORDER BY ngay",
+        [userId, new Date(starts.today.getTime() - 29 * 86400000)]
+      ),
+      LearningService.getReviewWords(userId, 1),
     ]);
     const remembered = overall.mastered + overall.remembered;
 
     return {
+      moi_hoc: overall.new_words,
+      dang_cung_co: overall.consolidating,
+      da_thuoc: overall.mastered,
+      den_han: due.so_tu_can_on,
+      hoat_dong_30_ngay: Array.from({ length: 30 }, (_, i) => {
+        const ngay = new Date(starts.today.getTime() + (i - 29) * 86400000 + 7 * 3600000)
+          .toISOString()
+          .slice(0, 10);
+        return { ngay, so_tu: Number(activity.find((row) => row.ngay === ngay)?.so_tu || 0) };
+      }),
       tong_so_tu_da_hoc: overall.total_learned,
       da_nho: remembered,
       chua_chac: overall.uncertain,
       chua_nho: overall.forgotten,
-      ty_le: overall.total_learned ? Math.round((100 * remembered) / overall.total_learned) : 0,
+      ty_le: overall.total_learned
+        ? Math.round((100 * overall.mastered) / overall.total_learned)
+        : 0,
       hom_nay: Number(counts[0].hom_nay),
       tuan_nay: Number(counts[0].tuan_nay),
       thang_nay: Number(counts[0].thang_nay),

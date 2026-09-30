@@ -27,7 +27,6 @@ function WordForm({
     loai_tu: word?.loai_tu || 'danh-tu',
     trang_thai: word?.trang_thai || 'active',
     thu_tu_hien_thi: word?.thu_tu_hien_thi || 0,
-    url_hinh_anh: word?.url_hinh_anh || '',
     url_am_thanh: word?.url_am_thanh || '',
   });
   const [examples, setExamples] = useState<Example[]>(word?.vi_du || []);
@@ -54,7 +53,6 @@ function WordForm({
           tu_tieng_anh: values.tu_tieng_anh.trim(),
           nghia_tieng_viet: values.nghia_tieng_viet.trim(),
           phien_am: values.phien_am.trim() || null,
-          url_hinh_anh: values.url_hinh_anh.trim() || null,
           url_am_thanh: values.url_am_thanh.trim() || null,
           vi_du: examples.map((example, index) => ({
             cau_tieng_anh: example.cau_tieng_anh.trim(),
@@ -242,17 +240,9 @@ function WordForm({
           <div className="panel-heading">
             <div>
               <p className="eyebrow">03 · HỌC LIỆU</p>
-              <h2>Ảnh & âm thanh</h2>
+              <h2>Âm thanh phát âm</h2>
             </div>
           </div>
-          <UploadField
-            label="Ảnh minh họa"
-            kind="image"
-            value={values.url_hinh_anh}
-            onChange={(value) => update('url_hinh_anh', value)}
-            onBusy={uploadBusy}
-          />
-          <hr />
           <UploadField
             label="Âm thanh phát âm"
             kind="audio"

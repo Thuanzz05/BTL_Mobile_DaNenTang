@@ -4,10 +4,10 @@ export type LeitnerBox = 1 | 2 | 3 | 4 | 5;
 
 export const LEITNER_INTERVAL_DAYS: Record<LeitnerBox, number> = {
   1: 1,
-  2: 3,
-  3: 7,
-  4: 14,
-  5: 30,
+  2: 2,
+  3: 4,
+  4: 7,
+  5: 14,
 };
 
 export function normalizeLeitnerBox(value: unknown): LeitnerBox {

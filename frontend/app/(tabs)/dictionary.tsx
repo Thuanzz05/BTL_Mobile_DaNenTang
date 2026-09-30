@@ -9,9 +9,10 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
+import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { palette as c } from "@/constants/palette";
+import { Fonts } from "@/constants/theme";
 import { useAuth } from "@/contexts/auth-context";
 import { api } from "@/services/api";
 import type { WordSearchResult } from "@/services/catalog";
@@ -105,16 +106,14 @@ export default function DictionaryScreen() {
       >
         <View style={s.header}>
           <View>
-            <Text style={s.eyebrow}>KHO TỪ VỰNG</Text>
+            <Text style={s.eyebrow}>Kho từ vựng</Text>
             <Text style={s.heading}>Tra từ</Text>
           </View>
-          <View style={s.headerIcon}>
-            <Ionicons name="book-outline" size={25} color={c.green} />
-          </View>
+          <Text style={s.headerMark}>A—Z</Text>
         </View>
 
         <View style={s.searchBox}>
-          <Ionicons name="search" size={21} color={c.muted} />
+          <Feather name="search" size={20} color={c.muted} />
           <TextInput
             accessibilityLabel="Tìm từ vựng"
             value={search}
@@ -133,7 +132,7 @@ export default function DictionaryScreen() {
               onPress={() => updateSearch("")}
               style={s.clear}
             >
-              <Ionicons name="close-circle" size={21} color={c.muted} />
+              <Feather name="x-circle" size={20} color={c.muted} />
             </Pressable>
           )}
         </View>
@@ -147,7 +146,7 @@ export default function DictionaryScreen() {
 
         {!!error && (
           <View style={s.errorBox}>
-            <Ionicons name="cloud-offline-outline" size={24} color={c.danger} />
+            <Feather name="wifi-off" size={23} color={c.danger} />
             <Text accessibilityRole="alert" style={s.errorText}>
               {error}
             </Text>
@@ -162,7 +161,7 @@ export default function DictionaryScreen() {
         ) : !words.length && !error ? (
           <View style={s.center}>
             <View style={s.emptyIcon}>
-              <Ionicons name="search-outline" size={37} color={c.green} />
+              <Feather name="search" size={34} color={c.green} />
             </View>
             <Text style={s.emptyTitle}>Không tìm thấy từ</Text>
             <Text style={s.body}>
@@ -200,9 +199,9 @@ export default function DictionaryScreen() {
                 )}
               </View>
               {Boolean(word.da_yeu_thich) && (
-                <Ionicons name="heart" size={18} color={c.green} />
+                <Feather name="heart" size={17} color={c.green} />
               )}
-              <Ionicons name="chevron-forward" size={20} color={c.muted} />
+              <Feather name="chevron-right" size={19} color={c.muted} />
             </Pressable>
           ))
         )}
@@ -219,7 +218,7 @@ export default function DictionaryScreen() {
             ) : (
               <>
                 <Text style={s.moreText}>Xem thêm từ</Text>
-                <Ionicons name="chevron-down" size={19} color={c.green} />
+                <Feather name="chevron-down" size={18} color={c.green} />
               </>
             )}
           </Pressable>
@@ -249,21 +248,14 @@ const s = StyleSheet.create({
     color: c.green,
     fontSize: 10,
     fontWeight: "800",
-    letterSpacing: 1.5,
+    letterSpacing: 0.2,
   },
   heading: { color: c.ink, fontSize: 30, fontWeight: "800", marginTop: 4 },
-  headerIcon: {
-    width: 49,
-    height: 49,
-    borderRadius: 17,
-    backgroundColor: c.soft,
-    alignItems: "center",
-    justifyContent: "center",
-  },
+  headerMark: { color: c.rust, fontSize: 13, fontWeight: "800" },
   searchBox: {
     minHeight: 56,
     paddingHorizontal: 16,
-    borderRadius: 18,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: c.line,
     backgroundColor: c.surface,
@@ -288,7 +280,7 @@ const s = StyleSheet.create({
   count: { color: c.muted, fontSize: 12, fontWeight: "600" },
   card: {
     padding: 15,
-    borderRadius: 19,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: c.line,
     backgroundColor: c.surface,
@@ -300,7 +292,7 @@ const s = StyleSheet.create({
   wordIcon: {
     width: 48,
     height: 48,
-    borderRadius: 16,
+    borderRadius: 8,
     backgroundColor: c.soft,
     alignItems: "center",
     justifyContent: "center",
@@ -313,20 +305,24 @@ const s = StyleSheet.create({
     flexWrap: "wrap",
     gap: 7,
   },
-  word: { color: c.ink, fontSize: 18, fontWeight: "800" },
+  word: {
+    color: c.ink,
+    fontFamily: Fonts.serif,
+    fontSize: 20,
+    fontWeight: "700",
+  },
   phonetic: { color: c.muted, fontSize: 12 },
   meaning: { color: c.ink, fontSize: 14, lineHeight: 19 },
   topic: {
     color: c.green,
     fontSize: 10,
     fontWeight: "700",
-    textTransform: "uppercase",
   },
   center: { paddingVertical: 55, alignItems: "center", gap: 13 },
   emptyIcon: {
     width: 72,
     height: 72,
-    borderRadius: 24,
+    borderRadius: 10,
     backgroundColor: c.soft,
     alignItems: "center",
     justifyContent: "center",
@@ -335,7 +331,7 @@ const s = StyleSheet.create({
   body: { color: c.muted, fontSize: 14, lineHeight: 21, textAlign: "center" },
   errorBox: {
     padding: 15,
-    borderRadius: 16,
+    borderRadius: 8,
     backgroundColor: "#FCECE8",
     flexDirection: "row",
     alignItems: "center",
@@ -344,7 +340,7 @@ const s = StyleSheet.create({
   errorText: { flex: 1, color: c.danger, fontSize: 14, lineHeight: 20 },
   moreButton: {
     minHeight: 50,
-    borderRadius: 16,
+    borderRadius: 8,
     backgroundColor: c.soft,
     flexDirection: "row",
     alignItems: "center",

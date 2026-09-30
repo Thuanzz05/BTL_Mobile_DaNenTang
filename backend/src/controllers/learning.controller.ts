@@ -1,8 +1,48 @@
 import { NextFunction, Request, Response } from 'express';
+import { AchievementService } from '../services/achievement.service';
 import { LearningService } from '../services/learning.service';
 import { ResponseUtil } from '../utils/response.util';
 
 export class LearningController {
+  static async startFlashcards(req: Request, res: Response, next: NextFunction) {
+    try {
+      return ResponseUtil.success(
+        res,
+        await LearningService.startFlashcards(req.user!.id, req.body.chu_de_id),
+        'Bắt đầu học flashcard',
+        201
+      );
+    } catch (error) {
+      return next(error);
+    }
+  }
+  static async viewFlashcard(req: Request, res: Response, next: NextFunction) {
+    try {
+      return ResponseUtil.success(
+        res,
+        await LearningService.viewFlashcard(
+          req.user!.id,
+          req.body.phien_hoc_tap_id,
+          req.body.tu_vung_id
+        )
+      );
+    } catch (error) {
+      return next(error);
+    }
+  }
+  static async completeFlashcards(req: Request, res: Response, next: NextFunction) {
+    try {
+      const data = await LearningService.completeFlashcards(
+        req.user!.id,
+        req.body.phien_hoc_tap_id
+      );
+      await AchievementService.getForUser(req.user!.id);
+      return ResponseUtil.success(res, data, 'Đã lưu phiên học flashcard');
+    } catch (error) {
+      return next(error);
+    }
+  }
+
   /**
    * Bắt đầu phiên học mới
    * POST /api/learning/start

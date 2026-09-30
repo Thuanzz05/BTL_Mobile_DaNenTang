@@ -2,7 +2,7 @@ import { PoolConnection } from 'mysql2/promise';
 import { transaction } from '../config/database';
 import { PhienHocTap } from '../types/models';
 import { AppError } from '../utils/app-error';
-import { quizState, shuffled } from '../utils/quiz.util';
+import { QUIZ_VERSION, quizState, shuffled } from '../utils/quiz.util';
 import { UuidUtil } from '../utils/uuid.util';
 import { LearningService, lockUser, sessionForUser } from './learning.service';
 
@@ -72,7 +72,8 @@ export class QuizService {
     const answers = questions.filter((question) => question.dung !== null);
     const state = quizState(
       members.map((member) => member.tu_vung_id),
-      answers as (Question & { dung: number })[]
+      answers as (Question & { dung: number })[],
+      session.phien_ban_thuat_toan || 'leitner-adaptive-v1'
     );
     let question = questions.find((item) => item.dung === null);
 
@@ -123,6 +124,8 @@ export class QuizService {
       trang_thai: session.trang_thai,
       tong_so_tu: members.length,
       so_tu_hoan_thanh: state.items.filter((item) => item.done).length,
+      so_tu_dung_lan_dau: state.items.filter((item) => item.done && item.mistakes === 0).length,
+      so_tu_can_luyen_lai: state.items.filter((item) => item.mistakes > 0).length,
       so_luot_tra_loi: state.turn,
       so_luot_dung: state.correct,
       ty_le_dung: state.turn ? Math.round((state.correct * 100) / state.turn) : null,
@@ -201,10 +204,16 @@ export class QuizService {
 
       const state = quizState(
         members.map((member) => member.tu_vung_id),
-        answers
+        answers,
+        session.phien_ban_thuat_toan || 'leitner-adaptive-v1'
       );
       const word = state.items.find((item) => item.id === question.tu_vung_id)!;
 
+      // Sai lần đầu hạ ngăn ngay cả khi người học thoát trước khi trả lời lại.
+      const isQueue = session.phien_ban_thuat_toan === QUIZ_VERSION;
+      if (isQueue && !correct && word.mistakes === 1) {
+        await LearningService.updateWordProgress(connection, userId, word.id, 'chua-nho');
+      }
       // Mỗi từ đạt yêu cầu chỉ sinh một kết quả SRS; mọi lượt sai vẫn còn trong bảng câu hỏi.
       if (word.done) {
         const status =
@@ -213,7 +222,9 @@ export class QuizService {
           'INSERT INTO ket_qua_hoc (id, phien_hoc_tap_id, tu_vung_id, trang_thai) VALUES (?, ?, ?, ?)',
           [UuidUtil.generate(), sessionId, word.id, status]
         );
-        await LearningService.updateWordProgress(connection, userId, word.id, status);
+        if (!isQueue || word.mistakes === 0) {
+          await LearningService.updateWordProgress(connection, userId, word.id, status);
+        }
       }
 
       if (!state.next) {

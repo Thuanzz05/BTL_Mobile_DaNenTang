@@ -9,10 +9,11 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
+import { Feather } from "@expo/vector-icons";
 import { Link } from "expo-router";
 import { FlashcardPreview } from "@/components/flashcard-preview";
 import { palette as c } from "@/constants/palette";
+import { Fonts } from "@/constants/theme";
 import { useAuth } from "@/contexts/auth-context";
 import type { Word } from "@/services/catalog";
 
@@ -100,12 +101,10 @@ export default function ReviewScreen() {
       >
         <View style={s.header}>
           <View>
-            <Text style={s.eyebrow}>NHỚ LÂU HƠN MỖI NGÀY</Text>
+            <Text style={s.eyebrow}>Nhớ lâu hơn mỗi ngày</Text>
             <Text style={s.heading}>Ôn tập hôm nay</Text>
           </View>
-          <View style={s.headerIcon}>
-            <Ionicons name="refresh" size={24} color={c.green} />
-          </View>
+          <Text style={s.headerMark}>HÔM NAY</Text>
         </View>
 
         {!ready ? (
@@ -113,7 +112,7 @@ export default function ReviewScreen() {
         ) : !user ? (
           <View style={s.guestCard}>
             <View style={s.guestIcon}>
-              <Ionicons name="calendar-outline" size={34} color={c.green} />
+              <Feather name="calendar" size={31} color={c.green} />
             </View>
             <Text style={s.cardTitle}>Lịch ôn tập dành riêng cho bạn</Text>
             <Text style={s.body}>
@@ -123,7 +122,7 @@ export default function ReviewScreen() {
             <Link href="/login" asChild>
               <Pressable accessibilityRole="button" style={s.primaryButton}>
                 <Text style={s.primaryText}>Đăng nhập để ôn tập</Text>
-                <Ionicons name="arrow-forward" size={19} color="white" />
+                <Feather name="arrow-right" size={19} color="white" />
               </Pressable>
             </Link>
           </View>
@@ -132,13 +131,11 @@ export default function ReviewScreen() {
             <View style={s.hero}>
               <View style={s.heroTop}>
                 <View style={s.heroText}>
-                  <Text style={s.heroLabel}>ĐANG CHỜ BẠN</Text>
+                  <Text style={s.heroLabel}>Đang chờ bạn</Text>
                   <Text style={s.heroNumber}>{due}</Text>
                   <Text style={s.heroUnit}>từ cần ôn</Text>
                 </View>
-                <View style={s.heroIcon}>
-                  <Ionicons name="layers-outline" size={36} color="white" />
-                </View>
+                <Text style={s.heroMark}>LEITNER</Text>
               </View>
               <Text style={s.heroBody}>
                 Leitner ưu tiên từ đến hạn. Trả lời đúng để lên ngăn tiếp theo;
@@ -155,10 +152,10 @@ export default function ReviewScreen() {
                     ? `Ôn ngay ${Math.min(20, due)} từ`
                     : "Đã ôn xong hôm nay"}
                 </Text>
-                <Ionicons
-                  name={due > 0 ? "arrow-forward" : "checkmark"}
+                <Feather
+                  name={due > 0 ? "arrow-right" : "check"}
                   size={20}
-                  color={c.ink}
+                  color="white"
                 />
               </Pressable>
             </View>
@@ -206,11 +203,7 @@ export default function ReviewScreen() {
               ) : due === 0 && !error ? (
                 <View style={s.empty}>
                   <View style={s.emptyIcon}>
-                    <Ionicons
-                      name="checkmark-circle-outline"
-                      size={42}
-                      color={c.green}
-                    />
+                    <Feather name="check-circle" size={42} color={c.green} />
                   </View>
                   <Text style={s.cardTitle}>Bạn đã hoàn thành hôm nay</Text>
                   <Text style={s.body}>
@@ -221,9 +214,6 @@ export default function ReviewScreen() {
               ) : (
                 review?.danh_sach_tu.map((word) => (
                   <View key={word.id} style={s.wordCard}>
-                    <View style={s.wordIndex}>
-                      <Ionicons name="leaf-outline" size={20} color={c.green} />
-                    </View>
                     <View style={s.wordInfo}>
                       <Text style={s.word}>{word.tu_tieng_anh}</Text>
                       {!!word.phien_am && (
@@ -276,22 +266,15 @@ const s = StyleSheet.create({
     color: c.green,
     fontSize: 10,
     fontWeight: "800",
-    letterSpacing: 1.5,
+    letterSpacing: 0.2,
     marginBottom: 5,
   },
   heading: { color: c.ink, fontSize: 30, fontWeight: "800" },
-  headerIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 16,
-    backgroundColor: c.soft,
-    alignItems: "center",
-    justifyContent: "center",
-  },
+  headerMark: { color: c.rust, fontSize: 10, fontWeight: "800" },
   guestCard: {
     marginTop: 36,
     padding: 26,
-    borderRadius: 24,
+    borderRadius: 10,
     backgroundColor: c.surface,
     borderWidth: 1,
     borderColor: c.line,
@@ -301,7 +284,7 @@ const s = StyleSheet.create({
   guestIcon: {
     width: 76,
     height: 76,
-    borderRadius: 24,
+    borderRadius: 10,
     backgroundColor: c.soft,
     alignItems: "center",
     justifyContent: "center",
@@ -316,7 +299,7 @@ const s = StyleSheet.create({
   primaryButton: {
     width: "100%",
     minHeight: 52,
-    borderRadius: 15,
+    borderRadius: 8,
     backgroundColor: c.green,
     flexDirection: "row",
     alignItems: "center",
@@ -324,7 +307,16 @@ const s = StyleSheet.create({
     gap: 9,
   },
   primaryText: { color: "white", fontSize: 15, fontWeight: "700" },
-  hero: { padding: 24, borderRadius: 26, backgroundColor: c.green, gap: 17 },
+  hero: {
+    padding: 22,
+    borderRadius: 10,
+    backgroundColor: c.surface,
+    borderWidth: 1,
+    borderColor: c.line,
+    borderLeftWidth: 5,
+    borderLeftColor: c.rust,
+    gap: 17,
+  },
   heroTop: {
     flexDirection: "row",
     alignItems: "center",
@@ -334,36 +326,29 @@ const s = StyleSheet.create({
   heroLabel: {
     position: "absolute",
     top: -15,
-    color: "#CFE5D8",
+    color: c.rust,
     fontSize: 9,
     fontWeight: "800",
-    letterSpacing: 1.3,
+    letterSpacing: 0.2,
   },
-  heroNumber: { color: "white", fontSize: 48, fontWeight: "800" },
-  heroUnit: { color: "#E0EEE5", fontSize: 16, fontWeight: "600" },
-  heroIcon: {
-    width: 64,
-    height: 64,
-    borderRadius: 21,
-    backgroundColor: "#397B62",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  heroBody: { color: "#DFEBE2", fontSize: 14, lineHeight: 22 },
+  heroNumber: { color: c.ink, fontSize: 48, fontWeight: "800" },
+  heroUnit: { color: c.muted, fontSize: 16, fontWeight: "600" },
+  heroMark: { color: c.rust, fontSize: 11, fontWeight: "800" },
+  heroBody: { color: c.muted, fontSize: 14, lineHeight: 22 },
   reviewButton: {
     minHeight: 54,
-    borderRadius: 16,
+    borderRadius: 8,
     paddingHorizontal: 18,
-    backgroundColor: "#DCECBA",
+    backgroundColor: c.green,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
-  reviewText: { color: c.ink, fontSize: 16, fontWeight: "700" },
+  reviewText: { color: "white", fontSize: 16, fontWeight: "700" },
   disabled: { opacity: 0.72 },
   stats: {
     paddingVertical: 18,
-    borderRadius: 20,
+    borderRadius: 10,
     backgroundColor: c.surface,
     borderWidth: 1,
     borderColor: c.line,
@@ -376,7 +361,7 @@ const s = StyleSheet.create({
   divider: { width: 1, height: 34, backgroundColor: c.line },
   errorBox: {
     padding: 17,
-    borderRadius: 17,
+    borderRadius: 10,
     backgroundColor: "#FCECE8",
     gap: 8,
   },
@@ -392,7 +377,7 @@ const s = StyleSheet.create({
   sectionCount: { color: c.muted, fontSize: 12 },
   empty: {
     padding: 28,
-    borderRadius: 22,
+    borderRadius: 10,
     backgroundColor: c.surface,
     borderWidth: 1,
     borderColor: c.line,
@@ -402,14 +387,14 @@ const s = StyleSheet.create({
   emptyIcon: {
     width: 70,
     height: 70,
-    borderRadius: 23,
+    borderRadius: 10,
     backgroundColor: c.soft,
     alignItems: "center",
     justifyContent: "center",
   },
   wordCard: {
     padding: 16,
-    borderRadius: 19,
+    borderRadius: 10,
     backgroundColor: c.surface,
     borderWidth: 1,
     borderColor: c.line,
@@ -417,16 +402,13 @@ const s = StyleSheet.create({
     alignItems: "center",
     gap: 12,
   },
-  wordIndex: {
-    width: 42,
-    height: 42,
-    borderRadius: 14,
-    backgroundColor: c.soft,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   wordInfo: { flex: 1, gap: 3 },
-  word: { color: c.ink, fontSize: 18, fontWeight: "800" },
+  word: {
+    color: c.ink,
+    fontFamily: Fonts.serif,
+    fontSize: 20,
+    fontWeight: "700",
+  },
   phonetic: { color: c.muted, fontSize: 12 },
   meaning: { color: c.ink, fontSize: 14 },
   reviewBadge: {
