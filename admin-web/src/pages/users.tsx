@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
-import { Eye, LockKeyhole, Search, UnlockKeyhole } from 'lucide-react';
+import { Eye, LockKeyhole, Search, Trash2, UnlockKeyhole } from 'lucide-react';
 import { api, jsonBody } from '../services/api';
 import type { Learner, Page } from '../types';
 import { useQuery } from '../hooks/use-query';
@@ -22,6 +22,7 @@ export function UsersPage() {
   const [page, setPage] = useState(1);
   const [selected, setSelected] = useState<Learner | null>(null);
   const [changing, setChanging] = useState<{ user: Learner; status: string } | null>(null);
+  const [deleting, setDeleting] = useState<Learner | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
@@ -50,6 +51,23 @@ export function UsersPage() {
       );
       setChanging(null);
       setNotice('Đã cập nhật trạng thái người dùng.');
+      query.reload();
+    } catch (failure) {
+      setError((failure as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function deleteUser() {
+    if (!deleting || busy) return;
+    setBusy(true);
+    setError('');
+    try {
+      await api('/admin/users/' + deleting.id, { method: 'DELETE' });
+      setDeleting(null);
+      setSelected(null);
+      setNotice('Đã xóa người học.');
       query.reload();
     } catch (failure) {
       setError((failure as Error).message);
@@ -132,6 +150,16 @@ export function UsersPage() {
                         <td>
                           <div className="row-actions">
                             <button
+                              className="icon-button delete"
+                              aria-label={'Xóa ' + user.ho_ten}
+                              onClick={() => {
+                                setError('');
+                                setDeleting(user);
+                              }}
+                            >
+                              <Trash2 size={17} />
+                            </button>
+                            <button
                               className="icon-button"
                               aria-label={'Xem ' + user.ho_ten}
                               onClick={() => setSelected(user)}
@@ -203,6 +231,17 @@ export function UsersPage() {
             </button>
           </div>
         </Modal>
+      )}
+      {deleting && (
+        <Confirm
+          title={'Xóa ' + deleting.ho_ten + '?'}
+          description="Xóa vĩnh viễn tài khoản, phiên đăng nhập, lịch sử học, tiến độ, yêu thích và huy hiệu của người học này. Không thể hoàn tác."
+          action="Xóa người học"
+          busy={busy}
+          error={error}
+          onClose={() => setDeleting(null)}
+          onConfirm={() => void deleteUser()}
+        />
       )}
       {changing && (
         <Confirm

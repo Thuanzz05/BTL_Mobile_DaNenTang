@@ -51,7 +51,7 @@ export interface Page<T> {
   items: T[];
   pagination: { page: number; limit: number; total: number; totalPages: number };
 }
-export type AchievementType = 'completed_sessions' | 'learned_words' | 'streak';
+export type AchievementType = 'completed_sessions' | 'learned_words' | 'mastered_words' | 'streak';
 export interface Achievement {
   id: string;
   tieu_de: string;

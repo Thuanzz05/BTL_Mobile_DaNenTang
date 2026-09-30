@@ -15,7 +15,9 @@ export class WordService {
       WHERE t.chu_de_id = ? AND t.trang_thai = 'active' ORDER BY t.thu_tu_hien_thi, t.id`,
       [userId || null, topicId]
     );
-    if (!words.length) return [];
+    if (!words.length) {
+      return [];
+    }
 
     const examples = await query<any[]>(
       `SELECT id, tu_vung_id, cau_tieng_anh, cau_tieng_viet
@@ -47,7 +49,13 @@ export class WordService {
       [id]
     );
 
-    return { ...words[0], vi_du: examples };
+    const progress = userId
+      ? await query<any[]>(
+          'SELECT da_hoc, ngan_leitner, ngay_on_tap_tiep_theo FROM tien_do_tu_vung WHERE nguoi_dung_id = ? AND tu_vung_id = ?',
+          [userId, id]
+        )
+      : [];
+    return { ...words[0], vi_du: examples, tien_do: progress[0] || null };
   }
 
   /**

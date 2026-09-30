@@ -12,6 +12,8 @@ export interface QuizSession {
   tong_so_tu: number;
   so_tu_hoan_thanh: number;
   so_luot_tra_loi: number;
+  so_tu_dung_lan_dau?: number;
+  so_tu_can_luyen_lai?: number;
   so_luot_dung: number;
   ty_le_dung: number | null;
   cau_hoi: QuizQuestion | null;

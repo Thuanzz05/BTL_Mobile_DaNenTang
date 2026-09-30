@@ -214,6 +214,12 @@ export function ServerQuiz({
               {session.so_luot_dung}/{session.so_luot_tra_loi} lượt đúng
             </Text>
             <Text style={s.body}>Tỷ lệ đúng {session.ty_le_dung ?? 0}%</Text>
+            {session.so_tu_dung_lan_dau !== undefined && (
+              <Text style={s.body}>
+                {session.so_tu_dung_lan_dau} từ đúng ngay ·{" "}
+                {session.so_tu_can_luyen_lai} từ cần luyện lại
+              </Text>
+            )}
           </View>
           <Pressable
             accessibilityRole="button"

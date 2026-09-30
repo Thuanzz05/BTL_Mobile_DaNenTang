@@ -16,7 +16,7 @@ test('Leitner, business calendar and JWT validation', () => {
   assert.equal(nextLeitnerBox(1, true), 2);
   assert.equal(nextLeitnerBox(5, true), 5);
   assert.equal(nextLeitnerBox(4, false), 1);
-  for (const [index, days] of [1, 3, 7, 14, 30].entries()) {
+  for (const [index, days] of [1, 2, 4, 7, 14].entries()) {
     assert.equal((nextReviewDate(index + 1, now) - now) / 86400000, days);
   }
   assert.deepEqual([1, 2, 3, 4, 5].map(leitnerStatus), [
@@ -96,6 +96,7 @@ test('Backend HTTP and real MySQL regression tests', { timeout: 120000 }, async 
       assert.equal(response.status, expected, method + ' ' + route + ': ' + JSON.stringify(json));
       return json.data;
     }
+    const legacySession = require('./legacy-session.cjs')(connection);
     const register = (email) =>
       api(
         'POST',
@@ -332,21 +333,21 @@ test('Backend HTTP and real MySQL regression tests', { timeout: 120000 }, async 
     );
 
     await t.test('session membership, incomplete completion and concurrent retries', async () => {
-      await api(
+      await legacySession(
         'POST',
         '/api/learning/start',
         { chu_de_id: topic.id, tong_so_tu: 'bad' },
         learner.accessToken,
         400
       );
-      await api(
+      await legacySession(
         'POST',
         '/api/learning/start',
         { chu_de_id: hidden.id, tong_so_tu: 5 },
         learner.accessToken,
         404
       );
-      session = await api(
+      session = await legacySession(
         'POST',
         '/api/learning/start',
         { chu_de_id: topic.id, tong_so_tu: 5 },
@@ -422,7 +423,7 @@ test('Backend HTTP and real MySQL regression tests', { timeout: 120000 }, async 
       const progressSummary = await api('GET', '/api/progress', undefined, learner.accessToken);
       assert.equal(progressSummary.tong_so_tu_da_hoc, 5);
       assert.equal(progressSummary.hom_nay, 5);
-      assert.equal(progressSummary.ty_le, 80);
+      assert.equal(progressSummary.ty_le, 0);
       assert.equal(progressSummary.chuoi_ngay_hoc, 1);
       await connection.execute(
         `INSERT INTO thanh_tich
@@ -471,7 +472,7 @@ test('Backend HTTP and real MySQL regression tests', { timeout: 120000 }, async 
         (await api('GET', '/api/home/dashboard', undefined, learner.accessToken)).so_tu_can_on,
         1
       );
-      const reviewSession = await api(
+      const reviewSession = await legacySession(
         'POST',
         '/api/learning/review/start',
         { tong_so_tu: 2 },
@@ -512,11 +513,11 @@ test('Backend HTTP and real MySQL regression tests', { timeout: 120000 }, async 
         other.accessToken,
         404
       );
-      await api('POST', '/api/learning/review/start', {}, other.accessToken, 404);
+      await legacySession('POST', '/api/learning/review/start', {}, other.accessToken, 404);
     });
 
     await t.test('result and progress roll back together when the DB write fails', async () => {
-      const failingSession = await api(
+      const failingSession = await legacySession(
         'POST',
         '/api/learning/start',
         { chu_de_id: topic.id, tong_so_tu: 5 },
@@ -699,6 +700,8 @@ test('Backend HTTP and real MySQL regression tests', { timeout: 120000 }, async 
         assert.equal(membership.tu_vung_id, words[0].id);
       }
     );
+
+    await require('./report-business-integration.cjs')(t, { api, connection, admin });
 
     await t.test('Swagger documents newly connected routes and actual auth fields', async () => {
       const response = await fetch(base + '/api-docs.json');

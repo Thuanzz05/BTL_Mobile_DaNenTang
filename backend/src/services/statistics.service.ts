@@ -51,7 +51,7 @@ export class StatisticsService {
 
   static async getLearningStreak(userId: string) {
     const sql = `
-      SELECT DATE_FORMAT(DATE_ADD(bat_dau_luc, INTERVAL 7 HOUR), '%Y-%m-%d') AS date
+      SELECT DATE_FORMAT(DATE_ADD(COALESCE(ket_thuc_luc, bat_dau_luc), INTERVAL 7 HOUR), '%Y-%m-%d') AS date
       FROM phien_hoc_tap
       WHERE nguoi_dung_id = ? AND trang_thai = 'hoan-thanh'
       GROUP BY date

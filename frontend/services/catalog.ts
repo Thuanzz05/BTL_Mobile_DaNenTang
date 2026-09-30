@@ -24,6 +24,11 @@ export interface Word {
   vi_du?: WordExample[];
 }
 export interface WordDetail extends Word {
+  tien_do?: {
+    da_hoc: boolean;
+    ngan_leitner: number;
+    ngay_on_tap_tiep_theo: string | null;
+  } | null;
   vi_du: WordExample[];
 }
 export interface WordSearchResult {

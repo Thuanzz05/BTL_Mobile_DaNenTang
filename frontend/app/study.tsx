@@ -1,10 +1,9 @@
-import { FlashcardPreview } from "@/components/flashcard-preview";
 import { palette as c } from "@/constants/palette";
 import { useAuth } from "@/contexts/auth-context";
-import { getWords, Topic, Word } from "@/services/catalog";
+import { getWords, Word } from "@/services/catalog";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
-import * as Speech from "expo-speech";
+import { usePronunciation } from "@/hooks/use-pronunciation";
 import { useEffect, useState } from "react";
 import { useReducedMotion } from "react-native-reanimated";
 import {
@@ -31,7 +30,7 @@ const wordTypes: Record<string, string> = {
 };
 
 export default function StudyScreen() {
-  const { user } = useAuth();
+  const { ready, user } = useAuth();
   const params = useLocalSearchParams<{
     topicId?: string;
     topicName?: string;
@@ -42,11 +41,40 @@ export default function StudyScreen() {
   const topicName = Array.isArray(params.topicName)
     ? params.topicName[0]
     : params.topicName || "Từ vựng";
-  const [words, setWords] = useState<Word[]>([]);
+  if (!ready)
+    return (
+      <SafeAreaView style={s.page}>
+        <ActivityIndicator color={c.green} />
+      </SafeAreaView>
+    );
+  return (
+    <StudyCards
+      key={(user?.id || "guest") + ":" + topicId}
+      topicId={topicId}
+      topicName={topicName}
+    />
+  );
+}
+
+function StudyCards({
+  topicId,
+  topicName,
+}: {
+  topicId?: string;
+  topicName: string;
+}) {
+  const { client, user } = useAuth();
+  const userId = user?.id;
+  const [words, setWords] = useState<(Word & { da_xem_luc?: string })[]>([]);
+  const [sessionId, setSessionId] = useState<string>();
+  const [seen, setSeen] = useState<Set<string>>(() => new Set());
+  const [saved, setSaved] = useState<Set<string>>(() => new Set());
+  const [busy, setBusy] = useState(false);
+  const [saveError, setSaveError] = useState("");
+  const [completed, setCompleted] = useState(false);
   const [index, setIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
   const [finished, setFinished] = useState(false);
-  const [quizOpen, setQuizOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [attempt, setAttempt] = useState(0);
@@ -56,9 +84,40 @@ export default function StudyScreen() {
   useEffect(() => {
     if (!topicId) return;
     let active = true;
-    getWords(topicId)
+    const request = userId
+      ? client.authorized<{
+          phien_hoc_tap_id: string;
+          danh_sach_tu: (Word & { da_xem_luc?: string })[];
+        }>("/learning/flashcards/start", {
+          method: "POST",
+          body: JSON.stringify({ chu_de_id: topicId }),
+        })
+      : getWords(topicId).then((data) => ({
+          phien_hoc_tap_id: undefined,
+          danh_sach_tu: (data as (Word & { da_xem_luc?: string })[]).slice(
+            0,
+            5,
+          ),
+        }));
+    request
       .then((data) => {
-        if (active) setWords(data);
+        if (!active) return;
+        setWords(data.danh_sach_tu);
+        setSessionId(data.phien_hoc_tap_id);
+        const viewed = new Set(
+          data.danh_sach_tu
+            .filter((item) => item.da_xem_luc)
+            .map((item) => item.id),
+        );
+        setSeen(viewed);
+        const nextIndex = data.danh_sach_tu.findIndex(
+          (item) => !viewed.has(item.id),
+        );
+        setIndex(
+          nextIndex < 0 ? Math.max(0, data.danh_sach_tu.length - 1) : nextIndex,
+        );
+        flip.setValue(0);
+        setFlipped(false);
       })
       .catch((failure) => {
         if (active) setError((failure as Error).message);
@@ -68,17 +127,17 @@ export default function StudyScreen() {
       });
     return () => {
       active = false;
-      void Speech.stop();
     };
-  }, [attempt, topicId]);
+  }, [attempt, client, topicId, userId, flip]);
 
   const word = words[index];
+  const { pronounce, audioMessage } = usePronunciation(
+    word?.tu_tieng_anh,
+    word?.url_am_thanh,
+  );
   const message = !topicId
     ? "Không tìm thấy chủ đề."
     : error || "Chủ đề chưa có từ vựng.";
-  const topic: Topic | null = topicId
-    ? { id: topicId, ten: topicName, mo_ta: null, word_count: words.length }
-    : null;
   const progress = words.length ? ((index + 1) / words.length) * 100 : 0;
   const frontRotation = flip.interpolate({
     inputRange: [0, 1],
@@ -89,16 +148,10 @@ export default function StudyScreen() {
     outputRange: ["180deg", "360deg"],
   });
 
-  function pronounce() {
-    if (!word) return;
-    void Speech.stop().then(() =>
-      Speech.speak(word.tu_tieng_anh, { language: "en-US", rate: 0.82 }),
-    );
-  }
-
   function flipCard() {
     const nextValue = flipped ? 0 : 1;
     setFlipped(!flipped);
+    if (!flipped && word) setSeen((current) => new Set(current).add(word.id));
     Animated.timing(flip, {
       toValue: nextValue,
       duration: reduceMotion ? 0 : 420,
@@ -114,18 +167,56 @@ export default function StudyScreen() {
   }
 
   function previous() {
-    if (index === 0) return;
+    if (index === 0 || busy) return;
     setIndex(index - 1);
     resetFlip();
   }
 
-  function next() {
-    if (index === words.length - 1) {
-      setFinished(true);
-      return;
+  async function next() {
+    if (!word || busy || !seen.has(word.id)) return;
+    setBusy(true);
+    setSaveError("");
+    try {
+      if (sessionId && !completed) {
+        await client.authorized("/learning/flashcards/view", {
+          method: "POST",
+          body: JSON.stringify({
+            phien_hoc_tap_id: sessionId,
+            tu_vung_id: word.id,
+          }),
+        });
+        if (index === words.length - 1) {
+          await client.authorized("/learning/flashcards/complete", {
+            method: "POST",
+            body: JSON.stringify({ phien_hoc_tap_id: sessionId }),
+          });
+          setCompleted(true);
+        }
+      }
+      if (index === words.length - 1) setFinished(true);
+      else {
+        setIndex(index + 1);
+        resetFlip();
+      }
+    } catch (failure) {
+      setSaveError((failure as Error).message);
+    } finally {
+      setBusy(false);
     }
-    setIndex(index + 1);
-    resetFlip();
+  }
+
+  async function saveWord() {
+    if (!word || busy) return;
+    setBusy(true);
+    setSaveError("");
+    try {
+      await client.authorized("/favorites/" + word.id, { method: "PUT" });
+      setSaved((current) => new Set(current).add(word.id));
+    } catch (failure) {
+      setSaveError((failure as Error).message);
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -191,16 +282,16 @@ export default function StudyScreen() {
             </Text>
             <Text style={s.muted}>
               {user
-                ? "Bây giờ hãy ôn bằng trắc nghiệm. Từ trả lời sai sẽ tự quay lại sau vài câu."
+                ? "Đã lưu phiên học. Từ mới ở ngăn 1, đến hạn ôn sau 1 ngày. Bạn có thể ôn các từ khác đã đến hạn."
                 : "Đây là lượt học thử nên kết quả không được lưu. Đăng nhập để ôn trắc nghiệm và theo dõi tiến độ."}
             </Text>
             {user ? (
               <Pressable
                 accessibilityRole="button"
                 style={s.primary}
-                onPress={() => setQuizOpen(true)}
+                onPress={() => router.replace("/(tabs)/explore")}
               >
-                <Text style={s.primaryText}>Ôn tập trắc nghiệm</Text>
+                <Text style={s.primaryText}>Xem từ đến hạn</Text>
                 <Ionicons name="arrow-forward" size={20} color="white" />
               </Pressable>
             ) : (
@@ -227,6 +318,11 @@ export default function StudyScreen() {
           </View>
         ) : (
           <>
+            <Text style={s.muted}>
+              {user
+                ? "Các thẻ đã xem được lưu khi bấm Tiếp theo. Học hết phiên để ghi nhận từ mới vào ngăn 1."
+                : "Học thử tối đa 5 từ · Không lưu kết quả"}
+            </Text>
             <View style={s.track}>
               <View style={[s.fill, { width: `${progress}%` }]} />
             </View>
@@ -314,7 +410,7 @@ export default function StudyScreen() {
                 </View>
                 <View style={s.cardBody}>
                   <Text style={[s.cardLabel, s.cardLabelBack]}>
-                    NGHĨA TIẾNG VIỆT
+                    {wordTypes[word.loai_tu] || word.loai_tu} · NGHĨA
                   </Text>
                   <Text style={s.meaning}>{word.nghia_tieng_viet}</Text>
                   <View style={s.rule} />
@@ -322,17 +418,17 @@ export default function StudyScreen() {
                   {!!word.phien_am && (
                     <Text style={s.phonetic}>{word.phien_am}</Text>
                   )}
-                  {!!word.vi_du?.[0] && (
-                    <View style={s.example}>
+                  {word.vi_du?.map((example) => (
+                    <View key={example.id} style={s.example}>
                       <Text style={s.exampleLabel}>VÍ DỤ</Text>
                       <Text style={s.exampleEnglish}>
-                        {word.vi_du[0].cau_tieng_anh}
+                        {example.cau_tieng_anh}
                       </Text>
                       <Text style={s.exampleVietnamese}>
-                        {word.vi_du[0].cau_tieng_viet}
+                        {example.cau_tieng_viet}
                       </Text>
                     </View>
-                  )}
+                  ))}
                 </View>
                 <Text style={[s.flipHint, s.flipHintBack]}>
                   Chạm vào thẻ để lật lại
@@ -340,17 +436,41 @@ export default function StudyScreen() {
               </Animated.View>
             </Pressable>
 
+            {!!audioMessage && (
+              <Text accessibilityRole="alert" style={s.muted}>
+                {audioMessage}
+              </Text>
+            )}
             <View style={s.tip}>
               <Ionicons name="eye-outline" size={19} color={c.green} />
               <Text style={s.tipText}>
                 Hãy đoán nghĩa trước khi lật thẻ. Phần này không chấm đúng sai.
               </Text>
             </View>
+            {user && (
+              <Pressable
+                accessibilityRole="button"
+                disabled={busy || saved.has(word.id)}
+                style={s.secondary}
+                onPress={saveWord}
+              >
+                <Text style={s.secondaryText}>
+                  {saved.has(word.id)
+                    ? "Đã thêm vào yêu thích"
+                    : "Thêm từ vào yêu thích"}
+                </Text>
+              </Pressable>
+            )}
+            {!!saveError && (
+              <Text accessibilityRole="alert" style={s.muted}>
+                {saveError} Bấm lại để thử lưu.
+              </Text>
+            )}
             <View style={s.actions}>
               <Pressable
                 accessibilityRole="button"
                 accessibilityState={{ disabled: index === 0 }}
-                disabled={index === 0}
+                disabled={index === 0 || busy}
                 style={[s.previous, index === 0 && s.disabled]}
                 onPress={previous}
               >
@@ -359,11 +479,18 @@ export default function StudyScreen() {
               </Pressable>
               <Pressable
                 accessibilityRole="button"
-                style={s.next}
+                style={[s.next, (busy || !seen.has(word.id)) && s.disabled]}
+                disabled={busy || !seen.has(word.id)}
                 onPress={next}
               >
                 <Text style={s.primaryText}>
-                  {index === words.length - 1 ? "Học xong" : "Thẻ tiếp theo"}
+                  {busy
+                    ? "Đang lưu…"
+                    : !seen.has(word.id)
+                      ? "Lật thẻ để học"
+                      : index === words.length - 1
+                        ? "Học xong"
+                        : "Thẻ tiếp theo"}
                 </Text>
                 <Ionicons name="arrow-forward" size={20} color="white" />
               </Pressable>
@@ -371,13 +498,6 @@ export default function StudyScreen() {
           </>
         )}
       </ScrollView>
-      {quizOpen && topic && user && (
-        <FlashcardPreview
-          topic={topic}
-          onClose={() => router.replace("/")}
-          onCompleted={() => undefined}
-        />
-      )}
     </SafeAreaView>
   );
 }
@@ -466,7 +586,12 @@ const s = StyleSheet.create({
     justifyContent: "space-between",
     backfaceVisibility: "hidden",
   },
-  cardBack: { backgroundColor: c.peach, borderColor: "#EAD5B8" },
+  cardBack: {
+    position: "relative",
+    gap: 24,
+    backgroundColor: c.peach,
+    borderColor: "#EAD5B8",
+  },
   cardPressed: { transform: [{ scale: 0.985 }] },
   cardTop: {
     flexDirection: "row",

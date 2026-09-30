@@ -16,6 +16,7 @@ import { useAuth } from "@/contexts/auth-context";
 import { getTopic, getWords, type Topic, type Word } from "@/services/catalog";
 
 interface TopicProgress {
+  due_words: number;
   total_words: number;
   learned_words: number;
   mastered_words: number;
@@ -69,7 +70,7 @@ export default function TopicScreen() {
     return () => {
       active = false;
     };
-  }, [client, ready, topicId, user]);
+  }, [client, ready, topicId, user, quizOpen]);
 
   const total = Number(topic?.word_count ?? words.length);
   const learned = Number(progress?.learned_words ?? 0);
@@ -201,12 +202,12 @@ export default function TopicScreen() {
               {user ? (
                 <Pressable
                   accessibilityRole="button"
-                  disabled={total < 2}
+                  disabled={!Number(progress?.due_words)}
                   style={({ pressed }) => [
                     s.modeCard,
                     s.quizCard,
                     pressed && s.pressed,
-                    total < 2 && s.disabled,
+                    !Number(progress?.due_words) && s.disabled,
                   ]}
                   onPress={() => setQuizOpen(true)}
                 >
@@ -218,9 +219,10 @@ export default function TopicScreen() {
                     />
                   </View>
                   <View style={s.modeText}>
-                    <Text style={s.modeTitle}>Ôn tập trắc nghiệm</Text>
+                    <Text style={s.modeTitle}>Ôn từ đến hạn</Text>
                     <Text style={s.modeBody}>
-                      Kiểm tra nghĩa của từ. Từ trả lời sai sẽ xuất hiện lại.
+                      {Number(progress?.due_words) || 0} từ đến hạn. Từ sai sẽ
+                      quay lại cuối hàng đợi.
                     </Text>
                   </View>
                   <Ionicons name="arrow-forward" size={21} color="#8A5A2B" />

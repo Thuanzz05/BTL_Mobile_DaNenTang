@@ -10,7 +10,7 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
-import * as Speech from "expo-speech";
+import { usePronunciation } from "@/hooks/use-pronunciation";
 import { palette as c } from "@/constants/palette";
 import { useAuth } from "@/contexts/auth-context";
 import { api } from "@/services/api";
@@ -34,6 +34,10 @@ export default function WordScreen() {
     : params.wordId;
   const { client, ready, user } = useAuth();
   const [word, setWord] = useState<WordDetail | null>(null);
+  const { pronounce, audioMessage } = usePronunciation(
+    word?.tu_tieng_anh,
+    word?.url_am_thanh,
+  );
   const [loading, setLoading] = useState(Boolean(wordId));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
@@ -63,7 +67,6 @@ export default function WordScreen() {
       });
     return () => {
       active = false;
-      void Speech.stop();
     };
   }, [attempt, load, wordId]);
 
@@ -161,19 +164,33 @@ export default function WordScreen() {
                   <Text style={s.topic}>{word.chu_de_ten}</Text>
                 )}
               </View>
+              {!!audioMessage && (
+                <Text accessibilityRole="alert" style={s.body}>
+                  {audioMessage}
+                </Text>
+              )}
               <Text style={s.english}>{word.tu_tieng_anh}</Text>
+              {user && (
+                <Text style={s.phonetic}>
+                  {word.tien_do?.da_hoc
+                    ? "Ngăn Leitner " +
+                      word.tien_do.ngan_leitner +
+                      (word.tien_do.ngay_on_tap_tiep_theo
+                        ? " · Ôn: " +
+                          new Date(
+                            word.tien_do.ngay_on_tap_tiep_theo,
+                          ).toLocaleDateString("vi-VN")
+                        : "")
+                    : "Chưa học bằng flashcard"}
+                </Text>
+              )}
               {!!word.phien_am && (
                 <Text style={s.phonetic}>{word.phien_am}</Text>
               )}
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel={`Nghe phát âm ${word.tu_tieng_anh}`}
-                onPress={() =>
-                  Speech.speak(word.tu_tieng_anh, {
-                    language: "en-US",
-                    rate: 0.82,
-                  })
-                }
+                onPress={pronounce}
                 style={s.speakButton}
               >
                 <Ionicons name="volume-high" size={21} color={c.ink} />

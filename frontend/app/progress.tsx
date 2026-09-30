@@ -23,6 +23,11 @@ interface TopicProgress {
 }
 
 interface ProgressData {
+  moi_hoc: number;
+  dang_cung_co: number;
+  da_thuoc: number;
+  den_han: number;
+  hoat_dong_30_ngay: { ngay: string; so_tu: number }[];
   tong_so_tu_da_hoc: number;
   da_nho: number;
   chua_chac: number;
@@ -37,6 +42,7 @@ interface ProgressData {
 
 export default function ProgressScreen() {
   const { client, ready, user } = useAuth();
+  const [period, setPeriod] = useState<1 | 7 | 30>(7);
   const [data, setData] = useState<ProgressData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -155,7 +161,7 @@ export default function ProgressScreen() {
             <View style={s.hero}>
               <View style={s.heroTop}>
                 <View>
-                  <Text style={s.heroLabel}>TỶ LỆ GHI NHỚ</Text>
+                  <Text style={s.heroLabel}>TỶ LỆ TỪ ĐẠT NGĂN 5</Text>
                   <Text style={s.heroNumber}>{Number(data.ty_le)}%</Text>
                 </View>
                 <View style={s.heroIcon}>
@@ -208,6 +214,87 @@ export default function ProgressScreen() {
               />
             </View>
 
+            <View style={s.section}>
+              <Text style={s.sectionTitle}>Hoạt động học tập</Text>
+              <Text style={s.goalBody}>
+                {data.den_han} từ đến hạn ôn. Mỗi từ được tính một lần trong
+                ngày.
+              </Text>
+              <View style={s.goalOptions}>
+                {([1, 7, 30] as const).map((value) => (
+                  <Pressable
+                    key={value}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: period === value }}
+                    style={[s.goalOption, period === value && s.goalSelected]}
+                    onPress={() => setPeriod(value)}
+                  >
+                    <Text
+                      style={[
+                        s.goalLabel,
+                        period === value && s.goalTextSelected,
+                      ]}
+                    >
+                      {value === 1 ? "Hôm nay" : value + " ngày"}
+                    </Text>
+                  </Pressable>
+                ))}
+              </View>
+              <View
+                style={{
+                  flexDirection: "row",
+                  alignItems: "flex-end",
+                  height: 140,
+                  gap: 3,
+                  paddingTop: 20,
+                }}
+              >
+                {data.hoat_dong_30_ngay.slice(-period).map((day) => (
+                  <View
+                    key={day.ngay}
+                    accessible
+                    accessibilityLabel={day.ngay + ": " + day.so_tu + " từ"}
+                    style={{
+                      flex: 1,
+                      alignItems: "center",
+                      justifyContent: "flex-end",
+                      height: "100%",
+                    }}
+                  >
+                    <Text style={s.goalLabel}>
+                      {period <= 7 ? day.so_tu : ""}
+                    </Text>
+                    <View
+                      style={{
+                        width: "100%",
+                        maxWidth: 60,
+                        backgroundColor: c.green,
+                        borderRadius: 4,
+                        height: Math.max(
+                          2,
+                          (day.so_tu /
+                            Math.max(
+                              1,
+                              ...data.hoat_dong_30_ngay
+                                .slice(-period)
+                                .map((d) => d.so_tu),
+                            )) *
+                            90,
+                        ),
+                      }}
+                    />
+                    {period <= 7 && (
+                      <Text style={s.goalLabel}>{day.ngay.slice(8)}</Text>
+                    )}
+                  </View>
+                ))}
+              </View>
+              <Text style={s.goalBody}>
+                Ngày trong tháng ·{" "}
+                {data.hoat_dong_30_ngay.slice(-period)[0]?.ngay} đến{" "}
+                {data.hoat_dong_30_ngay.at(-1)?.ngay}
+              </Text>
+            </View>
             <View style={s.section}>
               <Text style={s.sectionTitle}>Mục tiêu mỗi ngày</Text>
               <View style={s.goalCard}>
@@ -271,20 +358,20 @@ export default function ProgressScreen() {
               <View style={s.memoryCard}>
                 <MemoryRow
                   color={c.green}
-                  label="Vững"
-                  value={data.da_nho}
+                  label="Đã thuộc · Ngăn 5"
+                  value={data.da_thuoc}
                   total={data.tong_so_tu_da_hoc}
                 />
                 <MemoryRow
                   color="#D49A45"
-                  label="Đang củng cố"
-                  value={data.chua_chac}
+                  label="Đang củng cố · Ngăn 3–4"
+                  value={data.dang_cung_co}
                   total={data.tong_so_tu_da_hoc}
                 />
                 <MemoryRow
                   color={c.danger}
-                  label="Cần luyện thêm"
-                  value={data.chua_nho}
+                  label="Mới học · Ngăn 1–2"
+                  value={data.moi_hoc}
                   total={data.tong_so_tu_da_hoc}
                 />
               </View>

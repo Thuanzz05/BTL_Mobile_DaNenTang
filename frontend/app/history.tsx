@@ -21,6 +21,8 @@ interface StudySession {
   tong_so_tu: number;
   bat_dau_luc: string;
   trang_thai: "dang-hoc" | "hoan-thanh" | "bo-do";
+  phuong_thuc?: "flashcard" | "trac_nghiem" | "danh_gia";
+  chu_de_id?: string;
   loai_phien?: "hoc_moi" | "on_tap";
   total_results: number;
 }
@@ -219,7 +221,7 @@ export default function HistoryScreen() {
                   <View style={s.sessionIcon}>
                     <Ionicons
                       name={
-                        session.loai_phien === "on_tap"
+                        session.phuong_thuc === "trac_nghiem"
                           ? "refresh"
                           : "book-outline"
                       }
