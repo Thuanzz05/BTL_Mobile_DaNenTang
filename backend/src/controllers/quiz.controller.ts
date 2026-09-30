@@ -1,4 +1,5 @@
 import { NextFunction, Request, Response } from 'express';
+import { AchievementService } from '../services/achievement.service';
 import { LearningService } from '../services/learning.service';
 import { QuizService } from '../services/quiz.service';
 import { ResponseUtil } from '../utils/response.util';
@@ -6,12 +7,12 @@ import { ResponseUtil } from '../utils/response.util';
 export class QuizController {
   static async start(req: Request, res: Response, next: NextFunction) {
     try {
-      const session = await LearningService.startSession(
+      const session = await LearningService.startReviewSession(
         req.user!.id,
-        req.body.chu_de_id,
         req.body.tong_so_tu,
         'trac_nghiem',
-        req.body.ma_yeu_cau
+        req.body.ma_yeu_cau,
+        req.body.chu_de_id
       );
       const data = await QuizService.getSession(req.user!.id, session.phien_hoc_tap_id);
       return ResponseUtil.success(res, data, 'Bắt đầu trắc nghiệm thành công', 201);
@@ -47,6 +48,7 @@ export class QuizController {
   static async answer(req: Request, res: Response, next: NextFunction) {
     try {
       const data = await QuizService.answer(req.user!.id, req.params.sessionId, req.body);
+      await AchievementService.getForUser(req.user!.id);
       return ResponseUtil.success(res, data, 'Đã lưu câu trả lời');
     } catch (error) {
       return next(error);

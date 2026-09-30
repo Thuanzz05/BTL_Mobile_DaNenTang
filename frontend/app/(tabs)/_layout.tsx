@@ -1,5 +1,5 @@
 import { Tabs } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
+import { Feather } from "@expo/vector-icons";
 import { StyleSheet } from "react-native";
 import { palette as c } from "@/constants/palette";
 export default function TabLayout() {
@@ -18,7 +18,7 @@ export default function TabLayout() {
         options={{
           title: "Trang chủ",
           tabBarIcon: ({ color }) => (
-            <Ionicons name="home-outline" size={24} color={color} />
+            <Feather name="home" size={22} color={color} />
           ),
         }}
       />
@@ -27,7 +27,7 @@ export default function TabLayout() {
         options={{
           title: "Tra từ",
           tabBarIcon: ({ color }) => (
-            <Ionicons name="search-outline" size={24} color={color} />
+            <Feather name="search" size={22} color={color} />
           ),
         }}
       />
@@ -36,7 +36,7 @@ export default function TabLayout() {
         options={{
           title: "Ôn tập",
           tabBarIcon: ({ color }) => (
-            <Ionicons name="refresh-outline" size={24} color={color} />
+            <Feather name="refresh-cw" size={21} color={color} />
           ),
         }}
       />
@@ -45,7 +45,7 @@ export default function TabLayout() {
         options={{
           title: "Tài khoản",
           tabBarIcon: ({ color }) => (
-            <Ionicons name="person-outline" size={24} color={color} />
+            <Feather name="user" size={22} color={color} />
           ),
         }}
       />
@@ -53,6 +53,12 @@ export default function TabLayout() {
   );
 }
 const s = StyleSheet.create({
-  bar: { backgroundColor: c.surface, borderTopColor: c.line },
+  bar: {
+    height: 66,
+    paddingTop: 7,
+    paddingBottom: 7,
+    backgroundColor: c.surface,
+    borderTopColor: c.line,
+  },
   label: { fontSize: 12, fontWeight: "600" },
 });

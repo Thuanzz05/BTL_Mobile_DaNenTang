@@ -8,7 +8,7 @@ import {
 } from "react-native";
 import { useAuth } from "@/contexts/auth-context";
 import { palette as c } from "@/constants/palette";
-import { Ionicons } from "@expo/vector-icons";
+import { Feather } from "@expo/vector-icons";
 interface Dashboard {
   tien_do_hom_nay: { da_hoc: number; muc_tieu: number };
   so_tu_can_on: number;
@@ -83,7 +83,7 @@ export function HomeProgress({
             <View style={[s.fill, fill.value]} />
           </View>
           <View style={s.streak}>
-            <Ionicons name="flame" size={19} color="#8A5A2B" />
+            <Feather name="zap" size={18} color={c.rust} />
             <Text style={s.streakText}>
               {data.tien_do.chuoi_ngay_hoc} ngày học liên tiếp
             </Text>
@@ -101,7 +101,7 @@ export function HomeProgress({
               onPress={() => onReview(data.so_tu_can_on)}
             >
               <Text style={s.reviewText}>Ôn từ đến hạn</Text>
-              <Ionicons name="refresh" size={18} color="white" />
+              <Feather name="refresh-cw" size={17} color="white" />
             </Pressable>
           )}
         </>
@@ -113,9 +113,11 @@ const s = StyleSheet.create({
   card: {
     backgroundColor: c.surface,
     padding: 22,
-    borderRadius: 22,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: c.line,
+    borderLeftWidth: 5,
+    borderLeftColor: c.green,
     gap: 12,
   },
   title: { color: c.ink, fontSize: 20, fontWeight: "700" },
@@ -146,12 +148,12 @@ const s = StyleSheet.create({
     alignItems: "center",
     gap: 6,
   },
-  streakText: { color: "#704719", fontSize: 12, fontWeight: "700" },
+  streakText: { color: c.rust, fontSize: 12, fontWeight: "700" },
   retry: { minHeight: 44, justifyContent: "center" },
   review: {
     minHeight: 48,
     paddingHorizontal: 16,
-    borderRadius: 14,
+    borderRadius: 8,
     backgroundColor: c.green,
     flexDirection: "row",
     alignItems: "center",

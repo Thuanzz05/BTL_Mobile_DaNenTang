@@ -66,6 +66,7 @@ router.get('/dashboard', AdminController.getDashboard);
  *         description: Danh sách người dùng có phân trang
  */
 router.get('/users', AdminController.getUsers);
+router.delete('/users/:userId', AdminController.deleteUser);
 
 /**
  * @swagger

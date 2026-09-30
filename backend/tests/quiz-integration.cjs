@@ -75,6 +75,13 @@ module.exports = async function quizIntegration(
         );
       }
 
+      // Chỉ từ đã học và đến hạn mới được đưa vào phiên ôn tập.
+      const makeDue = async (userId) =>
+        connection.execute(
+          "INSERT INTO tien_do_tu_vung (nguoi_dung_id, tu_vung_id, da_hoc, ngan_leitner, trang_thai_nho, ngay_on_tap_tiep_theo) SELECT ?, id, TRUE, 1, 'chua-nho', DATE_SUB(NOW(), INTERVAL 1 DAY) FROM tu_vung WHERE chu_de_id = ?",
+          [userId, topic.id]
+        );
+      await makeDue(other.user.id);
       const startBody = { chu_de_id: topic.id, tong_so_tu: 5, ma_yeu_cau: randomUUID() };
       const [start, duplicateStart] = await Promise.all([
         api('POST', '/api/quiz/start', startBody, other.accessToken, 201),
@@ -96,7 +103,7 @@ module.exports = async function quizIntegration(
       );
       const sessionId = start.phien_hoc_tap_id;
       const route = '/api/quiz/' + sessionId;
-      assert.equal(start.phien_ban_thuat_toan, 'leitner-adaptive-v1');
+      assert.equal(start.phien_ban_thuat_toan, 'leitner-queue-v2');
       assert.equal(start.cau_hoi.lua_chon.length, 4);
       assert.equal(start.cau_hoi.dap_an_dung_id, undefined);
       assert.equal(start.cau_hoi.nghia_tieng_viet, undefined);
@@ -201,8 +208,8 @@ module.exports = async function quizIntegration(
 
       assert.equal(state.trang_thai, 'hoan-thanh');
       assert.equal(state.so_tu_hoan_thanh, 5);
-      assert.equal(state.so_luot_tra_loi, 12);
-      assert.equal(state.so_luot_dung, 11);
+      assert.equal(state.so_luot_tra_loi, 6);
+      assert.equal(state.so_luot_dung, 5);
       assert.deepEqual(
         await api('POST', '/api/quiz/start', startBody, other.accessToken, 201),
         state
@@ -221,13 +228,13 @@ module.exports = async function quizIntegration(
       assert.equal(progress.filter((word) => word.ngan_leitner === 1).length, 1);
       assert.equal(progress.filter((word) => word.ngan_leitner === 2).length, 4);
       const [[activities]] = await connection.query(
-        "SELECT COUNT(*) AS count FROM hoat_dong_hoc_tap WHERE nguoi_dung_id = ? AND loai_hoat_dong = 'hoan_thanh_session'",
+        "SELECT COUNT(*) AS count FROM hoat_dong_hoc_tap WHERE nguoi_dung_id = ? AND loai_hoat_dong = 'on_tap'",
         [other.user.id]
       );
       assert.equal(activities.count, 1);
 
       const history = await api('GET', '/api/history/' + sessionId, undefined, other.accessToken);
-      assert.equal(history.luot_tra_loi.length, 12);
+      assert.equal(history.luot_tra_loi.length, 6);
       assert.equal(history.luot_tra_loi[0].dung, 0);
       const report = await api(
         'GET',
@@ -235,7 +242,7 @@ module.exports = async function quizIntegration(
         undefined,
         admin.accessToken
       );
-      assert.equal(report.tong_quan.so_luot, 12);
+      assert.equal(report.tong_quan.so_luot, 6);
       assert.equal(report.tong_quan.so_luot_sai, 1);
       assert.equal(report.tu_can_luyen[0].id, start.cau_hoi.tu_vung_id);
       await api('GET', '/api/admin/quiz-statistics', undefined, other.accessToken, 403);
@@ -293,6 +300,7 @@ module.exports = async function quizIntegration(
         await api('POST', '/api/quiz/review/start', reviewBody, other.accessToken, 201),
         stopped
       );
+      await makeDue(learner.user.id);
       const anotherUser = await api('POST', '/api/quiz/start', startBody, learner.accessToken, 201);
       assert.notEqual(anotherUser.phien_hoc_tap_id, sessionId);
       await api(

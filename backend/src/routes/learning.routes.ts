@@ -3,15 +3,45 @@ import { LearningController } from '../controllers/learning.controller';
 import { authMiddleware } from '../middlewares/auth.middleware';
 import { ProgressController } from '../controllers/progress.controller';
 import { validate } from '../middlewares/validate.middleware';
-import { schemas } from '../validations/request.schemas';
+import { z } from 'zod';
+import { identifier, schemas } from '../validations/request.schemas';
 
 const router = Router();
+// Chỉ giữ API kết quả để đọc/hoàn tất phiên cũ; không tạo phiên tự đánh giá mới.
+router.post(['/start', '/review/start'], authMiddleware, (_req, res) =>
+  res
+    .status(410)
+    .json({
+      success: false,
+      message: 'Dùng /learning/flashcards/start để học và /quiz/review/start để ôn tập.',
+      error: { code: 'LEGACY_LEARNING_DISABLED' },
+    })
+);
+router.post(
+  '/flashcards/start',
+  authMiddleware,
+  validate(z.object({ chu_de_id: identifier }).strict()),
+  LearningController.startFlashcards
+);
+router.post(
+  '/flashcards/view',
+  authMiddleware,
+  validate(z.object({ phien_hoc_tap_id: identifier, tu_vung_id: identifier }).strict()),
+  LearningController.viewFlashcard
+);
+router.post(
+  '/flashcards/complete',
+  authMiddleware,
+  validate(schemas.complete),
+  LearningController.completeFlashcards
+);
 
 /**
  * @swagger
  * /api/learning/start:
  *   post:
- *     summary: Bắt đầu phiên học mới
+ *     deprecated: true
+ *     summary: API cũ đã đóng, dùng /api/learning/flashcards/start
  *     tags: [Learning]
  *     security:
  *       - bearerAuth: []
@@ -34,22 +64,16 @@ const router = Router();
  *                 maximum: 50
  *                 description: Số từ mỗi phiên (5-50)
  *     responses:
- *       201:
- *         description: Tạo phiên học thành công
+ *       410:
+ *         description: API đã đóng
  */
-router.post('/start', authMiddleware, validate(schemas.start), LearningController.startSession);
-router.post(
-  '/review/start',
-  authMiddleware,
-  validate(schemas.review),
-  LearningController.startReviewSession
-);
 
 /**
  * @swagger
  * /api/learning/result:
  *   post:
- *     summary: Nộp kết quả học từng từ
+ *     deprecated: true
+ *     summary: Chỉ hoàn tất kết quả của phiên tự đánh giá đã tồn tại
  *     tags: [Learning]
  *     security:
  *       - bearerAuth: []
@@ -166,7 +190,8 @@ router.get('/progress', authMiddleware, ProgressController.getProgress);
  * @swagger
  * /api/learning/review/start:
  *   post:
- *     summary: Tạo phiên ôn từ các từ đến hạn, kể cả từ đã nhớ
+ *     deprecated: true
+ *     summary: API cũ đã đóng, dùng /api/quiz/review/start
  *     tags: [Learning]
  *     requestBody:
  *       required: true
@@ -181,10 +206,64 @@ router.get('/progress', authMiddleware, ProgressController.getProgress);
  *                 maximum: 50
  *                 default: 50
  *     responses:
- *       201:
- *         description: Phiên ôn và danh sách từ cố định
- *       404:
- *         description: Không có từ đến hạn ôn
+ *       410:
+ *         description: API đã đóng
+ */
+
+/**
+ * @swagger
+ * /api/learning/flashcards/start:
+ *   post:
+ *     summary: Tạo hoặc tiếp tục phiên flashcard từ chưa học theo mục tiêu 5, 10, 20 từ
+ *     tags: [Learning]
+ *     security: [{ bearerAuth: [] }]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [chu_de_id]
+ *             properties:
+ *               chu_de_id: { type: string }
+ *     responses:
+ *       201: { description: ID phiên và danh sách từ kèm ví dụ, da_xem_luc }
+ *       404: { description: Chủ đề không hiển thị hoặc không còn từ mới }
+ * /api/learning/flashcards/view:
+ *   post:
+ *     summary: Lưu thẻ đã xem theo thứ tự, gửi lại không ghi trùng
+ *     tags: [Learning]
+ *     security: [{ bearerAuth: [] }]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [phien_hoc_tap_id, tu_vung_id]
+ *             properties:
+ *               phien_hoc_tap_id: { type: string }
+ *               tu_vung_id: { type: string }
+ *     responses:
+ *       200: { description: Đã lưu thẻ }
+ *       409: { description: Thẻ không đúng thứ tự hoặc phiên đã đóng }
+ * /api/learning/flashcards/complete:
+ *   post:
+ *     summary: Hoàn thành phiên đã xem đủ thẻ, đưa từ mới vào ngăn 1 và hẹn ôn sau 1 ngày
+ *     tags: [Learning]
+ *     security: [{ bearerAuth: [] }]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [phien_hoc_tap_id]
+ *             properties:
+ *               phien_hoc_tap_id: { type: string }
+ *     responses:
+ *       200: { description: Đã lưu phiên, kết quả, tiến độ và kiểm tra huy hiệu }
+ *       409: { description: Chưa xem hết thẻ }
  */
 
 export default router;

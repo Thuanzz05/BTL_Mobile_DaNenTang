@@ -1,6 +1,6 @@
 import { randomInt } from 'crypto';
 
-export const QUIZ_VERSION = 'leitner-adaptive-v1';
+export const QUIZ_VERSION = 'leitner-queue-v2';
 
 export interface QuizWordState {
   id: string;
@@ -25,24 +25,32 @@ export function shuffled<T>(values: T[]): T[] {
 /** Tái dựng tiến độ từ những lượt trả lời đã được server chấm. */
 export function quizState(
   wordIds: string[],
-  answers: { tu_vung_id: string; dung: number | boolean }[]
+  answers: { tu_vung_id: string; dung: number | boolean }[],
+  version = QUIZ_VERSION
 ) {
-  const items: QuizWordState[] = wordIds.map((id) => ({
+  const items: QuizWordState[] = wordIds.map((id, index) => ({
     id,
     mistakes: 0,
     streak: 0,
-    due: 0,
+    due: index,
     done: false,
   }));
 
+  // Các phiên v1 đang học tiếp tục dùng quy tắc cũ đã lưu cùng phiên.
+  const legacy = version === 'leitner-adaptive-v1';
+  if (legacy) {
+    items.forEach((item) => {
+      item.due = 0;
+    });
+  }
   answers.forEach((answer, turn) => {
     const item = items.find((word) => word.id === answer.tu_vung_id)!;
     const correct = Boolean(answer.dung);
 
     item.mistakes += correct ? 0 : 1;
     item.streak = correct ? item.streak + 1 : 0;
-    item.due = turn + (correct ? 5 : 3);
-    item.done = item.streak >= 2 + Math.min(item.mistakes, 2);
+    item.due = legacy ? turn + (correct ? 5 : 3) : wordIds.length + turn;
+    item.done = legacy ? item.streak >= 2 + Math.min(item.mistakes, 2) : correct;
   });
 
   const remaining = items.filter((item) => !item.done);
@@ -51,9 +59,11 @@ export function quizState(
   const candidates = alternatives.length ? alternatives : remaining;
   const ready = candidates.filter((item) => item.due <= answers.length);
 
-  const next = ready.length
-    ? ready.sort((a, b) => b.mistakes - a.mistakes || a.due - b.due)[0]
-    : candidates.sort((a, b) => a.due - b.due)[0];
+  const next = !legacy
+    ? remaining.sort((a, b) => a.due - b.due)[0]
+    : ready.length
+      ? ready.sort((a, b) => b.mistakes - a.mistakes || a.due - b.due)[0]
+      : candidates.sort((a, b) => a.due - b.due)[0];
 
   return {
     items,

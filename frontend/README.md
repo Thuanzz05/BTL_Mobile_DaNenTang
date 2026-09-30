@@ -17,15 +17,17 @@ Các dependency native được đồng bộ theo `expo/bundledNativeModules.jso
 - Đăng nhập dùng `/auth/login`, nhận hồ sơ và cặp JWT. Access token giữ trong bộ nhớ; refresh token lưu bằng Expo SecureStore trên mobile. Web preview dùng sessionStorage, chỉ giữ trong tab hiện tại.
 - Mở lại app: refresh token rồi gọi `/auth/me`. Request được bảo vệ tự làm mới access token một lần khi nhận 401. Mất mạng không xóa refresh token đã lưu; có nút thử khôi phục tại Tài khoản.
 - Đăng xuất gọi `/auth/logout` và xóa phiên trên thiết bị. Nếu máy chủ không phản hồi, giao diện thông báo việc thu hồi từ xa chưa được xác nhận.
-- Trang chủ khi đăng nhập gọi `/home/dashboard`; kéo xuống để cập nhật. Phần lật flashcard dùng để học từ, còn bài trắc nghiệm sau đó ghi kết quả vào ngăn Leitner trên backend.
-- Chưa tích hợp Google OAuth hay quên mật khẩu; giao diện không hiển thị nút giả cho các luồng này.
+- Trang chủ khi đăng nhập gọi `/home/dashboard`; kéo xuống để cập nhật. Flashcard tạo phiên từ chưa học theo mục tiêu 5/10/20; xem hết mới lưu từ mới vào ngăn 1 và hẹn ôn sau 1 ngày. Trắc nghiệm chỉ chọn từ đã đến hạn.
+- Quên mật khẩu đã có luồng mã xác nhận; cần cấu hình gửi email khi triển khai. Google OAuth chưa tích hợp.
 
 Kiểm thử logic phiên đăng nhập: `npm test`. Kiểm tra mobile cuối cùng bằng Expo Go SDK 57 hoặc development build trên Android/iOS; web preview không thay thế kiểm thử thiết bị thật.
 
 Đã kiểm tra trên backend/MySQL local: đăng ký tài khoản tạm, đăng nhập sai/đúng mật khẩu, tải dashboard, khôi phục phiên sau reload, đăng xuất; tài khoản tạm được xóa sau kiểm thử. Playwright/Chrome kiểm tra lật thẻ, đổi chủ đề, tìm kiếm và chiều rộng 320px. TypeScript, ESLint, 8 kiểm thử phiên đăng nhập và build web đều thành công. Chưa chạy trên thiết bị Android/iOS thật.
 
-## Trang luyện trắc nghiệm
+## Học flashcard và ôn trắc nghiệm
 
-Khách chưa đăng nhập chỉ được tra cứu từ và học thử bằng cách lật flashcard; lượt học thử không tạo phiên và không lưu kết quả. Sau khi đăng nhập, người học có thể mở trắc nghiệm từ chủ đề hoặc sau khi xem hết flashcard. Mỗi câu có tối đa 4 nghĩa khác nhau lấy từ chủ đề (ít nhất 2). Chọn một lần, xem đúng/sai, bấm Câu tiếp theo. Không dùng nút tự đánh giá ghi nhớ.
+Khách được học thử tối đa 5 thẻ mỗi lượt, không lưu kết quả. Người học đăng nhập có phiên flashcard trên server, tiếp tục được thẻ chưa xem; mặt sau gồm nghĩa, phiên âm, từ loại và ví dụ, không có ảnh. Phát âm ưu tiên file đã tải lên, thiếu file dùng giọng đọc thiết bị. Expo Audio chỉ dùng phát âm, không xin quyền micro hay phát nền.
 
-Sai: đặt lại chuỗi đúng, xếp từ lại sau hai câu khác khi còn đủ từ. Đúng: giãn bốn câu khi còn đủ từ. Khi đến hạn, ưu tiên từ sai nhiều; tránh lặp ngay nếu còn từ khác. Từ đạt khi đúng liên tiếp 2 + min(số lần sai, 2) lần. Nếu còn ít từ, khoảng cách rút ngắn. Khi từ hoàn thành, kết quả được đồng bộ với Leitner: không sai thì lên một ngăn, có sai thì về ngăn 1; lịch ngăn 1–5 là 1, 3, 7, 14 và 30 ngày.
+Trắc nghiệm chủ đề và ôn tổng hợp đều lấy từ đã học, đã đến hạn. Backend chấm đáp án đã chụp nội dung: đúng ngay thì tăng một ngăn (tối đa 5) và hoàn thành từ; sai lần đầu hạ ngăn 1 ngay, đưa xuống cuối hàng đợi đến khi đúng. Đúng lại sau sai giữ ngăn 1 trong phiên đó. Lịch ngăn 1–5: 1, 2, 4, 7, 14 ngày. Gửi lại yêu cầu không ghi trùng.
+
+Phiên mới dùng leitner-queue-v2; phiên v1 đang học tiếp tục quy tắc cũ. Không tạo mới phiên tự đánh giá qua /learning/start (trả 410). Chi tiết nghiệp vụ, ngoại lệ, endpoint và các điểm báo cáo cần chỉnh: [NGHIEP_VU_CHI_TIET.md](../NGHIEP_VU_CHI_TIET.md).

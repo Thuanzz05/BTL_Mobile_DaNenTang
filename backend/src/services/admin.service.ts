@@ -4,6 +4,23 @@ import { learningPeriodStarts } from '../utils/calendar.util';
 import { fillDays } from './admin-report.service';
 
 export class AdminService {
+  static async deleteUser(userId: string) {
+    return transaction(async (connection) => {
+      const [users]: any = await connection.execute(
+        'SELECT vai_tro FROM nguoi_dung WHERE id = ? FOR UPDATE',
+        [userId]
+      );
+      if (!users.length) {
+        throw new AppError('Không tìm thấy người dùng', 404, 'USER_NOT_FOUND');
+      }
+      if (users[0].vai_tro === 'admin') {
+        throw new AppError('Không thể xóa tài khoản quản trị viên', 403, 'ADMIN_PROTECTED');
+      }
+      await connection.execute('DELETE FROM nguoi_dung WHERE id = ?', [userId]);
+      return { deleted: true };
+    });
+  }
+
   /**
    * Lấy thống kê dashboard admin
    */

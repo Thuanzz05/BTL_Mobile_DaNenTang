@@ -1,4 +1,3 @@
-import type { ComponentProps } from "react";
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -10,12 +9,10 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
+import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { palette as c } from "@/constants/palette";
 import { useAuth } from "@/contexts/auth-context";
-
-type IconName = ComponentProps<typeof Ionicons>["name"];
 
 interface Achievement {
   id: string;
@@ -36,11 +33,11 @@ interface AchievementData {
   danh_sach: Achievement[];
 }
 
-const icons: Record<string, IconName> = {
-  medal: "medal-outline",
-  flame: "flame-outline",
-  book: "book-outline",
-  star: "star-outline",
+const icons: Record<string, keyof typeof Feather.glyphMap> = {
+  medal: "award",
+  flame: "zap",
+  book: "book-open",
+  star: "star",
 };
 
 export default function AchievementsScreen() {
@@ -94,10 +91,10 @@ export default function AchievementsScreen() {
           style={s.back}
           onPress={() => router.back()}
         >
-          <Ionicons name="arrow-back" size={24} color={c.ink} />
+          <Feather name="arrow-left" size={23} color={c.ink} />
         </Pressable>
         <View style={s.headerText}>
-          <Text style={s.eyebrow}>DẤU MỐC HỌC TẬP</Text>
+          <Text style={s.eyebrow}>Dấu mốc học tập</Text>
           <Text style={s.heading}>Thành tích & huy hiệu</Text>
         </View>
       </View>
@@ -117,7 +114,7 @@ export default function AchievementsScreen() {
           <ActivityIndicator size="large" color={c.green} />
         ) : error && !data ? (
           <View style={s.message}>
-            <Ionicons name="cloud-offline-outline" size={38} color={c.danger} />
+            <Feather name="wifi-off" size={34} color={c.danger} />
             <Text accessibilityRole="alert" style={s.errorText}>
               {error}
             </Text>
@@ -132,11 +129,9 @@ export default function AchievementsScreen() {
         ) : data ? (
           <>
             <View style={s.hero}>
-              <View style={s.heroIcon}>
-                <Ionicons name="trophy" size={34} color="#F8D675" />
-              </View>
+              <Text style={s.heroMark}>HUY HIỆU</Text>
               <View style={s.heroText}>
-                <Text style={s.heroLabel}>BỘ SƯU TẬP CỦA BẠN</Text>
+                <Text style={s.heroLabel}>Bộ sưu tập của bạn</Text>
                 <Text style={s.heroTitle}>
                   {data.da_mo_khoa}/{data.tong_so} huy hiệu
                 </Text>
@@ -173,11 +168,11 @@ export default function AchievementsScreen() {
                           : s.badgeLocked,
                       ]}
                     >
-                      <Ionicons
+                      <Feather
                         name={
                           achievement.da_mo_khoa
-                            ? icons[achievement.bieu_tuong] || "trophy-outline"
-                            : "lock-closed-outline"
+                            ? icons[achievement.bieu_tuong] || "award"
+                            : "lock"
                         }
                         size={30}
                         color={achievement.da_mo_khoa ? c.green : c.muted}
@@ -224,7 +219,7 @@ export default function AchievementsScreen() {
               })
             ) : (
               <View style={s.message}>
-                <Ionicons name="trophy-outline" size={42} color={c.muted} />
+                <Feather name="award" size={38} color={c.muted} />
                 <Text style={s.description}>Chưa có huy hiệu nào.</Text>
               </View>
             )}
@@ -250,7 +245,7 @@ const s = StyleSheet.create({
   back: {
     width: 44,
     height: 44,
-    borderRadius: 15,
+    borderRadius: 8,
     backgroundColor: c.surface,
     alignItems: "center",
     justifyContent: "center",
@@ -262,7 +257,7 @@ const s = StyleSheet.create({
     color: c.green,
     fontSize: 11,
     fontWeight: "800",
-    letterSpacing: 1.5,
+    letterSpacing: 0.2,
   },
   heading: { color: c.ink, fontSize: 25, fontWeight: "800", marginTop: 3 },
   content: {
@@ -274,32 +269,29 @@ const s = StyleSheet.create({
     alignSelf: "center",
   },
   hero: {
-    backgroundColor: c.green,
+    backgroundColor: c.surface,
     padding: 20,
-    borderRadius: 24,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: c.line,
+    borderLeftWidth: 5,
+    borderLeftColor: c.rust,
     flexDirection: "row",
     alignItems: "center",
     gap: 14,
   },
-  heroIcon: {
-    width: 58,
-    height: 58,
-    borderRadius: 19,
-    backgroundColor: "rgba(255,255,255,0.13)",
-    alignItems: "center",
-    justifyContent: "center",
-  },
+  heroMark: { color: c.rust, fontSize: 10, fontWeight: "800" },
   heroText: { flex: 1 },
   heroLabel: {
-    color: "#CDE4D8",
+    color: c.rust,
     fontSize: 10,
     fontWeight: "800",
-    letterSpacing: 1.1,
+    letterSpacing: 0.2,
   },
-  heroTitle: { color: "white", fontSize: 21, fontWeight: "800", marginTop: 5 },
+  heroTitle: { color: c.ink, fontSize: 21, fontWeight: "800", marginTop: 5 },
   points: { alignItems: "center" },
-  pointsNumber: { color: "#F8D675", fontSize: 25, fontWeight: "900" },
-  pointsLabel: { color: "white", fontSize: 12, fontWeight: "600" },
+  pointsNumber: { color: c.rust, fontSize: 25, fontWeight: "900" },
+  pointsLabel: { color: c.muted, fontSize: 12, fontWeight: "600" },
   sectionHeading: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -310,7 +302,7 @@ const s = StyleSheet.create({
   sectionNote: { color: c.muted, fontSize: 12 },
   card: {
     backgroundColor: c.surface,
-    borderRadius: 20,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: c.line,
     padding: 16,
@@ -321,7 +313,7 @@ const s = StyleSheet.create({
   badge: {
     width: 58,
     height: 58,
-    borderRadius: 19,
+    borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
   },
