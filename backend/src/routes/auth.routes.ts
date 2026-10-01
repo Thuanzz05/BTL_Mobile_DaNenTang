@@ -102,6 +102,32 @@ router.post('/register', validate(schemas.register), AuthController.register);
  *         description: Invalid credentials
  */
 router.post('/login', validate(schemas.login), AuthController.login);
+/**
+ * @swagger
+ * /api/auth/google:
+ *   post:
+ *     summary: Đăng nhập người học bằng Google ID token
+ *     tags: [Authentication]
+ *     security: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [id_token]
+ *             properties:
+ *               id_token:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Đăng nhập thành công và cấp token Wordleaf
+ *       401:
+ *         description: Google ID token không hợp lệ
+ *       409:
+ *         description: Email đã dùng phương thức đăng nhập khác
+ */
+router.post('/google', validate(schemas.googleLogin), AuthController.googleLogin);
 
 /**
  * @swagger

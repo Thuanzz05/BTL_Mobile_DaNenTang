@@ -76,6 +76,7 @@ export const schemas = {
       mat_khau: password,
     })
     .strict(),
+  googleLogin: z.object({ id_token: text(4096) }).strict(),
   refresh: z.object({ refreshToken: text(2048) }).strict(),
   profile: z
     .object({

@@ -79,6 +79,16 @@ test("login stores refresh token, sends bearer token, logout clears local sessio
   assert.equal(state.token(), null);
   assert.equal(state.user(), null);
 });
+test("Google login sends the ID token and stores the Wordleaf session", async () => {
+  const state = setup(async (path, options) => {
+    assert.equal(path, "/auth/google");
+    assert.deepEqual(JSON.parse(options.body), { id_token: "google-id-token" });
+    return session;
+  });
+  await state.client.loginWithGoogle("google-id-token");
+  assert.equal(state.token(), "refresh");
+  assert.equal(state.user().id, "test");
+});
 test("concurrent expired requests share a single refresh and retry", async () => {
   let refreshes = 0;
   const state = setup(async (path, options) => {
