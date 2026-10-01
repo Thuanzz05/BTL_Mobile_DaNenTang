@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { palette as c } from "@/constants/palette";
 import { useAuth } from "@/contexts/auth-context";
 
@@ -62,28 +62,30 @@ export default function ProgressScreen() {
     }
   }, [client, user]);
 
-  useEffect(() => {
-    if (!ready) return;
-    if (!user) {
-      router.replace("/login");
-      return;
-    }
-    let active = true;
-    client
-      .authorized<ProgressData>("/progress")
-      .then((value) => {
-        if (active) setData(value);
-      })
-      .catch((loadError) => {
-        if (active) setError((loadError as Error).message);
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, [client, ready, user]);
+  useFocusEffect(
+    useCallback(() => {
+      if (!ready) return;
+      if (!user) {
+        router.replace("/login");
+        return;
+      }
+      let active = true;
+      client
+        .authorized<ProgressData>("/progress")
+        .then((value) => {
+          if (active) setData(value);
+        })
+        .catch((loadError) => {
+          if (active) setError((loadError as Error).message);
+        })
+        .finally(() => {
+          if (active) setLoading(false);
+        });
+      return () => {
+        active = false;
+      };
+    }, [client, ready, user]),
+  );
 
   const topics = useMemo(
     () =>

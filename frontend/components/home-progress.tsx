@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useIsFocused } from "expo-router";
 import {
   ActivityIndicator,
   Pressable,
@@ -20,15 +21,20 @@ export function HomeProgress({
   onReview: (count: number) => void;
 }) {
   const { client, user } = useAuth();
+  const focused = useIsFocused();
   const [data, setData] = useState<Dashboard | null>(null);
   const [error, setError] = useState("");
   const [attempt, setAttempt] = useState(0);
   useEffect(() => {
+    if (!focused) return;
     let active = true;
     client
       .authorized<Dashboard>("/home/dashboard")
       .then((value) => {
-        if (active) setData(value);
+        if (active) {
+          setData(value);
+          setError("");
+        }
       })
       .catch((e) => {
         if (active) setError(e.message);
@@ -36,7 +42,7 @@ export function HomeProgress({
     return () => {
       active = false;
     };
-  }, [client, attempt, user?.muc_tieu_hang_ngay]);
+  }, [client, attempt, user?.muc_tieu_hang_ngay, focused]);
   const today = data?.tien_do_hom_nay;
   const progress = today
     ? Math.min(
