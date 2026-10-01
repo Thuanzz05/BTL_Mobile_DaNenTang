@@ -1,165 +1,91 @@
 # Tích hợp backend, admin web và mobile
 
-Cập nhật ngày 17/09/2026. Đây là hợp đồng API và trạng thái tích hợp để cộng tác viên nối tiếp phần mobile.
+Cập nhật ngày 01/10/2026. Mô tả bản `leitner-queue-v2`, sau migration 010.
 
-## Bốn thay đổi mới từ PR #13 và #14
+## Chuẩn bị sau khi pull
 
-- Hồ sơ và đổi mật khẩu đã dùng `/auth/profile` và `/auth/change-password`; backend hỗ trợ, đổi mật khẩu thu hồi token cũ.
-- Trắc nghiệm đã dùng API quiz: server chọn câu, chấm và lưu từng lượt; đã lưu phiên và câu trả lời chờ gửi trên thiết bị.
-- Lịch sử đã gọi `GET /history?page=1&limit=50` và có xem chi tiết phiên. Chưa có tải trang tiếp theo.
-- Yêu thích đã dùng GET/PUT/DELETE. Nút trong flashcard hiện là thêm yêu thích; gỡ ở màn hình danh sách.
+Cài thư viện theo lockfile của từng ứng dụng và chạy migration trước khi khởi động backend. Các lệnh ở README gốc được chạy từ thư mục gốc repo. Dữ liệu cũ được giữ lại.
 
-Tiến độ trên trang chủ được tải lại sau phiên hoàn thành, chưa phải đồng bộ thời gian thực giữa nhiều thiết bị. Các luồng cũ tiếp tục chạy với API hiện tại.
+- 009: thêm ngăn Leitner vào tiến độ từng từ.
+- 010: phiên flashcard riêng, lưu thẻ đã xem và ràng buộc chống trùng nội dung.
+- Không đổi tên thuật toán của phiên cũ. Cả `adaptive-v1` và `leitner-adaptive-v1` tiếp tục theo quy tắc cũ khi khôi phục.
 
-## Phần backend mới
+Tất cả đường dẫn dưới đây có tiền tố `/api`. Các nghiệp vụ cá nhân cần `Authorization: Bearer <accessToken>`; backend tự xác định người dùng từ token.
 
-- API trắc nghiệm do server chọn câu và chấm đáp án, lưu mọi lượt đúng/sai.
-- Chụp nội dung từ và các lựa chọn lúc tạo phiên. Sửa từ vựng trong admin không làm thay đổi câu hỏi đang học.
-- Lưu mã yêu cầu để gửi lại không bị cộng lượt hoặc cập nhật Leitner lần nữa.
-- Khôi phục câu đang làm, dừng phiên, tự hoàn thành khi tất cả từ đạt yêu cầu.
-- Thống kê đúng/sai theo khoảng ngày Việt Nam và ngưỡng số lượt mỗi từ.
-- Phiên đăng nhập web bằng cookie HttpOnly riêng; API token JSON của mobile vẫn giữ nguyên.
+## Học flashcard
 
-Dữ liệu cũ có `phuong_thuc = danh_gia`; dữ liệu mới dùng `trac_nghiem` và `phien_ban_thuat_toan = leitner-adaptive-v1`. Migration không đổi các phiên cũ thành quiz và không tự suy diễn lịch sử trả lời.
+Khách chỉ xem tối đa 5 thẻ trên giao diện học thử, không tạo phiên và không lưu tiến độ.
 
-## Hợp đồng API trắc nghiệm đang dùng trên mobile
+Người đã đăng nhập:
 
-Tất cả endpoint dưới đây nằm sau `/api`, dùng `Authorization: Bearer <accessToken>`.
+1. `POST /learning/flashcards/start` với `{ "chu_de_id": "<id>" }`: tiếp tục phiên flashcard dở của chủ đề hoặc tạo phiên từ chưa học. Số từ lấy theo mục tiêu 5/10/20 từ, giới hạn theo số từ còn lại.
+2. Lật thẻ để xem nghĩa, phiên âm, ví dụ và nghe phát âm.
+3. Bấm tiếp theo: `POST /learning/flashcards/view` với `phien_hoc_tap_id`, `tu_vung_id`. Backend yêu cầu xem theo thứ tự; gửi lại một thẻ đã lưu không cộng tiến độ lần nữa.
+4. Cuối phiên: `POST /learning/flashcards/complete` với `phien_hoc_tap_id`. Chỉ hoàn thành khi tất cả thẻ đã được ghi nhận.
 
-### 1. Bắt đầu
+Khi hoàn thành, từ mới được ghi là đã học, ở ngăn 1 và đến hạn sau 1 ngày. Flashcard không chấm đúng/sai. Nếu rời trước khi bấm tiếp theo, lần lật của thẻ hiện tại chưa được lưu; các thẻ đã gửi được khôi phục khi mở lại chủ đề. Mất mạng sẽ hiển thị lỗi và cho thử lại; chưa có hàng đợi offline cho flashcard.
 
-`POST /quiz/start`
+`/learning/start` và `/learning/review/start` đã đóng (410). `/learning/result` chỉ giữ để hoàn tất phiên tự đánh giá cũ; không gọi cho flashcard mới hay quiz.
 
-```json
-{ "chu_de_id": "<id-chủ-đề>", "tong_so_tu": 20, "ma_yeu_cau": "<uuid-khởi-tạo>" }
-```
+## Quiz ôn tập
 
-Nhận 5–50 từ; chủ đề phải có ít nhất năm từ. Backend chọn số thực tế có sẵn, tối đa bằng số yêu cầu.
+- `POST /quiz/start`: ôn các từ đến hạn trong chủ đề; body có `chu_de_id`, `tong_so_tu` (1–50), `ma_yeu_cau` UUID tùy chọn.
+- `POST /quiz/review/start`: ôn từ đến hạn trong nhiều chủ đề; body có `tong_so_tu`, `ma_yeu_cau`.
+- Không đủ từ thì lấy số thực tế, không bổ sung từ mới. Không có từ đủ điều kiện trả `NO_REVIEW_WORDS`.
+- Từ đang nằm trong một quiz dở của cùng người dùng chưa được đưa vào quiz mới.
+- Backend chụp nội dung và lựa chọn khi tạo phiên; sửa danh mục sau đó không đổi đáp án của phiên đã tạo.
+- Cùng mã khởi tạo và cùng tham số trả lại cùng phiên. Không đổi mã khi thử lại do mất phản hồi.
 
-Ôn từ đến hạn: `POST /quiz/review/start` với `{ "tong_so_tu": 20 }`, cho phép 1–50 từ. Một từ ôn vẫn tạo được câu trắc nghiệm nhờ đáp án nhiễu lấy từ danh mục đang hiển thị. Danh mục cần ít nhất hai nghĩa khác nhau.
-
-Cả hai endpoint nhận thêm `ma_yeu_cau` UUID tùy chọn, được mobile mới lưu trước khi gọi. Cùng tài khoản, cùng mã và cùng tham số sẽ trả lại phiên cũ (kể cả phiên đã kết thúc); đổi tham số với cùng mã trả 409 `IDEMPOTENCY_CONFLICT`. Client cũ không gửi mã vẫn hoạt động như trước. Chạy `npm run db:migrate` trong `backend` để áp dụng migration `004-quiz-start-retry.js` trước khi chạy backend mới.
-
-Kết quả trong `data`:
+`POST /quiz/:sessionId/answers` nhận:
 
 ```json
 {
-  "phien_hoc_tap_id": "<id-phiên>",
-  "phien_ban_thuat_toan": "leitner-adaptive-v1",
-  "trang_thai": "dang-hoc",
-  "tong_so_tu": 20,
-  "so_tu_hoan_thanh": 0,
-  "so_luot_tra_loi": 0,
-  "so_luot_dung": 0,
-  "ty_le_dung": null,
-  "cau_hoi": {
-    "id": "<uuid-câu-hỏi>",
-    "tu_vung_id": "<id-từ>",
-    "thu_tu": 1,
-    "tu_tieng_anh": "apple",
-    "phien_am": "/ˈæpəl/",
-    "url_am_thanh": null,
-    "url_hinh_anh": null,
-    "lua_chon": [
-      { "id": "<uuid-lựa-chọn>", "noi_dung": "quả táo" },
-      { "id": "<uuid-lựa-chọn-khác>", "noi_dung": "ngôi nhà" }
-    ]
-  }
+  "cau_hoi_id": "<uuid>",
+  "lua_chon_id": "<uuid>",
+  "ma_yeu_cau": "<uuid-của-lượt-trả-lời>"
 }
 ```
 
-Có từ hai đến bốn lựa chọn với nghĩa khác nhau. Không hiển thị đủ bốn bằng cách lặp đáp án. Không trả dấu hiệu lựa chọn nào đúng trước khi nộp.
+Response có `ket_qua` (đúng/sai, đáp án đúng, nghĩa, từ đã hoàn thành) và `phien` (tiến độ cùng câu tiếp theo). Không gửi kết quả tự chấm từ client. Gửi lặp cùng UUID và nội dung không tăng lượt hoặc cập nhật ngăn lần nữa.
 
-### 2. Trả lời
+Quy tắc phiên mới:
 
-`POST /quiz/:sessionId/answers`
+- Đúng ngay lần đầu: từ hoàn thành, lên một ngăn, tối đa ngăn 5.
+- Sai lần đầu: về ngăn 1 ngay, kể cả sau đó dừng phiên; từ quay xuống cuối hàng đợi.
+- Sai rồi trả lời lại đúng: hoàn thành từ trong phiên nhưng vẫn ở ngăn 1; không tăng ngăn nhờ luyện lại trong cùng phiên.
+- Lịch ngăn 1–5: 1, 2, 4, 7, 14 ngày.
+- Từ mới học: ngăn 1–2; đang củng cố: ngăn 3–4; đã thuộc: ngăn 5.
 
-```json
-{
-  "cau_hoi_id": "<uuid-câu-hỏi>",
-  "lua_chon_id": "<uuid-lựa-chọn-được-chọn>",
-  "ma_yeu_cau": "<uuid-mới-cho-lượt-này>",
-  "thoi_gian_tra_loi_ms": 1800
-}
-```
+Phiên cũ `adaptive-v1` / `leitner-adaptive-v1` giữ yêu cầu 2–4 lượt đúng liên tiếp theo số lần sai. Không áp quy tắc một lượt đúng cho phiên cũ còn dở.
 
-Client tạo UUID trước khi gửi và giữ nguyên cả UUID lẫn nội dung khi retry do mất mạng. Thời gian trả lời là tùy chọn (0–3.600.000 ms), do client báo, chưa dùng để xếp hạng. Không gửi `dung`, `is_correct` hoặc `trang_thai`.
+## Khôi phục và dừng quiz
 
-Response có:
-- `ket_qua`: `cau_hoi_id`, `dung`, `dap_an_dung_id`, `nghia_tieng_viet`, `tu_da_hoan_thanh`.
-- `phien`: trạng thái mới cùng cấu trúc kết quả bắt đầu, bao gồm câu tiếp theo.
+- `GET /quiz/:sessionId`: lấy câu đang làm và tiến độ mới nhất của người sở hữu.
+- `POST /quiz/:sessionId/stop`: dừng phiên, giữ lịch sử; những từ chưa hoàn thành và vẫn đến hạn có thể được đưa vào phiên mới.
+- Native lưu bản nháp trong SecureStore; web dùng localStorage. Bản nháp tách theo tài khoản, gồm ID phiên, một câu trả lời chờ gửi và yêu cầu dừng chờ gửi.
+- Luôn lưu câu trả lời trước khi gửi. Khi mất mạng, mở lại sẽ gửi đúng UUID và nội dung trước đó; vẫn cần mạng để chấm và lấy câu tiếp theo.
+- Trang chủ có Tiếp tục bài học cho bản nháp trên thiết bị.
+- Lịch sử có Tiếp tục bài học và Dừng phiên cho quiz đang học trên server, kể cả sau khi đổi thiết bị hoặc mất bản nháp. Dừng cần xác nhận và gửi xong câu trả lời đang chờ.
+- Nếu máy đang giữ một quiz khác, thao tác từ lịch sử sẽ yêu cầu xử lý bài đó trước, không ghi đè câu trả lời đang chờ.
+- Back Android và nút thoát quiz dùng chung xác nhận: ở lại, lưu học sau hoặc dừng phiên.
 
-Hiển thị phản hồi cho câu vừa nộp, rồi dùng `phien.cau_hoi` khi người học bấm tiếp tục. Khóa nút nộp trong lúc chờ. Không gọi `answerQuiz/nextQuestion` của client để tự chọn câu cho phiên mới.
+## Lịch sử và tiến độ
 
-Response của retry là phản hồi đã lưu tại thời điểm nộp lần đầu. Nếu có thiết bị khác tiếp tục học, gọi GET phiên để nhận trạng thái mới nhất.
+- `/history?page=...&limit=20`: tải thêm từng trang; thứ tự ổn định theo thời gian bắt đầu rồi ID.
+- `/history/:id`: kết quả từng từ và `luot_tra_loi` của quiz; mobile hiển thị lượt đúng/sai, lựa chọn và đáp án đúng.
+- `/progress`, `/progress/topics`, `/progress/review` và `/home/dashboard`: dữ liệu cá nhân. Mobile tải lại tiến độ khi quay về màn hình.
+- `/words/:id` trả `tien_do` khi đăng nhập, gồm đã học, ngăn Leitner và ngày ôn; khách nhận null.
+- `PUT /auth/profile` với `muc_tieu_hang_ngay` (5/10/20) thay đổi mục tiêu.
+- Thành tích được kiểm tra sau hoàn thành flashcard và sau trả lời quiz; hỗ trợ số phiên, từ đã học, chuỗi ngày và từ ngăn 5.
 
-Khi `phien.trang_thai = hoan-thanh`, server đã ghi tiến độ và hoạt động; không gọi lại `/learning/result` hoặc `/learning/complete` cho luồng mới.
+## Admin và tài khoản
 
-### 3. Khôi phục và dừng
+Web dùng `/web-auth/login`, `/web-auth/refresh`, `/web-auth/logout`; refresh token ở cookie HttpOnly. Mobile dùng nhóm `/auth` và refresh token trong kho lưu trữ của thiết bị.
 
-- `GET /quiz/:sessionId`: tiếp tục đúng câu chưa trả lời, giữ số lượt đã lưu.
-- `POST /quiz/:sessionId/stop`: chuyển phiên đang học sang `bo-do`, giữ lịch sử trả lời; gọi lại không đổi kết quả.
-- `GET /history/:sessionId`: có thêm `luot_tra_loi` gồm các câu đã chấm, lựa chọn, đáp án, thời gian và nội dung từ đã chụp.
+Admin quản lý chủ đề, từ, người học, thành tích và thống kê. Ẩn nội dung chỉ loại khỏi danh mục/phiên mới; lịch sử và phiên đã bắt đầu được giữ. Thành tích đã trao không được xóa hoặc đổi điều kiện/điểm. Xóa người học có xác nhận và xóa dữ liệu liên quan; không xóa tài khoản admin.
 
-Mobile đã lưu bản nháp riêng theo tài khoản: ý định khởi tạo, ID phiên, một câu trả lời chờ gửi và yêu cầu dừng đang chờ. Native dùng SecureStore; web dùng localStorage. Không lưu access token hoặc cả bộ câu hỏi vào bản nháp.
+Quên mật khẩu đã có API, nhưng gửi email thật cần cấu hình theo [hướng dẫn email](CAU_HINH_EMAIL.md). Google OAuth chưa triển khai.
 
-Trang chủ có **Tiếp tục bài học**. Khi mở lại, app gửi lại câu đang chờ với đúng UUID và nội dung, rồi GET trạng thái mới nhất. Nếu chọn chủ đề khác khi còn bài dở, app tiếp tục bài cũ và hiển thị tên bài cũ; không ghi đè bản lưu. Nếu không ghi được xuống thiết bị thì không gửi câu trả lời mới. Lỗi mạng hoặc đăng nhập không xóa bản lưu; đăng nhập lại đúng tài khoản để khôi phục. Phiên đã kết thúc hoặc không còn trên server sẽ được bỏ khỏi bản lưu.
+## Kiểm thử trước demo
 
-Nút thoát và Back Android trong modal trắc nghiệm dùng chung xác nhận:
-- **Tiếp tục học**: ở lại bài.
-- **Lưu để học sau**: về trang chủ, không gọi API dừng.
-- **Dừng phiên**: lưu yêu cầu dừng, gửi xong câu trả lời chờ trước, rồi gọi API dừng. Nếu mất mạng, yêu cầu dừng được giữ để thử lại. Trong lúc gửi, các hành động rời bài bị khóa.
-
-Phạm vi: phiên trắc nghiệm của tài khoản đã đăng nhập, một bản nháp mỗi tài khoản trên mỗi thiết bị. Vẫn cần mạng để chấm và lấy câu tiếp theo; có thể bấm **Thử gửi lại** hoặc mở **Tiếp tục bài học** khi có mạng. Nếu mở app lúc offline và chưa khôi phục đăng nhập được, trang chủ có **Thử kết nối lại**. Khách chưa đăng nhập chỉ được tra cứu từ và lật flashcard học thử; frontend không tạo trắc nghiệm cục bộ, không gọi API học tập và không lưu kết quả. Vị trí lật thẻ không được lưu qua lần mở app; xóa dữ liệu ứng dụng sẽ xóa các câu chưa gửi của tài khoản đã đăng nhập.
-
-Code tách theo trách nhiệm: `services/quiz-session.ts` quản lý lưu/gửi lại, `hooks/use-quiz-session.ts` gắn tài khoản, `components/server-quiz.tsx` hiển thị bài, `flashcard-preview.tsx` điều phối modal và Back, `resume-learning-card.tsx` hiển thị bài dở.
-
-### 4. Quy tắc luyện tập và Leitner
-
-Mỗi từ cần hai lượt đúng liên tiếp. Sai một lần cần ba lượt đúng liên tiếp; sai từ hai lần trở lên cần bốn. Trả lời sai đặt lại chuỗi đúng và đưa từ trở lại sớm hơn.
-
-Khi từ đạt yêu cầu, backend cập nhật hệ thống Leitner 5 ngăn:
-- từ mới bắt đầu ở ngăn 1;
-- không sai trong phiên: lên một ngăn, tối đa ngăn 5;
-- có ít nhất một lần sai trong phiên: về ngăn 1;
-- lịch ôn ngăn 1–5: 1, 3, 7, 14 và 30 ngày.
-
-Trạng thái tiến độ cũ vẫn được trả để tương thích: ngăn 1 là `chua-nho`, ngăn 2–4 là `da-nho`, ngăn 5 là `thuoc-long`. API danh sách ôn trả thêm `ngan_leitner` để giao diện hiển thị ngăn hiện tại.
-
-Một phiên chỉ cập nhật Leitner một lần cho mỗi từ, trong khi bảng câu hỏi giữ đầy đủ mọi lượt. Đây là thuật toán luyện tập hiện tại, không phải bài kiểm tra giám sát hay hệ thống chống gian lận.
-
-### 5. Lỗi cần xử lý
-
-- 401: thử refresh token một lần; nếu thất bại, về đăng nhập.
-- 403 `ACCOUNT_DISABLED`: tài khoản bị khóa/ngừng hoạt động.
-- 404 `SESSION_NOT_FOUND`: không có phiên hoặc phiên thuộc tài khoản khác.
-- 409 `IDEMPOTENCY_CONFLICT`: cùng mã yêu cầu nhưng nội dung khác; không tự tạo mã mới để gửi lại câu đã nộp.
-- 409 `QUESTION_ALREADY_ANSWERED`: tải lại trạng thái phiên.
-- 409 `SESSION_CLOSED`: phiên đã kết thúc, mở kết quả hoặc bắt đầu phiên mới.
-- 409 `INSUFFICIENT_WORDS/INSUFFICIENT_CHOICES`: nội dung chưa đủ để học.
-- 409 `QUIZ_ANSWER_REQUIRED`: không dùng API đánh giá SRS cũ cho phiên trắc nghiệm.
-
-## API cho web quản trị
-
-Web đã nối các endpoint quản trị hiện có, kèm:
-- `POST /web-auth/login`, `/web-auth/refresh`, `/web-auth/logout`;
-- `GET /admin/quiz-statistics?from=YYYY-MM-DD&to=YYYY-MM-DD&minAttempts=5&limit=20`.
-
-Bộ lọc ngày tính theo UTC+7, bao gồm cả ngày kết thúc, tối đa 366 ngày. Mặc định 30 ngày gần nhất. `ty_le_dung = null` khi chưa có lượt trả lời. Thống kê bao gồm các lượt đã chấm của cả phiên hoàn thành và phiên dừng.
-
-## Trạng thái ẩn/hiện từ vựng
-
-Backend đã hỗ trợ `tu_vung.trang_thai` (`active` / `inactive`). Mobile không phải gửi thêm trường khi lấy nội dung: các API thư viện, yêu thích và tạo phiên học/ôn tự loại từ ẩn, kể cả đáp án nhiễu của quiz mới. Từ còn bị ẩn nếu chủ đề của nó ẩn. API chi tiết từ ẩn trả 404 cho người học.
-
-Phiên đã bắt đầu vẫn giữ danh sách và có thể hoàn thành; lịch sử/tiến độ/yêu thích không bị xóa. Khi từ được hiện lại, dữ liệu trước đó còn nguyên. Tổng từ đã học là số liệu lịch sử; `total_words` / `learned_words` theo chủ đề chỉ tính từ đang hiển thị. Bộ đếm ôn cũng loại từ ẩn. Cache đã tải trên mobile chỉ cập nhật khi client gọi lại API.
-
-Admin dùng `PUT /api/admin/words/:id` với `{ "trang_thai": "inactive" }` hoặc `"active"`; bỏ trường này khi sửa nội dung sẽ giữ trạng thái hiện tại. `GET /api/admin/words?status=inactive` hỗ trợ tìm/lọc/phân trang. Các API chủ đề trả thêm `active_word_count`; `word_count` của admin tính toàn bộ từ, của người học chỉ tính từ hiển thị.
-
-## Phần việc mobile còn lại
-
-1. Kiểm tra trên máy Android thật: Back ở câu đầu, sau trả lời, khi đang gửi, và tại xác nhận thoát; thoát/mở lại app khi có câu chờ gửi; thử lại sau khi kết nối mạng.
-2. Bổ sung phân trang lịch sử.
-3. Đồng bộ trạng thái yêu thích ban đầu và thao tác bỏ yêu thích trực tiếp trên flashcard nếu đó là thiết kế mong muốn.
-4. Nếu cần học hoàn toàn offline hoặc lưu vị trí lật flashcard, bổ sung bộ nhớ nội dung và quy tắc đồng bộ riêng.
-
-Google OAuth và thành tích/điểm thưởng là phần mở rộng; chưa có luồng nghiệp vụ hoàn chỉnh trong đợt này.
+Chạy tests, typecheck, lint và build theo README gốc. Kiểm tra thêm trên điện thoại thật: phát âm, Back Android, tắt/mở app khi đang gửi, mạng chập chờn, đổi tài khoản, tiếp tục/dừng từ lịch sử. Kiểm thử tự động hoặc bản web không thay thế các kiểm tra phần cứng này.

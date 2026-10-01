@@ -19,7 +19,7 @@ export class HistoryService {
       LEFT JOIN ket_qua_hoc k ON p.id = k.phien_hoc_tap_id
       WHERE p.nguoi_dung_id = ?
       GROUP BY p.id
-      ORDER BY p.bat_dau_luc DESC
+      ORDER BY p.bat_dau_luc DESC, p.id DESC
       LIMIT ? OFFSET ?
     `;
 

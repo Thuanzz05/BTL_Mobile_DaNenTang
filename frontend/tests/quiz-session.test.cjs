@@ -43,6 +43,76 @@ const start = {
 const questionId = randomUUID();
 const choiceId = randomUUID();
 
+test("topic quizzes with one to four words survive an app restart", async () => {
+  for (const count of [1, 2, 3, 4]) {
+    const env = setup();
+    await env.client().open({ ...start, count });
+    const restarted = env.client();
+    await restarted.open();
+    assert.equal(restarted.getSnapshot().start.count, count);
+    assert.equal(env.server.starts.size, 1);
+  }
+});
+
+test("history resumes an owned server quiz without creating a new session", async () => {
+  const env = setup();
+  const target = {
+    id: env.server.session.phien_hoc_tap_id,
+    title: "Từ lịch sử",
+  };
+  const client = env.client();
+  await client.open(undefined, target);
+  assert.equal(env.server.starts.size, 0);
+  assert.equal(client.getSnapshot().sessionId, target.id);
+  await env.client().open();
+  await client.stop();
+  assert.equal(env.server.session.trang_thai, "bo-do");
+  assert.equal(env.records.size, 0);
+});
+
+test("history cannot overwrite another draft or its pending answer", async () => {
+  const env = setup();
+  const client = env.client();
+  await client.open(start);
+  env.server.failBefore = "answer";
+  await assert.rejects(client.answer(questionId, choiceId));
+  const before = JSON.stringify(client.getSnapshot());
+  await assert.rejects(
+    client.open(undefined, { id: randomUUID(), title: "Bài khác" }),
+    /Máy đang giữ/,
+  );
+  assert.equal(JSON.stringify(client.getSnapshot()), before);
+  env.server.failBefore = "";
+  await client.open(undefined, {
+    id: env.server.session.phien_hoc_tap_id,
+    title: start.title,
+  });
+  assert.equal(env.server.replies.size, 1);
+  assert.equal(client.getSnapshot().pending, null);
+});
+
+test("history validates server access and storage before allowing answers", async () => {
+  const env = setup();
+  const target = { id: env.server.session.phien_hoc_tap_id, title: "Bài học" };
+  const denied = new QuizSessionClient(
+    env.userId,
+    async () => {
+      throw failure("SESSION_NOT_FOUND");
+    },
+    env.storage,
+  );
+  await assert.rejects(denied.open(undefined, target), /SESSION_NOT_FOUND/);
+  assert.equal(env.records.size, 0);
+  env.diskFailure(true);
+  await assert.rejects(env.client().open(undefined, target), /Chưa lưu/);
+  assert.equal(env.requests.filter((r) => r.action === "answer").length, 0);
+  env.diskFailure(false);
+  env.server.session.trang_thai = "hoan-thanh";
+  const result = await env.client().open(undefined, target);
+  assert.equal(result.session.trang_thai, "hoan-thanh");
+  assert.equal(env.records.size, 0);
+});
+
 function setup() {
   const records = new Map();
   let writeFails = false;

@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
-import { router, useLocalSearchParams } from "expo-router";
+import { router, useIsFocused, useLocalSearchParams } from "expo-router";
 import { FlashcardPreview } from "@/components/flashcard-preview";
 import { palette as c } from "@/constants/palette";
 import { Fonts } from "@/constants/theme";
@@ -29,6 +29,7 @@ export default function TopicScreen() {
     ? params.topicId[0]
     : params.topicId;
   const { client, ready, user } = useAuth();
+  const focused = useIsFocused();
   const [topic, setTopic] = useState<Topic | null>(null);
   const [words, setWords] = useState<Word[]>([]);
   const [progress, setProgress] = useState<TopicProgress | null>(null);
@@ -58,7 +59,7 @@ export default function TopicScreen() {
   }, [attempt, topicId]);
 
   useEffect(() => {
-    if (!ready || !user || !topicId) return;
+    if (!ready || !user || !topicId || !focused) return;
     let active = true;
     client
       .authorized<TopicProgress[]>(
@@ -71,7 +72,7 @@ export default function TopicScreen() {
     return () => {
       active = false;
     };
-  }, [client, ready, topicId, user, quizOpen]);
+  }, [client, ready, topicId, user, quizOpen, focused]);
 
   const total = Number(topic?.word_count ?? words.length);
   const learned = Number(progress?.learned_words ?? 0);

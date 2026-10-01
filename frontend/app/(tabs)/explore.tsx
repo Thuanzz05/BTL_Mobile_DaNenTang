@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   Pressable,
@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
-import { Link } from "expo-router";
+import { Link, useFocusEffect } from "expo-router";
 import { FlashcardPreview } from "@/components/flashcard-preview";
 import { palette as c } from "@/constants/palette";
 import { Fonts } from "@/constants/theme";
@@ -61,28 +61,30 @@ export default function ReviewScreen() {
     }
   }, [client, user]);
 
-  useEffect(() => {
-    if (!ready || !user) return;
-    let active = true;
-    Promise.all([
-      client.authorized<ReviewData>("/progress/review?limit=20"),
-      client.authorized<ProgressData>("/progress"),
-    ])
-      .then(([reviewData, progressData]) => {
-        if (!active) return;
-        setReview(reviewData);
-        setProgress(progressData);
-      })
-      .catch((loadError) => {
-        if (active) setError((loadError as Error).message);
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, [client, ready, user]);
+  useFocusEffect(
+    useCallback(() => {
+      if (!ready || !user) return;
+      let active = true;
+      Promise.all([
+        client.authorized<ReviewData>("/progress/review?limit=20"),
+        client.authorized<ProgressData>("/progress"),
+      ])
+        .then(([reviewData, progressData]) => {
+          if (!active) return;
+          setReview(reviewData);
+          setProgress(progressData);
+        })
+        .catch((loadError) => {
+          if (active) setError((loadError as Error).message);
+        })
+        .finally(() => {
+          if (active) setLoading(false);
+        });
+      return () => {
+        active = false;
+      };
+    }, [client, ready, user]),
+  );
 
   const due = review?.so_tu_can_on ?? 0;
 

@@ -9,13 +9,11 @@ import { identifier, schemas } from '../validations/request.schemas';
 const router = Router();
 // Chỉ giữ API kết quả để đọc/hoàn tất phiên cũ; không tạo phiên tự đánh giá mới.
 router.post(['/start', '/review/start'], authMiddleware, (_req, res) =>
-  res
-    .status(410)
-    .json({
-      success: false,
-      message: 'Dùng /learning/flashcards/start để học và /quiz/review/start để ôn tập.',
-      error: { code: 'LEGACY_LEARNING_DISABLED' },
-    })
+  res.status(410).json({
+    success: false,
+    message: 'Dùng /learning/flashcards/start để học và /quiz/review/start để ôn tập.',
+    error: { code: 'LEGACY_LEARNING_DISABLED' },
+  })
 );
 router.post(
   '/flashcards/start',

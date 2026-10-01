@@ -37,7 +37,7 @@ export function quizState(
   }));
 
   // Các phiên v1 đang học tiếp tục dùng quy tắc cũ đã lưu cùng phiên.
-  const legacy = version === 'leitner-adaptive-v1';
+  const legacy = version === 'adaptive-v1' || version === 'leitner-adaptive-v1';
   if (legacy) {
     items.forEach((item) => {
       item.due = 0;

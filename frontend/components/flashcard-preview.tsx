@@ -5,7 +5,7 @@ import { palette as c } from "@/constants/palette";
 import { Topic } from "@/services/catalog";
 import { useAuth } from "@/contexts/auth-context";
 import { useQuizSession } from "@/hooks/use-quiz-session";
-import type { QuizExitHandle, QuizSession } from "@/types/quiz";
+import type { QuizExitHandle, QuizResume, QuizSession } from "@/types/quiz";
 import { ServerQuiz } from "./server-quiz";
 import { quizStyles as s } from "./quiz.styles";
 
@@ -13,12 +13,14 @@ export function FlashcardPreview({
   topic,
   reviewCount = 0,
   resume = false,
+  savedSession,
   onClose,
   onCompleted,
 }: {
   topic: Topic | null;
   reviewCount?: number;
   resume?: boolean;
+  savedSession?: QuizResume;
   onClose: () => void;
   onCompleted: () => void;
 }) {
@@ -34,7 +36,9 @@ export function FlashcardPreview({
   const topicId = topic?.id;
   const topicTitle = topic?.ten || "Từ vựng";
   const wordCount = Number(topic?.word_count || 0);
-  const visible = !!topic || reviewCount > 0 || resume;
+  const visible = !!topic || reviewCount > 0 || resume || !!savedSession;
+  const savedId = savedSession?.id;
+  const savedTitle = savedSession?.title;
   const userId = user?.id;
   const ownerId = useRef(userId);
   useEffect(() => {
@@ -49,7 +53,7 @@ export function FlashcardPreview({
         if (client) {
           ownerId.current = userId;
           const result = await client.open(
-            resume
+            resume || savedId
               ? undefined
               : reviewCount
                 ? {
@@ -63,6 +67,9 @@ export function FlashcardPreview({
                     count: Math.min(20, Math.max(1, wordCount)),
                     title: topicTitle,
                   },
+            savedId
+              ? { id: savedId, title: savedTitle || "Bài học đã lưu" }
+              : undefined,
           );
           if (active) {
             setTitle(result.title);
@@ -91,6 +98,8 @@ export function FlashcardPreview({
     userId,
     visible,
     resume,
+    savedId,
+    savedTitle,
     authError,
   ]);
   function requestClose() {

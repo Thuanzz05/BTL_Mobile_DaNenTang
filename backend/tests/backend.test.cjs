@@ -577,6 +577,7 @@ test('Backend HTTP and real MySQL regression tests', { timeout: 120000 }, async 
     });
 
     await require('./quiz-integration.cjs')(t, { api, connection, admin, learner, other, base });
+    await require('./quiz-upgrade-integration.cjs')(t, { api, connection, admin, learner, other });
     await require('./word-visibility-integration.cjs').verifyBehavior(t, {
       api,
       connection,
