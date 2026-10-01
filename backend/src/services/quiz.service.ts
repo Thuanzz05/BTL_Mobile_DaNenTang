@@ -9,7 +9,6 @@ import { LearningService, lockUser, sessionForUser } from './learning.service';
 interface Snapshot {
   tu_tieng_anh: string;
   phien_am: string | null;
-  url_am_thanh: string | null;
   url_hinh_anh: string | null;
   nghia_tieng_viet: string;
   lua_chon: string[];
@@ -137,7 +136,6 @@ export class QuizService {
               thu_tu: question.thu_tu,
               tu_tieng_anh: word.tu_tieng_anh,
               phien_am: word.phien_am,
-              url_am_thanh: word.url_am_thanh,
               url_hinh_anh: word.url_hinh_anh,
               lua_chon: question.lua_chon,
             }

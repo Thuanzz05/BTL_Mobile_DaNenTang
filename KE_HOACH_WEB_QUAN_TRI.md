@@ -113,7 +113,7 @@ Chức năng:
 
 Đây là trang cần đầu tư nhiều nhất trong bản đầu tiên.
 
-Bảng gồm: từ tiếng Anh, phiên âm, từ loại, nghĩa tiếng Việt, chủ đề, tình trạng ảnh/âm thanh và thao tác.
+Bảng gồm: từ tiếng Anh, phiên âm, từ loại, nghĩa tiếng Việt, chủ đề, trạng thái và thao tác.
 
 Chức năng danh sách:
 
@@ -131,7 +131,6 @@ Form thêm/sửa:
 | loai_tu | Chọn theo enum backend, hiển thị nhãn tiếng Việt |
 | phien_am | Phiên âm |
 | url_hinh_anh | Upload ảnh và xem trước |
-| url_am_thanh | Upload MP3 và nghe thử |
 | thu_tu_hien_thi | Thứ tự trong chủ đề |
 | vi_du | Danh sách câu tiếng Anh, bản dịch và thứ tự |
 
@@ -139,10 +138,10 @@ Quy tắc:
 
 - Cho phép thêm/xóa dòng ví dụ trong form.
 - Khi sửa, không gửi vi_du nếu muốn giữ nguyên; gửi [] nghĩa là xóa toàn bộ ví dụ.
-- Upload ảnh JPG/PNG tối đa 2 MB; MP3 tối đa 5 MB, theo backend hiện có.
+- Ảnh JPG/PNG tối đa 2 MB chỉ dùng cho chủ đề.
 - Upload dùng multipart/form-data với trường file; không ép Content-Type JSON cho request này.
 - Hiển thị lỗi file sai định dạng/quá lớn và cho phép thử lại.
-- URL tương đối phải được ghép với địa chỉ backend khi hiển thị ảnh hoặc phát âm thanh.
+- URL tương đối phải được ghép với địa chỉ backend khi hiển thị ảnh chủ đề.
 - Kiểm tra dữ liệu và lỗi theo trường; không đóng form khi lưu thất bại.
 - Backend chặn xóa từ đã có dữ liệu học hoặc thuộc phiên học.
 - Đã bổ sung trạng thái ẩn/hiện riêng cho từng từ qua migration `003-word-visibility.js`, kèm bộ lọc và thao tác trên admin. Từ ẩn được loại khỏi nội dung và phiên học mới, giữ nguyên lịch sử.
@@ -205,7 +204,6 @@ Base URL lấy từ biến môi trường riêng của admin-web. Tiền tố m�
 | Người dùng | PUT /api/admin/users/:userId/status | Body: trang_thai |
 | Thống kê | GET /api/admin/statistics | Chủ đề/từ phổ biến, hoạt động 7 ngày |
 | Upload | POST /api/admin/upload/image | multipart, file |
-| Upload | POST /api/admin/upload/audio | multipart, file |
 
 Các route /api/admin đều có authMiddleware và adminMiddleware. Danh sách có phân trang dùng data.items và data.pagination; danh sách chủ đề trả mảng trong data. Không dùng cùng một cách đọc response cho mọi endpoint.
 
@@ -259,7 +257,7 @@ Chưa đặt nút thay đổi thuật toán trên website ở bản đầu. Nế
 - [ ] Khung web: sidebar, header, điều hướng và trang không có quyền.
 - [ ] Quản lý chủ đề: danh sách, thêm/sửa, ẩn/hiện, xóa theo điều kiện.
 - [ ] Quản lý từ vựng: danh sách, lọc/tìm, phân trang, thêm/sửa.
-- [ ] Form ví dụ, upload ảnh/MP3 và xem/nghe thử.
+- [ ] Form ví dụ; phát âm trên ứng dụng dùng giọng đọc của thiết bị.
 - [ ] Kiểm tra nội dung tạo trên web xuất hiện đúng trong app người học.
 
 ### Giai đoạn 2 — Hoàn thiện quản trị

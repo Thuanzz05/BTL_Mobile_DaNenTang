@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Eye, EyeOff, Headphones, Pencil, Plus, Search, Trash2 } from 'lucide-react';
+import { Eye, EyeOff, Pencil, Plus, Search, Trash2 } from 'lucide-react';
 import { api, jsonBody } from '../services/api';
 import type { Page, Topic, Word } from '../types';
 import { useQuery } from '../hooks/use-query';
@@ -184,7 +184,6 @@ export function WordsPage() {
                       <th>Từ tiếng Anh</th>
                       <th>Nghĩa tiếng Việt</th>
                       <th>Chủ đề</th>
-                      <th>Âm thanh</th>
                       <th>Trạng thái từ</th>
                       <th className="align-right">Thao tác</th>
                     </tr>
@@ -206,15 +205,6 @@ export function WordsPage() {
                           <span className="topic-tag">
                             {topics.data?.find((topic) => topic.id === word.chu_de_id)?.ten || '—'}
                           </span>
-                        </td>
-                        <td>
-                          <div className="media-indicators">
-                            <Headphones
-                              size={17}
-                              aria-label={word.url_am_thanh ? 'Có âm thanh' : 'Chưa có âm thanh'}
-                              className={word.url_am_thanh ? 'available' : ''}
-                            />
-                          </div>
                         </td>
                         <td>
                           <Status

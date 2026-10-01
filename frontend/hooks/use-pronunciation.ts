@@ -1,16 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import {
-  setAudioModeAsync,
-  useAudioPlayer,
-  useAudioPlayerStatus,
-} from "expo-audio";
 import * as Speech from "expo-speech";
-import { API_URL } from "@/services/api";
 
-export function usePronunciation(word?: string, audioUrl?: string | null) {
-  const source = audioUrl ? new URL(audioUrl, API_URL).toString() : null;
-  const player = useAudioPlayer(source);
-  const status = useAudioPlayerStatus(player);
+export function usePronunciation(word?: string) {
   const [error, setError] = useState({ word: "", message: "" });
   const generation = useRef(0);
   const showError = (message: string) =>
@@ -21,7 +12,7 @@ export function usePronunciation(word?: string, audioUrl?: string | null) {
       generation.current++;
       void Speech.stop();
     },
-    [word, audioUrl],
+    [word],
   );
 
   async function pronounce() {
@@ -31,36 +22,23 @@ export function usePronunciation(word?: string, audioUrl?: string | null) {
     try {
       await Speech.stop();
       if (request !== generation.current) return;
-      if (!source || status.error) {
-        Speech.speak(word, {
-          language: "en-US",
-          rate: 0.82,
-          onError: () => showError("Thiết bị chưa phát âm được từ này."),
-        });
-        return;
-      }
-      await setAudioModeAsync({ playsInSilentMode: true });
-      if (status.isLoaded) await player.seekTo(0);
-      if (request === generation.current) player.play();
-    } catch {
-      if (request !== generation.current) return;
-      showError(
-        "Chưa phát được file âm thanh. Đang dùng giọng đọc của thiết bị.",
-      );
       Speech.speak(word, {
         language: "en-US",
         rate: 0.82,
-        onError: () => showError("Thiết bị chưa phát âm được từ này."),
+        onError: () => {
+          if (request === generation.current) {
+            showError("Thiết bị chưa phát âm được từ này.");
+          }
+        },
       });
+    } catch {
+      if (request !== generation.current) return;
+      showError("Thiết bị chưa phát âm được từ này.");
     }
   }
 
   return {
     pronounce,
-    audioMessage:
-      (error.word === word ? error.message : "") ||
-      (status.error
-        ? "Không tải được âm thanh. Bấm Phát âm để dùng giọng đọc của thiết bị."
-        : ""),
+    audioMessage: error.word === word ? error.message : "",
   };
 }

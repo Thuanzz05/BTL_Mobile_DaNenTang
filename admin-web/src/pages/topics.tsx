@@ -103,13 +103,7 @@ function TopicForm({
             />
           </label>
         </div>
-        <UploadField
-          label="Ảnh chủ đề"
-          kind="image"
-          value={image}
-          onChange={setImage}
-          onBusy={setUploading}
-        />
+        <UploadField label="Ảnh chủ đề" value={image} onChange={setImage} onBusy={setUploading} />
         {error && <Notice>{error}</Notice>}
         <div className="form-actions">
           <button

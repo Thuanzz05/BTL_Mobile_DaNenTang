@@ -284,7 +284,6 @@ export class LearningService {
         const snapshot = {
           tu_tieng_anh: word.tu_tieng_anh,
           phien_am: word.phien_am,
-          url_am_thanh: word.url_am_thanh,
           url_hinh_anh: word.url_hinh_anh,
           nghia_tieng_viet: meaning,
           lua_chon: [

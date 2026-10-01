@@ -26,7 +26,7 @@ Các kiểm thử tự động bao gồm phiên đăng nhập, khôi phục quiz
 
 ## Học flashcard và ôn trắc nghiệm
 
-Khách được học thử tối đa 5 thẻ mỗi lượt, không lưu kết quả. Người học đăng nhập có phiên flashcard trên server, tiếp tục được thẻ chưa xem; mặt sau gồm nghĩa, phiên âm, từ loại và ví dụ, không có ảnh. Phát âm ưu tiên file đã tải lên, thiếu file dùng giọng đọc thiết bị. Expo Audio chỉ dùng phát âm, không xin quyền micro hay phát nền.
+Khách được học thử tối đa 5 thẻ mỗi lượt, không lưu kết quả. Người học đăng nhập có phiên flashcard trên server, tiếp tục được thẻ chưa xem; mặt sau gồm nghĩa, phiên âm, từ loại và ví dụ, không có ảnh. Phát âm dùng giọng đọc tiếng Anh của thiết bị qua Expo Speech, không cần file MP3.
 
 Trắc nghiệm chủ đề và ôn tổng hợp đều lấy từ đã học, đã đến hạn. Backend chấm đáp án đã chụp nội dung: đúng ngay thì tăng một ngăn (tối đa 5) và hoàn thành từ; sai lần đầu hạ ngăn 1 ngay, đưa xuống cuối hàng đợi đến khi đúng. Đúng lại sau sai giữ ngăn 1 trong phiên đó. Lịch ngăn 1–5: 1, 2, 4, 7, 14 ngày. Gửi lại yêu cầu không ghi trùng.
 

@@ -19,8 +19,7 @@
         "backgroundImage": "./assets/images/android-icon-background.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false,
-      "permissions": ["android.permission.MODIFY_AUDIO_SETTINGS"]
+      "predictiveBackGestureEnabled": false
     },
     "web": {
       "output": "static",
@@ -39,14 +38,6 @@
         }
       ],
       "expo-secure-store",
-      [
-        "expo-audio",
-        {
-          "microphonePermission": false,
-          "recordAudioAndroid": false,
-          "enableBackgroundPlayback": false
-        }
-      ],
       "expo-asset"
     ],
     "experiments": {

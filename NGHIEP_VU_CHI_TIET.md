@@ -36,7 +36,7 @@ Hệ thống gồm ứng dụng người học React Native/Expo SDK 57, web qu�
 7. **Xóa chủ đề/từ/thành tích:** hệ thống giữ quy tắc bảo vệ dữ liệu tham chiếu. Chủ đề còn từ hoặc phiên học, từ đã được học, thành tích đã có người nhận phải dùng ẩn thay vì xóa. Cần ghi rõ ngoại lệ này trong use case, không chỉ ghi “xác nhận là xóa”.
 8. **Sơ đồ use case và đăng nhập:** đăng nhập là tiền điều kiện cho nghiệp vụ cá nhân; không phải mỗi lần lật thẻ hay trả lời đều gọi đăng nhập lại. Tra cứu công khai không bắt buộc đăng nhập.
 9. Mục lục/danh sách bảng, hình còn có nội dung từ mẫu quản lý nhân sự. Phần cơ sở dữ liệu phía sau các biểu đồ tuần tự cũng còn nội dung mẫu; phần này nằm ngoài phạm vi đối chiếu lần này. Không đưa nghiệp vụ nhân sự vào ứng dụng từ vựng.
-10. Dòng đặc tả báo cáo thống kê quản trị còn thiếu nội dung chi tiết; sử dụng mục 5.5 dưới đây để bổ sung. Phát âm ưu tiên file quản trị đã cung cấp; thiếu file thì dùng Expo Speech. Lỗi tải file hiển thị thông báo và cho dùng giọng đọc của thiết bị.
+10. Dòng đặc tả báo cáo thống kê quản trị còn thiếu nội dung chi tiết; sử dụng mục 5.5 dưới đây để bổ sung. Phát âm dùng giọng đọc tiếng Anh của thiết bị qua Expo Speech, không quản lý file MP3.
 
 File Word gốc được dùng làm tài liệu tham chiếu, chưa chỉnh sửa trực tiếp trong đợt này.
 
@@ -198,12 +198,12 @@ Lịch tính từ thời điểm ghi nhận kết quả, theo khoảng thời gi
 
 - Tìm kiếm/lọc chủ đề, lọc trạng thái, phân trang; thêm/sửa/ẩn/xóa.
 - Bắt buộc chủ đề, từ tiếng Anh, nghĩa tiếng Việt và từ loại hợp lệ. Từ tiếng Anh không trùng trong cùng chủ đề; có thể tồn tại ở chủ đề khác.
-- Có phiên âm, âm thanh phát âm, thứ tự; mỗi từ có tối đa 20 ví dụ, mỗi ví dụ gồm câu Anh và bản dịch Việt.
+- Có phiên âm và thứ tự; mỗi từ có tối đa 20 ví dụ, mỗi ví dụ gồm câu Anh và bản dịch Việt.
 - Lưu từ và các ví dụ trong cùng giao dịch; lỗi một bước thì không lưu nửa chừng.
 - Khi cập nhật không gửi `vi_du`, giữ ví dụ cũ; gửi `vi_du: []` nghĩa là chủ động xóa danh sách ví dụ.
 - **Không còn ô nhập/tải ảnh từ hay chỉ báo ảnh trong bảng quản lý từ.** Payload form không gửi `url_hinh_anh`, nên ảnh cũ không bị xóa khi sửa nghĩa hoặc ví dụ. Trường DB/API được giữ để tương thích dữ liệu cũ; không đồng nghĩa ứng dụng đang hiển thị ảnh này.
 - Chỉ xóa từ chưa có dữ liệu học hoặc thuộc phiên đã tạo; từ đang được tham chiếu thì dùng ẩn. Ẩn không xóa lịch sử và câu hỏi đã chụp nội dung.
-- File âm thanh quản trị tải lên được dùng ở flashcard và chi tiết từ qua Expo Audio. Thiếu file thì dùng Expo Speech; lỗi tải/phát có thông báo và giọng đọc dự phòng. Không xin quyền micro và không phát nền.
+- Flashcard và chi tiết từ phát âm trực tiếp bằng giọng đọc tiếng Anh của thiết bị qua Expo Speech. Quản trị viên không phải tải MP3; lỗi giọng đọc được thông báo trên giao diện.
 
 ### 5.4. Quản lý thành tích
 

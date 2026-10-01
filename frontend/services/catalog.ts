@@ -17,7 +17,6 @@ export interface Word {
   phien_am: string | null;
   nghia_tieng_viet: string;
   loai_tu: string;
-  url_am_thanh?: string | null;
   url_hinh_anh?: string | null;
   chu_de_ten?: string;
   da_yeu_thich?: boolean | number;
