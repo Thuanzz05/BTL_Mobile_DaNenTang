@@ -5,13 +5,11 @@ import { Notice } from './ui';
 
 export function UploadField({
   label,
-  kind,
   value,
   onChange,
   onBusy,
 }: {
   label: string;
-  kind: 'image' | 'audio';
   value: string;
   onChange: (value: string) => void;
   onBusy: (busy: boolean) => void;
@@ -23,9 +21,8 @@ export function UploadField({
     if (!file) {
       return;
     }
-    const max = kind === 'image' ? 2 : 5;
-    if (file.size > max * 1024 * 1024) {
-      setError('Tệp tối đa ' + max + ' MB.');
+    if (file.size > 2 * 1024 * 1024) {
+      setError('Tệp tối đa 2 MB.');
       return;
     }
 
@@ -35,7 +32,7 @@ export function UploadField({
     try {
       const body = new FormData();
       body.append('file', file);
-      const result = await api<{ url: string }>('/admin/upload/' + kind, { method: 'POST', body });
+      const result = await api<{ url: string }>('/admin/upload/image', { method: 'POST', body });
       onChange(result.url);
     } catch (failure) {
       setError((failure as Error).message);
@@ -62,7 +59,7 @@ export function UploadField({
         <input
           type="file"
           aria-label={'Tải ' + label.toLowerCase()}
-          accept={kind === 'image' ? 'image/png,image/jpeg' : 'audio/mpeg,.mp3'}
+          accept="image/png,image/jpeg"
           disabled={busy}
           onChange={(event) => {
             void upload(event.target.files?.[0]);
@@ -70,18 +67,11 @@ export function UploadField({
           }}
         />
       </label>
-      <span className="hint">
-        {kind === 'image' ? 'JPG, PNG · tối đa 2 MB' : 'MP3 · tối đa 5 MB'}
-      </span>
+      <span className="hint">JPG, PNG · tối đa 2 MB</span>
       {error && <Notice>{error}</Notice>}
-      {mediaUrl(value) &&
-        (kind === 'image' ? (
-          <img className="upload-preview" src={mediaUrl(value)} alt="Ảnh đã chọn" />
-        ) : (
-          <audio controls preload="none" src={mediaUrl(value)}>
-            Trình duyệt không hỗ trợ nghe âm thanh.
-          </audio>
-        ))}
+      {mediaUrl(value) && (
+        <img className="upload-preview" src={mediaUrl(value)} alt="Ảnh đã chọn" />
+      )}
     </div>
   );
 }

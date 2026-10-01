@@ -76,8 +76,9 @@ export class HistoryService {
 
     // Chỉ trả các câu đã chấm, giữ nguyên nội dung và lựa chọn tại lúc học.
     const attempts = await query(
-      `SELECT q.id, q.tu_vung_id, q.thu_tu, q.lua_chon, q.dap_an_chon_id,
-        q.dap_an_dung_id, q.dung, q.thoi_gian_tra_loi_ms, q.tra_loi_luc,
+      `SELECT q.id, q.tu_vung_id, q.thu_tu, q.loai_cau_hoi, q.lua_chon,
+        q.dap_an_chon_id, q.dap_an_dung_id, q.dap_an_chon_text, q.dap_an_dung_text,
+        q.dung, q.thoi_gian_tra_loi_ms, q.tra_loi_luc,
         JSON_UNQUOTE(JSON_EXTRACT(m.noi_dung_trac_nghiem, '$.tu_tieng_anh')) AS tu_tieng_anh
        FROM cau_hoi_trac_nghiem q
        JOIN phien_hoc_tu m ON m.phien_hoc_tap_id = q.phien_hoc_tap_id AND m.tu_vung_id = q.tu_vung_id

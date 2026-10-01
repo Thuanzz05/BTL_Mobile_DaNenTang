@@ -51,7 +51,6 @@ export const wordSchema = z
       'dai-tu',
       'tham-tu',
     ]),
-    url_am_thanh: url,
     url_hinh_anh: url,
     trang_thai: wordStatusSchema.optional(),
     thu_tu_hien_thi: z.number().int().min(0).optional(),

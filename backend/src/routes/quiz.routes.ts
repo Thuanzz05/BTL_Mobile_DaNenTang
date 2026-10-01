@@ -77,10 +77,11 @@ router.use('/:sessionId', validate(z.object({ sessionId: identifier }), 'params'
  *         application/json:
  *           schema:
  *             type: object
- *             required: [cau_hoi_id, lua_chon_id, ma_yeu_cau]
+ *             required: [cau_hoi_id, ma_yeu_cau]
  *             properties:
  *               cau_hoi_id: { type: string, format: uuid }
  *               lua_chon_id: { type: string, format: uuid }
+ *               cau_tra_loi: { type: string, maxLength: 120, description: Dùng cho câu nhập từ }
  *               ma_yeu_cau: { type: string, format: uuid, description: Giữ nguyên UUID và nội dung khi retry }
  *               thoi_gian_tra_loi_ms: { type: integer, minimum: 0, maximum: 3600000 }
  *     responses:
@@ -103,11 +104,15 @@ router.post(
     z
       .object({
         cau_hoi_id: z.string().uuid(),
-        lua_chon_id: z.string().uuid(),
+        lua_chon_id: z.string().uuid().optional(),
+        cau_tra_loi: z.string().trim().min(1).max(120).optional(),
         ma_yeu_cau: z.string().uuid(),
         thoi_gian_tra_loi_ms: z.number().int().min(0).max(3600000).optional(),
       })
       .strict()
+      .refine((value) => Boolean(value.lua_chon_id) !== Boolean(value.cau_tra_loi), {
+        message: 'Chỉ gửi lựa chọn hoặc câu trả lời nhập tay',
+      })
   ),
   QuizController.answer
 );

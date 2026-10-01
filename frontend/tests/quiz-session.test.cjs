@@ -256,6 +256,19 @@ test("offline answer survives restart and replays the exact payload once", async
   assert.equal(restored.getSnapshot().pending, null);
 });
 
+test("typed answer is trimmed, saved before sending, and restored after reconnect", async () => {
+  const env = setup();
+  const client = env.client();
+  await client.open(start);
+  env.server.failBefore = "answer";
+  await assert.rejects(client.answer(questionId, "  Apple  ", "text"));
+  assert.equal(client.getSnapshot().pending.cau_tra_loi, "Apple");
+  assert.equal(client.getSnapshot().pending.lua_chon_id, undefined);
+  env.server.failBefore = "";
+  await env.client().open();
+  assert.equal(env.server.replies.size, 1);
+});
+
 test("pending answer cannot be replaced; concurrent submissions cannot count twice", async () => {
   const env = setup();
   const client = env.client();

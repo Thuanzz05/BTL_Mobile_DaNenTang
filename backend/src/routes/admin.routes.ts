@@ -6,7 +6,7 @@ import { adminMiddleware } from '../middlewares/admin.middleware';
 import { authMiddleware } from '../middlewares/auth.middleware';
 import { validate } from '../middlewares/validate.middleware';
 import { schemas, topicSchema, wordSchema } from '../validations/request.schemas';
-import { uploadAudio, uploadImage } from '../middlewares/upload.middleware';
+import { uploadImage } from '../middlewares/upload.middleware';
 import { UploadController } from '../controllers/upload.controller';
 import adminAchievementRoutes from './admin-achievement.routes';
 
@@ -16,7 +16,6 @@ const router = Router();
 router.use(authMiddleware, adminMiddleware);
 router.use('/achievements', adminAchievementRoutes);
 router.post('/upload/image', uploadImage, UploadController.uploadImage);
-router.post('/upload/audio', uploadAudio, UploadController.uploadAudio);
 
 /**
  * @swagger
@@ -344,28 +343,6 @@ router.delete('/words/:id', WordController.delete);
  *     responses:
  *       201:
  *         description: URL ảnh trong data.url
- *       400:
- *         description: File không đúng định dạng
- *       413:
- *         description: File vượt giới hạn
- * /api/admin/upload/audio:
- *   post:
- *     summary: Upload âm thanh MP3 tối đa 5 MB (admin)
- *     tags: [Admin]
- *     requestBody:
- *       required: true
- *       content:
- *         multipart/form-data:
- *           schema:
- *             type: object
- *             required: [file]
- *             properties:
- *               file:
- *                 type: string
- *                 format: binary
- *     responses:
- *       201:
- *         description: URL âm thanh trong data.url
  *       400:
  *         description: File không đúng định dạng
  *       413:

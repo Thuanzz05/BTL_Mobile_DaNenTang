@@ -235,7 +235,7 @@ export default function TopicScreen() {
                   <View style={s.modeText}>
                     <Text style={s.modeTitle}>Đăng nhập để ôn tập</Text>
                     <Text style={s.modeBody}>
-                      Trắc nghiệm và kết quả Leitner chỉ dành cho người học đã
+                      Ôn tập và kết quả Leitner chỉ dành cho người học đã
                       đăng nhập.
                     </Text>
                   </View>

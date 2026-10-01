@@ -21,7 +21,7 @@ Cấu hình mặc định dùng `/api`; Vite chuyển tiếp `/api` và `/upload
 - `/dashboard`: số người học, chủ đề, từ vựng, phiên học; biểu đồ đủ bảy ngày theo giờ Việt Nam.
 - `/topics`: thêm, sửa, xóa, tìm tên, lọc trạng thái, ẩn/hiện, thứ tự, upload ảnh.
 - `/words`: tìm tiếng Anh/nghĩa tiếng Việt, lọc chủ đề/trạng thái từ, phân trang, ẩn/hiện và xóa.
-- `/words/new`, `/words/:id/edit`: từ loại, phiên âm, nghĩa, ví dụ, ảnh JPG/PNG và phát âm MP3.
+- `/words/new`, `/words/:id/edit`: từ loại, phiên âm, nghĩa và ví dụ. Ứng dụng người học phát âm bằng giọng đọc của thiết bị.
 - `/users`: tìm tên/email, lọc trạng thái, phân trang, xem hồ sơ cơ bản, khóa/mở khóa.
 - `/achievements`: thêm/sửa huy hiệu, tìm tên, lọc loại điều kiện/trạng thái, phân trang, bật/tắt cấp mới và xóa khi chưa có người nhận.
 - `/achievements/:id/recipients`: tổng số người đã đạt, tìm tên/email, ngày nhận theo giờ Việt Nam và phân trang.
@@ -85,6 +85,7 @@ Bộ kiểm thử kiểm tra đăng nhập, refresh đồng thời, phân quyề
 ## Triển khai
 
 `npm run build` sinh thư mục `dist/`. Web server cần:
+
 - phục vụ file tĩnh và trả `index.html` cho các đường dẫn giao diện như `/words/new`;
 - chuyển tiếp `/api` và `/uploads` đến backend cùng origin;
 - dùng HTTPS và backend `NODE_ENV=production`;

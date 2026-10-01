@@ -35,10 +35,7 @@ export default function WordScreen() {
     : params.wordId;
   const { client, ready, user } = useAuth();
   const [word, setWord] = useState<WordDetail | null>(null);
-  const { pronounce, audioMessage } = usePronunciation(
-    word?.tu_tieng_anh,
-    word?.url_am_thanh,
-  );
+  const { pronounce, audioMessage } = usePronunciation(word?.tu_tieng_anh);
   const [loading, setLoading] = useState(Boolean(wordId));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");

@@ -1,5 +1,6 @@
 const assert = require('node:assert/strict');
 const { randomUUID } = require('node:crypto');
+const quizAnswer = require('./quiz-answer.cjs');
 
 module.exports = async function quizUpgrade(t, { api, connection, admin }) {
   async function account(email) {
@@ -55,16 +56,12 @@ module.exports = async function quizUpgrade(t, { api, connection, admin }) {
         let state = await api('GET', '/api/quiz/' + id, undefined, learner.accessToken);
         await api('GET', '/api/quiz/' + id, undefined, other.accessToken, 404);
         for (let turn = 0; state.cau_hoi && turn < 20; turn++) {
-          const [[question]] = await connection.execute(
-            'SELECT dap_an_dung_id FROM cau_hoi_trac_nghiem WHERE id = ?',
-            [state.cau_hoi.id]
-          );
           const response = await api(
             'POST',
             '/api/quiz/' + id + '/answers',
             {
               cau_hoi_id: state.cau_hoi.id,
-              lua_chon_id: question.dap_an_dung_id,
+              ...(await quizAnswer(connection, state.cau_hoi.id)),
               ma_yeu_cau: randomUUID(),
             },
             learner.accessToken
