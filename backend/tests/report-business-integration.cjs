@@ -1,5 +1,6 @@
 const assert = require('node:assert/strict');
 const { randomUUID } = require('node:crypto');
+const quizAnswer = require('./quiz-answer.cjs');
 
 module.exports = async function reportBusiness(t, { api, connection, admin }) {
   await t.test(
@@ -151,15 +152,9 @@ module.exports = async function reportBusiness(t, { api, connection, admin }) {
       const quizId = quiz.phien_hoc_tap_id;
       const wrongId = quiz.cau_hoi.tu_vung_id;
       const answer = async (wrong = false) => {
-        const [[q]] = await connection.execute(
-          'SELECT dap_an_dung_id FROM cau_hoi_trac_nghiem WHERE id = ?',
-          [quiz.cau_hoi.id]
-        );
         const body = {
           cau_hoi_id: quiz.cau_hoi.id,
-          lua_chon_id: wrong
-            ? quiz.cau_hoi.lua_chon.find((o) => o.id !== q.dap_an_dung_id).id
-            : q.dap_an_dung_id,
+          ...(await quizAnswer(connection, quiz.cau_hoi.id, !wrong)),
           ma_yeu_cau: randomUUID(),
         };
         const responses = await Promise.all([
@@ -209,16 +204,12 @@ module.exports = async function reportBusiness(t, { api, connection, admin }) {
         [uid, wrongId]
       );
       const stopped = await api('POST', '/api/quiz/review/start', { tong_so_tu: 1 }, token, 201);
-      const [[sq]] = await connection.execute(
-        'SELECT dap_an_dung_id FROM cau_hoi_trac_nghiem WHERE id = ?',
-        [stopped.cau_hoi.id]
-      );
       await api(
         'POST',
         '/api/quiz/' + stopped.phien_hoc_tap_id + '/answers',
         {
           cau_hoi_id: stopped.cau_hoi.id,
-          lua_chon_id: stopped.cau_hoi.lua_chon.find((o) => o.id !== sq.dap_an_dung_id).id,
+          ...(await quizAnswer(connection, stopped.cau_hoi.id, false)),
           ma_yeu_cau: randomUUID(),
         },
         token

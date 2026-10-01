@@ -6,7 +6,6 @@ import { api, jsonBody } from '../services/api';
 import type { Example, Topic, Word } from '../types';
 import { useQuery } from '../hooks/use-query';
 import { Empty, Notice, PageHeader, QueryState } from '../components/ui';
-import { UploadField } from '../components/upload-field';
 import { wordTypes } from './words';
 
 function WordForm({
@@ -27,19 +26,16 @@ function WordForm({
     loai_tu: word?.loai_tu || 'danh-tu',
     trang_thai: word?.trang_thai || 'active',
     thu_tu_hien_thi: word?.thu_tu_hien_thi || 0,
-    url_am_thanh: word?.url_am_thanh || '',
   });
   const [examples, setExamples] = useState<Example[]>(word?.vi_du || []);
   const [busy, setBusy] = useState(false);
-  const [uploads, setUploads] = useState(0);
   const [error, setError] = useState('');
   const update = (key: keyof typeof values, value: string | number) =>
     setValues((current) => ({ ...current, [key]: value }));
-  const uploadBusy = (value: boolean) => setUploads((count) => count + (value ? 1 : -1));
 
   async function submit(event: FormEvent) {
     event.preventDefault();
-    if (busy || uploads) {
+    if (busy) {
       return;
     }
     setBusy(true);
@@ -53,7 +49,6 @@ function WordForm({
           tu_tieng_anh: values.tu_tieng_anh.trim(),
           nghia_tieng_viet: values.nghia_tieng_viet.trim(),
           phien_am: values.phien_am.trim() || null,
-          url_am_thanh: values.url_am_thanh.trim() || null,
           vi_du: examples.map((example, index) => ({
             cau_tieng_anh: example.cau_tieng_anh.trim(),
             cau_tieng_viet: example.cau_tieng_viet.trim(),
@@ -236,22 +231,6 @@ function WordForm({
             </button>
           </section>
         </div>
-        <aside className="panel editor-media">
-          <div className="panel-heading">
-            <div>
-              <p className="eyebrow">03 · HỌC LIỆU</p>
-              <h2>Âm thanh phát âm</h2>
-            </div>
-          </div>
-          <UploadField
-            label="Âm thanh phát âm"
-            kind="audio"
-            value={values.url_am_thanh}
-            onChange={(value) => update('url_am_thanh', value)}
-            onBusy={uploadBusy}
-          />
-          <p className="hint">Để trống nếu chưa có học liệu. Bạn có thể bổ sung sau.</p>
-        </aside>
       </div>
       {error && <Notice>{error}</Notice>}
       <div className="editor-footer">
@@ -260,12 +239,12 @@ function WordForm({
           <button
             type="button"
             className="button secondary"
-            disabled={busy || uploads > 0}
+            disabled={busy}
             onClick={() => navigate('/words')}
           >
             Hủy
           </button>
-          <button className="button" disabled={busy || uploads > 0}>
+          <button className="button" disabled={busy}>
             <Save size={17} />
             {busy ? 'Đang lưu…' : 'Lưu từ vựng'}
           </button>

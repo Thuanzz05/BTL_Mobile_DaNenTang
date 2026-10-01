@@ -10,7 +10,7 @@ import {
   normalizeLeitnerBox,
 } from '../utils/srs.util';
 import { UuidUtil } from '../utils/uuid.util';
-import { QUIZ_VERSION, shuffled } from '../utils/quiz.util';
+import { QUIZ_VERSION, shuffled, typedQuestionIds } from '../utils/quiz.util';
 
 export async function lockUser(connection: PoolConnection, userId: string) {
   const [users]: any = await connection.execute(
@@ -258,6 +258,7 @@ export class LearningService {
 
     // Chụp nội dung và đáp án tại thời điểm bắt đầu để việc sửa từ không đổi kết quả chấm.
     if (method === 'trac_nghiem') {
+      const typedIds = typedQuestionIds(words.map((word) => word.id));
       const [catalog]: any = await connection.query(
         `SELECT DISTINCT TRIM(t.nghia_tieng_viet) AS nghia FROM tu_vung t
          JOIN chu_de c ON c.id = t.chu_de_id AND c.trang_thai = 'active'
@@ -271,7 +272,7 @@ export class LearningService {
         ]),
       ];
 
-      if (meanings.length < 2) {
+      if (typedIds.size < words.length && meanings.length < 2) {
         throw new AppError(
           'Cần ít nhất hai nghĩa khác nhau để tạo câu hỏi',
           409,
@@ -281,16 +282,18 @@ export class LearningService {
 
       for (const word of words) {
         const meaning = word.nghia_tieng_viet.trim();
+        const questionType = typedIds.has(word.id) ? 'nhap-tu' : 'trac-nghiem';
         const snapshot = {
+          loai_cau_hoi: questionType,
           tu_tieng_anh: word.tu_tieng_anh,
           phien_am: word.phien_am,
-          url_am_thanh: word.url_am_thanh,
+          loai_tu: word.loai_tu,
           url_hinh_anh: word.url_hinh_anh,
           nghia_tieng_viet: meaning,
-          lua_chon: [
-            meaning,
-            ...shuffled(meanings.filter((value) => value !== meaning)).slice(0, 3),
-          ],
+          lua_chon:
+            questionType === 'nhap-tu'
+              ? []
+              : [meaning, ...shuffled(meanings.filter((value) => value !== meaning)).slice(0, 3)],
         };
 
         await connection.execute(

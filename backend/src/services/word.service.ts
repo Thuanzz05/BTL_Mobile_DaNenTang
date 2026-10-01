@@ -74,8 +74,8 @@ export class WordService {
         throw new AppError('Chủ đề không tồn tại', 404, 'TOPIC_NOT_FOUND');
       }
       await connection.execute(
-        `INSERT INTO tu_vung (id, chu_de_id, tu_tieng_anh, phien_am, loai_tu, nghia_tieng_viet, url_am_thanh, url_hinh_anh, thu_tu_hien_thi, trang_thai)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO tu_vung (id, chu_de_id, tu_tieng_anh, phien_am, loai_tu, nghia_tieng_viet, url_hinh_anh, thu_tu_hien_thi, trang_thai)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           id,
           data.chu_de_id,
@@ -83,7 +83,6 @@ export class WordService {
           data.phien_am ?? null,
           data.loai_tu,
           data.nghia_tieng_viet,
-          data.url_am_thanh ?? null,
           data.url_hinh_anh ?? null,
           data.thu_tu_hien_thi ?? 0,
           data.trang_thai ?? 'active',

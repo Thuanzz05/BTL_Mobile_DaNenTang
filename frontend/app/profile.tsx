@@ -145,57 +145,60 @@ export default function ProfileScreen() {
                 </Pressable>
               </View>
 
-              <View style={s.card}>
-                <View style={s.sectionTitle}>
-                  <Feather name="lock" size={22} color={c.green} />
-                  <Text style={s.title}>Đổi mật khẩu</Text>
-                </View>
-                <Text style={s.body}>
-                  Sau khi đổi mật khẩu, bạn cần đăng nhập lại trên thiết bị này.
-                </Text>
-                <PasswordField
-                  label="Mật khẩu hiện tại"
-                  value={currentPassword}
-                  onChangeText={setCurrentPassword}
-                  editable={!busy}
-                />
-                <PasswordField
-                  label="Mật khẩu mới"
-                  value={newPassword}
-                  onChangeText={setNewPassword}
-                  editable={!busy}
-                />
-                <PasswordField
-                  label="Xác nhận mật khẩu mới"
-                  value={confirmPassword}
-                  onChangeText={setConfirmPassword}
-                  editable={!busy}
-                />
-                <Pressable
-                  accessibilityRole="button"
-                  disabled={
-                    !!busy ||
-                    !currentPassword ||
-                    !newPassword ||
-                    !confirmPassword
-                  }
-                  onPress={savePassword}
-                  style={[
-                    s.button,
-                    (!!busy ||
+              {user.phuong_thuc_dang_nhap === "local" && (
+                <View style={s.card}>
+                  <View style={s.sectionTitle}>
+                    <Feather name="lock" size={22} color={c.green} />
+                    <Text style={s.title}>Đổi mật khẩu</Text>
+                  </View>
+                  <Text style={s.body}>
+                    Sau khi đổi mật khẩu, bạn cần đăng nhập lại trên thiết bị
+                    này.
+                  </Text>
+                  <PasswordField
+                    label="Mật khẩu hiện tại"
+                    value={currentPassword}
+                    onChangeText={setCurrentPassword}
+                    editable={!busy}
+                  />
+                  <PasswordField
+                    label="Mật khẩu mới"
+                    value={newPassword}
+                    onChangeText={setNewPassword}
+                    editable={!busy}
+                  />
+                  <PasswordField
+                    label="Xác nhận mật khẩu mới"
+                    value={confirmPassword}
+                    onChangeText={setConfirmPassword}
+                    editable={!busy}
+                  />
+                  <Pressable
+                    accessibilityRole="button"
+                    disabled={
+                      !!busy ||
                       !currentPassword ||
                       !newPassword ||
-                      !confirmPassword) &&
-                      s.disabled,
-                  ]}
-                >
-                  {busy === "password" ? (
-                    <ActivityIndicator color="white" />
-                  ) : (
-                    <Text style={s.white}>Đổi mật khẩu</Text>
-                  )}
-                </Pressable>
-              </View>
+                      !confirmPassword
+                    }
+                    onPress={savePassword}
+                    style={[
+                      s.button,
+                      (!!busy ||
+                        !currentPassword ||
+                        !newPassword ||
+                        !confirmPassword) &&
+                        s.disabled,
+                    ]}
+                  >
+                    {busy === "password" ? (
+                      <ActivityIndicator color="white" />
+                    ) : (
+                      <Text style={s.white}>Đổi mật khẩu</Text>
+                    )}
+                  </Pressable>
+                </View>
+              )}
             </>
           )}
         </ScrollView>

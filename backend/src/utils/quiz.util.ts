@@ -1,6 +1,16 @@
 import { randomInt } from 'crypto';
 
 export const QUIZ_VERSION = 'leitner-queue-v2';
+export const TYPED_QUESTION_RATE = 0.2;
+
+export function typedQuestionIds(wordIds: string[]) {
+  const count = Math.ceil(wordIds.length * TYPED_QUESTION_RATE);
+  return new Set(shuffled(wordIds).slice(0, count));
+}
+
+export function normalizeTypedAnswer(value: string) {
+  return value.normalize('NFKC').trim().replace(/\s+/g, ' ').toLocaleLowerCase('en-US');
+}
 
 export interface QuizWordState {
   id: string;

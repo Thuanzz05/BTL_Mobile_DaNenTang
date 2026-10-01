@@ -193,17 +193,22 @@ export function HistorySessionDetail({
                     {item.dung ? "Đúng" : "Sai"}
                   </Text>
                   <Text style={s.body}>
-                    Bạn chọn:{" "}
-                    {item.lua_chon.find(
-                      (option) => option.id === item.dap_an_chon_id,
-                    )?.noi_dung || "—"}
+                    {item.loai_cau_hoi === "nhap-tu"
+                      ? `Bạn nhập: ${item.dap_an_chon_text || "—"}`
+                      : `Bạn chọn: ${
+                          item.lua_chon.find(
+                            (option) => option.id === item.dap_an_chon_id,
+                          )?.noi_dung || "—"
+                        }`}
                   </Text>
                   {!item.dung && (
                     <Text style={s.body}>
                       Đáp án đúng:{" "}
-                      {item.lua_chon.find(
-                        (option) => option.id === item.dap_an_dung_id,
-                      )?.noi_dung || "—"}
+                      {item.loai_cau_hoi === "nhap-tu"
+                        ? item.dap_an_dung_text || "—"
+                        : item.lua_chon.find(
+                            (option) => option.id === item.dap_an_dung_id,
+                          )?.noi_dung || "—"}
                     </Text>
                   )}
                 </View>

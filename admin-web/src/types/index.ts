@@ -33,7 +33,6 @@ export interface Word {
   phien_am: string | null;
   loai_tu: string;
   url_hinh_anh: string | null;
-  url_am_thanh: string | null;
   trang_thai: 'active' | 'inactive';
   thu_tu_hien_thi: number;
   vi_du?: Example[];

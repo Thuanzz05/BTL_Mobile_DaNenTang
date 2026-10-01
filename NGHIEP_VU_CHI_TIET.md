@@ -23,7 +23,7 @@ Hệ thống gồm ứng dụng người học React Native/Expo SDK 57, web qu�
 | Quản lý người dùng | Danh sách, xem, khóa/mở khóa | Bổ sung xóa người học có xác nhận; không cho khóa hoặc xóa quản trị viên |
 | Trùng tên | Chưa có ràng buộc đủ | Tên chủ đề, tiêu đề thành tích duy nhất; từ tiếng Anh duy nhất trong cùng chủ đề |
 | Ảnh từ vựng | Web quản trị có ô ảnh và chỉ báo ảnh | Ẩn ô ảnh và chỉ báo ảnh trong quản lý từ vựng; không hiển thị ảnh trên flashcard; giữ dữ liệu ảnh cũ |
-| Đăng nhập Google | Báo cáo có nêu nhưng chưa có luồng tích hợp | **Chưa triển khai**. Cần OAuth client và cấu hình ứng dụng trước khi nghiệm thu chức năng này |
+| Đăng nhập Google | Mobile Android gửi Google ID token để backend xác minh và cấp phiên Wordleaf | **Đã tích hợp mã nguồn**, cần nghiệm thu trên development build Android; iOS chưa cấu hình OAuth Client |
 
 ### 1.1. Các điểm báo cáo cần chỉnh hoặc làm rõ
 
@@ -36,7 +36,7 @@ Hệ thống gồm ứng dụng người học React Native/Expo SDK 57, web qu�
 7. **Xóa chủ đề/từ/thành tích:** hệ thống giữ quy tắc bảo vệ dữ liệu tham chiếu. Chủ đề còn từ hoặc phiên học, từ đã được học, thành tích đã có người nhận phải dùng ẩn thay vì xóa. Cần ghi rõ ngoại lệ này trong use case, không chỉ ghi “xác nhận là xóa”.
 8. **Sơ đồ use case và đăng nhập:** đăng nhập là tiền điều kiện cho nghiệp vụ cá nhân; không phải mỗi lần lật thẻ hay trả lời đều gọi đăng nhập lại. Tra cứu công khai không bắt buộc đăng nhập.
 9. Mục lục/danh sách bảng, hình còn có nội dung từ mẫu quản lý nhân sự. Phần cơ sở dữ liệu phía sau các biểu đồ tuần tự cũng còn nội dung mẫu; phần này nằm ngoài phạm vi đối chiếu lần này. Không đưa nghiệp vụ nhân sự vào ứng dụng từ vựng.
-10. Dòng đặc tả báo cáo thống kê quản trị còn thiếu nội dung chi tiết; sử dụng mục 5.5 dưới đây để bổ sung. Phát âm ưu tiên file quản trị đã cung cấp; thiếu file thì dùng Expo Speech. Lỗi tải file hiển thị thông báo và cho dùng giọng đọc của thiết bị.
+10. Dòng đặc tả báo cáo thống kê quản trị còn thiếu nội dung chi tiết; sử dụng mục 5.5 dưới đây để bổ sung. Phát âm dùng giọng đọc tiếng Anh của thiết bị qua Expo Speech, không quản lý file MP3.
 
 File Word gốc được dùng làm tài liệu tham chiếu, chưa chỉnh sửa trực tiếp trong đợt này.
 
@@ -87,7 +87,7 @@ Backend lấy ID người dùng từ JWT đã xác thực. Không tin `userId` d
 - Đổi mật khẩu: nhập đúng mật khẩu cũ; sau thay đổi thu hồi các phiên đăng nhập cũ.
 - Quên mật khẩu: yêu cầu mã qua email; mã 6 chữ số có hạn 10 phút và giới hạn số lần thử; mã đã dùng không dùng lại được. Khi chạy phát triển chưa cấu hình gửi email, mã thử nghiệm có thể được trả về theo cấu hình; không coi đây là gửi email thành công.
 - Đăng xuất: thu hồi refresh token và xóa phiên phía client. Các API kiểm tra tài khoản bị khóa và phiên bị thu hồi.
-- Google OAuth là hạng mục chưa tích hợp, không nằm trong danh sách chức năng đã nghiệm thu.
+- Google OAuth đã có luồng Android và backend; chỉ ghi đã nghiệm thu sau khi thử development build bằng tài khoản Google thật.
 
 ### 4.2. Học flashcard
 
@@ -110,7 +110,7 @@ Backend lấy ID người dùng từ JWT đã xác thực. Không tin `userId` d
 - Xem lại bộ thẻ sau khi đã hoàn thành trên cùng màn hình: không tạo thêm kết quả và không hạ ngăn của từ đã học.
 - Thêm yêu thích từ flashcard: ghi yêu thích riêng, không tự tạo tiến độ “đã học”.
 
-### 4.3. Ôn tập trắc nghiệm theo Leitner
+### 4.3. Ôn tập theo Leitner
 
 **Nguồn từ:** từ có `da_hoc = TRUE`, `ngay_on_tap_tiep_theo <= thời điểm hiện tại`, từ và chủ đề đều bật. Có thể chọn ôn trong một chủ đề hoặc ôn tất cả chủ đề. Không lấy từ chưa học để thay thế khi hết từ đến hạn.
 
@@ -119,18 +119,20 @@ Backend lấy ID người dùng từ JWT đã xác thực. Không tin `userId` d
 - Mỗi yêu cầu chọn từ 1–50, UI thường chọn tối đa 20; số thực nhận không vượt số từ đủ điều kiện.
 - Ưu tiên hạn ôn cũ nhất. Từ đang thuộc một phiên trắc nghiệm chưa kết thúc của chính người học không được đưa vào phiên mới khác.
 - Nếu không có từ phù hợp, trả `NO_REVIEW_WORDS` và không tạo phiên trống.
-- Chụp nội dung từ và tập đáp án tại lúc tạo phiên. Việc admin sửa nghĩa sau đó không làm đổi đáp án của câu đã tạo.
-- Cần ít nhất hai nghĩa khác nhau để tạo câu hỏi; tối đa bốn lựa chọn, một đáp án đúng. Các đáp án được xáo trộn; thứ tự từ ôn không được mô tả là chọn ngẫu nhiên hoàn toàn.
+- Chụp nội dung từ, dạng câu hỏi và đáp án tại lúc tạo phiên. Việc admin sửa nghĩa sau đó không làm đổi câu đã tạo.
+- Chọn ngẫu nhiên `ceil(số từ thực nhận × 20%)` từ làm câu nhập đáp án; các từ còn lại là trắc nghiệm. Ví dụ phiên 5, 10 và 20 từ lần lượt có 1, 2 và 4 câu nhập. Dạng câu của mỗi từ được giữ nguyên trong suốt phiên.
+- Câu trắc nghiệm cần ít nhất hai nghĩa khác nhau; có tối đa bốn lựa chọn và một đáp án đúng. Các đáp án được xáo trộn; thứ tự từ ôn vẫn ưu tiên hạn cũ, không chọn ngẫu nhiên hoàn toàn.
+- Câu nhập từ hiển thị nghĩa tiếng Việt và từ loại, không gửi từ tiếng Anh hoặc phiên âm trước khi chấm.
 - `ma_yeu_cau` khởi tạo giúp thử lại sau mất mạng nhận cùng phiên, không tạo phiên trùng.
 
 **Mỗi lượt trả lời:**
 
-1. Server trả câu hỏi, các ID lựa chọn và nội dung lựa chọn; chưa gửi ID đáp án đúng.
-2. Người học chọn đáp án, client gửi ID phiên, ID câu hỏi, ID lựa chọn và mã yêu cầu duy nhất.
-3. Backend kiểm tra quyền sở hữu, phiên còn mở, câu chưa được chấm và lựa chọn thuộc câu hỏi; tự xác định đúng/sai.
+1. Server trả loại câu hỏi. Câu trắc nghiệm có các lựa chọn; câu nhập từ có nghĩa tiếng Việt. Chưa gửi đáp án đúng.
+2. Người học chọn một lựa chọn hoặc nhập từ tiếng Anh; client gửi ID câu hỏi, một trong hai trường `lua_chon_id`/`cau_tra_loi` và mã yêu cầu duy nhất.
+3. Backend kiểm tra quyền sở hữu, phiên còn mở, câu chưa được chấm và dữ liệu đúng với loại câu. Câu nhập từ được chuẩn hóa Unicode, bỏ khoảng trắng thừa và không phân biệt chữ hoa/thường, sau đó so khớp chính xác với từ tiếng Anh.
 4. Lưu lịch sử lượt trả lời. Gửi lặp đúng mã và đúng nội dung trả lại phản hồi cũ; cùng mã nhưng nội dung khác bị từ chối.
 5. Đúng ngay: hoàn thành từ trong phiên, tăng một ngăn, tối đa ngăn 5; từ không hỏi lại trong phiên đó.
-6. Sai: lần sai đầu tiên trong phiên hạ từ về ngăn 1 ngay và hẹn ôn sau 1 ngày; đưa từ xuống cuối hàng đợi. Nếu chỉ còn một từ, có thể hỏi lại ngay.
+6. Sai: lần sai đầu tiên trong phiên hạ từ về ngăn 1 ngay và hẹn ôn sau 1 ngày; đưa từ xuống cuối hàng đợi với cùng dạng câu hỏi. Nếu chỉ còn một từ, có thể hỏi lại ngay.
 7. Sai tiếp: tiếp tục đưa xuống cuối; không tăng số lần ôn/ngăn nhiều lần cho cùng từ trong cùng phiên.
 8. Đúng sau một hoặc nhiều lần sai: hoàn thành từ, nhưng **giữ ngăn 1** trong phiên đó.
 9. Khi mọi từ đều đã trả lời đúng ít nhất một lần, phiên tự hoàn thành. Kết quả có số từ hoàn thành, số từ đúng ngay, số từ phải luyện lại, tổng lượt trả lời, lượt đúng và tỷ lệ đúng.
@@ -198,12 +200,12 @@ Lịch tính từ thời điểm ghi nhận kết quả, theo khoảng thời gi
 
 - Tìm kiếm/lọc chủ đề, lọc trạng thái, phân trang; thêm/sửa/ẩn/xóa.
 - Bắt buộc chủ đề, từ tiếng Anh, nghĩa tiếng Việt và từ loại hợp lệ. Từ tiếng Anh không trùng trong cùng chủ đề; có thể tồn tại ở chủ đề khác.
-- Có phiên âm, âm thanh phát âm, thứ tự; mỗi từ có tối đa 20 ví dụ, mỗi ví dụ gồm câu Anh và bản dịch Việt.
+- Có phiên âm và thứ tự; mỗi từ có tối đa 20 ví dụ, mỗi ví dụ gồm câu Anh và bản dịch Việt.
 - Lưu từ và các ví dụ trong cùng giao dịch; lỗi một bước thì không lưu nửa chừng.
 - Khi cập nhật không gửi `vi_du`, giữ ví dụ cũ; gửi `vi_du: []` nghĩa là chủ động xóa danh sách ví dụ.
 - **Không còn ô nhập/tải ảnh từ hay chỉ báo ảnh trong bảng quản lý từ.** Payload form không gửi `url_hinh_anh`, nên ảnh cũ không bị xóa khi sửa nghĩa hoặc ví dụ. Trường DB/API được giữ để tương thích dữ liệu cũ; không đồng nghĩa ứng dụng đang hiển thị ảnh này.
 - Chỉ xóa từ chưa có dữ liệu học hoặc thuộc phiên đã tạo; từ đang được tham chiếu thì dùng ẩn. Ẩn không xóa lịch sử và câu hỏi đã chụp nội dung.
-- File âm thanh quản trị tải lên được dùng ở flashcard và chi tiết từ qua Expo Audio. Thiếu file thì dùng Expo Speech; lỗi tải/phát có thông báo và giọng đọc dự phòng. Không xin quyền micro và không phát nền.
+- Flashcard và chi tiết từ phát âm trực tiếp bằng giọng đọc tiếng Anh của thiết bị qua Expo Speech. Quản trị viên không phải tải MP3; lỗi giọng đọc được thông báo trên giao diện.
 
 ### 5.4. Quản lý thành tích
 
@@ -243,15 +245,15 @@ else [Không có từ mới]
 end
 ```
 
-### Ôn tập trắc nghiệm
+### Ôn tập từ vựng
 
 ```text
 Người học -> Form_OnTap: Chọn ôn chủ đề hoặc ôn các từ đến hạn
-Form -> Ctrl_OnTap -> CSDL: Tạo phiên từ đã học và đến hạn, chụp nội dung câu hỏi
+Form -> Ctrl_OnTap -> CSDL: Tạo phiên từ đã học và đến hạn, chọn 20% câu nhập từ, chụp nội dung
 alt [Có từ phù hợp]
   loop [Còn từ chưa hoàn thành]
-    Ctrl --> Form --> Người học: Câu hỏi và lựa chọn
-    Người học -> Form -> Ctrl: Chọn đáp án
+    Ctrl --> Form --> Người học: Câu trắc nghiệm hoặc câu nhập từ
+    Người học -> Form -> Ctrl: Chọn đáp án hoặc nhập từ tiếng Anh
     Ctrl -> CSDL: Chấm và lưu lượt trả lời, cập nhật tiến độ
     alt [Đúng ngay]
       Ctrl -> CSDL: Tăng một ngăn (tối đa 5), lập lịch; loại từ khỏi hàng đợi
@@ -289,7 +291,7 @@ Trong biểu đồ UML thực tế, `Ctrl -> CSDL` có thể thay bằng các li
 | Trắc nghiệm | `POST /quiz/start` | Body: `{"chu_de_id":"<topicId>","tong_so_tu":5,"ma_yeu_cau":"<UUID>"}`; ôn từ đến hạn trong chủ đề |
 | Trắc nghiệm | `POST /quiz/review/start` | Body: `{"tong_so_tu":20,"ma_yeu_cau":"<UUID>"}`; ôn đến hạn mọi chủ đề |
 | Trắc nghiệm | `GET /quiz/:sessionId` | Lấy câu đang làm, không lộ đáp án đúng trước khi chấm |
-| Trắc nghiệm | `POST /quiz/:sessionId/answers` | Body: `{"cau_hoi_id":"<UUID>","lua_chon_id":"<UUID>","ma_yeu_cau":"<UUID>"}` |
+| Ôn tập | `POST /quiz/:sessionId/answers` | Trắc nghiệm gửi `lua_chon_id`; câu nhập từ gửi `cau_tra_loi`; luôn kèm `cau_hoi_id` và `ma_yeu_cau` |
 | Trắc nghiệm | `POST /quiz/:sessionId/stop` | Dừng phiên, giữ lượt đã chấm |
 | Cá nhân | `GET /progress`, `GET /progress/topics`, `GET /learning/review` | Thống kê, theo chủ đề, danh sách từ đến hạn |
 | Cá nhân | `GET /history`, `GET /history/:sessionId`, `GET /learning/result/:sessionId` | Lịch sử, kết quả và thẻ đã xem |
@@ -327,8 +329,8 @@ Migration `010-report-learning.js` bổ sung phương thức `flashcard`, kết 
 4. Mở khách: thử 5 flashcard và tra từ; các API ghi phiên/yêu thích phải trả 401 nếu không có token.
 5. Đăng nhập, chọn mục tiêu 5: học phiên tối đa 5 từ mới. Thoát giữa chừng rồi vào lại phải tiếp tục cùng phiên. Học xong mới tăng tiến độ, mới có lịch ôn +1 ngày.
 6. Từ chưa đến hạn không được đưa vào quiz. Khi kiểm thử tự động, dùng database riêng để đặt ngày đến hạn quá khứ; không sửa ngày dữ liệu người dùng thật chỉ để demo.
-7. Ôn: đúng một lần hoàn thành từ; sai đưa về ngăn 1 và hỏi lại cuối hàng đợi; đúng sau sai không nâng ngăn. Thử mất mạng/gửi lại không cộng trùng.
+7. Ôn: kiểm tra đúng tỷ lệ 20% câu nhập từ; đúng một lần hoàn thành từ; sai đưa về ngăn 1 và hỏi lại cuối hàng đợi với cùng dạng câu; đúng sau sai không nâng ngăn. Thử mất mạng/gửi lại không cộng trùng.
 8. Admin: kiểm tra không có ô ảnh từ; sửa ví dụ vẫn hiện mặt sau thẻ; tạo trùng bị từ chối; không xóa được admin; hộp xóa người học phải nêu rõ dữ liệu bị xóa.
 9. Bộ test backend tạo database tên ngẫu nhiên riêng và dọn đúng database đó. Lệnh chuẩn (Node 24 trở lên): `npm test` trong backend. Frontend: `npm run typecheck`, `npm run lint`, `npm test`; admin: `npm run build`.
 
-Chưa nghiệm thu trên thiết bị iOS/Android thật trong đợt đối chiếu này. Google OAuth còn cần cấu hình và tích hợp; không ghi là đã hoàn thành trong báo cáo bảo vệ.
+Chưa nghiệm thu trên thiết bị iOS/Android thật trong đợt đối chiếu này. Google OAuth Android đã tích hợp mã nguồn nhưng vẫn cần thử development build; iOS cần tạo thêm OAuth Client trước khi nghiệm thu.

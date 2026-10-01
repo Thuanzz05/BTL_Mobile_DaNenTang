@@ -1,5 +1,6 @@
 const assert = require('node:assert/strict');
 const { randomUUID } = require('node:crypto');
+const quizAnswer = require('./quiz-answer.cjs');
 
 module.exports = async function quizIntegration(
   t,
@@ -104,9 +105,20 @@ module.exports = async function quizIntegration(
       const sessionId = start.phien_hoc_tap_id;
       const route = '/api/quiz/' + sessionId;
       assert.equal(start.phien_ban_thuat_toan, 'leitner-queue-v2');
-      assert.equal(start.cau_hoi.lua_chon.length, 4);
+      assert.ok(['trac-nghiem', 'nhap-tu'].includes(start.cau_hoi.loai_cau_hoi));
+      assert.equal(start.cau_hoi.lua_chon.length, start.cau_hoi.loai_cau_hoi === 'nhap-tu' ? 0 : 4);
       assert.equal(start.cau_hoi.dap_an_dung_id, undefined);
-      assert.equal(start.cau_hoi.nghia_tieng_viet, undefined);
+      assert.equal(start.cau_hoi.dap_an_dung_text, undefined);
+      assert.equal(
+        typeof start.cau_hoi.nghia_tieng_viet === 'string',
+        start.cau_hoi.loai_cau_hoi === 'nhap-tu'
+      );
+      const [members] = await connection.query(
+        `SELECT JSON_UNQUOTE(JSON_EXTRACT(noi_dung_trac_nghiem, '$.loai_cau_hoi')) AS loai
+         FROM phien_hoc_tu WHERE phien_hoc_tap_id = ?`,
+        [sessionId]
+      );
+      assert.equal(members.filter((member) => member.loai === 'nhap-tu').length, 1);
       assert.deepEqual(await api('GET', route, undefined, other.accessToken), start);
       await api('GET', route, undefined, learner.accessToken, 404);
       await api(
@@ -134,8 +146,7 @@ module.exports = async function quizIntegration(
       );
       const answer = {
         cau_hoi_id: question.id,
-        lua_chon_id: start.cau_hoi.lua_chon.find((option) => option.id !== question.dap_an_dung_id)
-          .id,
+        ...(await quizAnswer(connection, question.id, false)),
         ma_yeu_cau: randomUUID(),
         thoi_gian_tra_loi_ms: 1200,
       };
@@ -177,7 +188,12 @@ module.exports = async function quizIntegration(
       await api(
         'POST',
         route + '/answers',
-        { ...answer, lua_chon_id: question.dap_an_dung_id },
+        {
+          cau_hoi_id: question.id,
+          ...(await quizAnswer(connection, question.id)),
+          ma_yeu_cau: answer.ma_yeu_cau,
+          thoi_gian_tra_loi_ms: answer.thoi_gian_tra_loi_ms,
+        },
         other.accessToken,
         409
       );
@@ -193,13 +209,9 @@ module.exports = async function quizIntegration(
       let lastAnswer;
       let lastResponse;
       for (let count = 0; state.cau_hoi && count < 40; count += 1) {
-        const [[current]] = await connection.query(
-          'SELECT dap_an_dung_id FROM cau_hoi_trac_nghiem WHERE id = ?',
-          [state.cau_hoi.id]
-        );
         lastAnswer = {
           cau_hoi_id: state.cau_hoi.id,
-          lua_chon_id: current.dap_an_dung_id,
+          ...(await quizAnswer(connection, state.cau_hoi.id)),
           ma_yeu_cau: randomUUID(),
         };
         lastResponse = await api('POST', route + '/answers', lastAnswer, other.accessToken);
@@ -236,6 +248,7 @@ module.exports = async function quizIntegration(
       const history = await api('GET', '/api/history/' + sessionId, undefined, other.accessToken);
       assert.equal(history.luot_tra_loi.length, 6);
       assert.equal(history.luot_tra_loi[0].dung, 0);
+      assert.ok(history.luot_tra_loi.some((item) => item.loai_cau_hoi === 'nhap-tu'));
       const report = await api(
         'GET',
         '/api/admin/quiz-statistics?minAttempts=1',
@@ -282,7 +295,8 @@ module.exports = async function quizIntegration(
         201
       );
       assert.equal(review.tong_so_tu, 1);
-      assert.equal(review.cau_hoi.lua_chon.length, 4);
+      assert.equal(review.cau_hoi.loai_cau_hoi, 'nhap-tu');
+      assert.equal(review.cau_hoi.lua_chon.length, 0);
       await connection.query(
         'UPDATE tien_do_tu_vung SET ngay_on_tap_tiep_theo = DATE_ADD(NOW(), INTERVAL 2 DAY) WHERE nguoi_dung_id = ?',
         [other.user.id]
@@ -318,7 +332,7 @@ module.exports = async function quizIntegration(
         stopRoute + '/answers',
         {
           cau_hoi_id: review.cau_hoi.id,
-          lua_chon_id: review.cau_hoi.lua_chon[0].id,
+          ...(await quizAnswer(connection, review.cau_hoi.id)),
           ma_yeu_cau: randomUUID(),
         },
         other.accessToken,

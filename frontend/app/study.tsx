@@ -144,10 +144,7 @@ function StudyCards({
   }, [attempt, client, topicId, userId, flip]);
 
   const word = words[index];
-  const { pronounce, audioMessage } = usePronunciation(
-    word?.tu_tieng_anh,
-    word?.url_am_thanh,
-  );
+  const { pronounce, audioMessage } = usePronunciation(word?.tu_tieng_anh);
   const message = !topicId
     ? "Không tìm thấy chủ đề."
     : error || "Chủ đề chưa có từ vựng.";

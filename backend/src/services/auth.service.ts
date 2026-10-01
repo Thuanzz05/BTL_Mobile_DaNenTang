@@ -1,4 +1,5 @@
 import { createHmac, randomInt, timingSafeEqual } from 'node:crypto';
+import { OAuth2Client } from 'google-auth-library';
 import { query, transaction } from '../config/database';
 import { NguoiDung } from '../types/models';
 import { AppError } from '../utils/app-error';
@@ -19,6 +20,8 @@ export interface LoginDto {
 }
 
 export class AuthService {
+  private static google = new OAuth2Client();
+
   private static resetCodeHash(userId: string, code: string) {
     return createHmac('sha256', process.env.JWT_SECRET!).update(`${userId}:${code}`).digest('hex');
   }
@@ -65,6 +68,10 @@ export class AuthService {
       throw new AppError('Tài khoản không hoạt động hoặc đã bị khóa', 403, 'ACCOUNT_DISABLED');
     }
 
+    return this.createSession(user);
+  }
+
+  private static async createSession(user: NguoiDung) {
     const tokens = JwtUtil.generateTokenPair({
       id: user.id,
       email: user.email,
@@ -82,9 +89,93 @@ export class AuthService {
         anh_dai_dien: user.anh_dai_dien,
         muc_tieu_hang_ngay: user.muc_tieu_hang_ngay,
         vai_tro: user.vai_tro,
+        phuong_thuc_dang_nhap: user.phuong_thuc_dang_nhap,
       },
       ...tokens,
     };
+  }
+
+  /** Xác minh Google ID token rồi cấp phiên Wordleaf như đăng nhập mật khẩu. */
+  static async loginWithGoogle(idToken: string) {
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    if (!clientId || clientId.startsWith('your-')) {
+      throw new AppError('Đăng nhập Google chưa được cấu hình', 503, 'GOOGLE_NOT_CONFIGURED');
+    }
+
+    let payload;
+    try {
+      const ticket = await this.google.verifyIdToken({ idToken, audience: clientId });
+      payload = ticket.getPayload();
+    } catch {
+      throw new AppError('Phiên đăng nhập Google không hợp lệ', 401, 'INVALID_GOOGLE_TOKEN');
+    }
+    if (
+      !payload?.sub ||
+      !payload.email ||
+      payload.email.length > 150 ||
+      payload.email_verified !== true
+    ) {
+      throw new AppError('Tài khoản Google chưa xác minh email', 401, 'INVALID_GOOGLE_ACCOUNT');
+    }
+
+    const email = payload.email.trim().toLowerCase();
+    const name = (payload.name?.trim() || email.split('@')[0]).slice(0, 150);
+    const avatar = payload.picture && payload.picture.length <= 255 ? payload.picture : null;
+    const user = await transaction(async (connection) => {
+      const [providerUsers]: any = await connection.execute(
+        "SELECT * FROM nguoi_dung WHERE phuong_thuc_dang_nhap = 'google' AND provider_id = ? FOR UPDATE",
+        [payload.sub]
+      );
+      let account = providerUsers[0];
+
+      if (!account) {
+        const [emailUsers]: any = await connection.execute(
+          'SELECT * FROM nguoi_dung WHERE email = ? FOR UPDATE',
+          [email]
+        );
+        account = emailUsers[0];
+        if (account && account.phuong_thuc_dang_nhap !== 'google') {
+          throw new AppError(
+            'Email này đã đăng ký bằng mật khẩu. Hãy đăng nhập bằng email.',
+            409,
+            'LOGIN_METHOD_CONFLICT'
+          );
+        }
+        if (account && account.provider_id && account.provider_id !== payload.sub) {
+          throw new AppError(
+            'Email đã liên kết với tài khoản Google khác',
+            409,
+            'GOOGLE_ACCOUNT_CONFLICT'
+          );
+        }
+        if (account) {
+          await connection.execute(
+            'UPDATE nguoi_dung SET provider_id = ?, anh_dai_dien = COALESCE(anh_dai_dien, ?) WHERE id = ?',
+            [payload.sub, avatar, account.id]
+          );
+          account.provider_id = payload.sub;
+          account.anh_dai_dien ||= avatar;
+        } else {
+          const id = UuidUtil.generate();
+          await connection.execute(
+            `INSERT INTO nguoi_dung
+              (id, ho_ten, email, mat_khau_hash, phuong_thuc_dang_nhap, provider_id, anh_dai_dien)
+             VALUES (?, ?, ?, NULL, 'google', ?, ?)`,
+            [id, name, email, payload.sub, avatar]
+          );
+          const [created]: any = await connection.execute('SELECT * FROM nguoi_dung WHERE id = ?', [
+            id,
+          ]);
+          account = created[0];
+        }
+      }
+      if (account.trang_thai !== 'active') {
+        throw new AppError('Tài khoản không hoạt động hoặc đã bị khóa', 403, 'ACCOUNT_DISABLED');
+      }
+      return account as NguoiDung;
+    });
+
+    return this.createSession(user);
   }
 
   /**
@@ -159,7 +250,7 @@ export class AuthService {
    */
   static async getUserById(userId: string) {
     const users = await query<NguoiDung[]>(
-      'SELECT id, ho_ten, email, anh_dai_dien, muc_tieu_hang_ngay, vai_tro, trang_thai, ngay_tao FROM nguoi_dung WHERE id = ?',
+      'SELECT id, ho_ten, email, anh_dai_dien, muc_tieu_hang_ngay, vai_tro, phuong_thuc_dang_nhap, trang_thai, ngay_tao FROM nguoi_dung WHERE id = ?',
       [userId]
     );
 

@@ -16,6 +16,7 @@ import { Feather } from "@expo/vector-icons";
 import { useAuth } from "@/contexts/auth-context";
 import { palette as c } from "@/constants/palette";
 import { Fonts } from "@/constants/theme";
+import { GoogleLoginButton } from "@/components/google-login-button";
 
 export function AuthForm({ mode }: { mode: "login" | "register" }) {
   const register = mode === "register";
@@ -239,6 +240,9 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
                 </>
               )}
             </Pressable>
+            {!register && (
+              <GoogleLoginButton disabled={busy || !ready} onError={setError} />
+            )}
           </View>
           <View style={s.switch}>
             <Text style={s.body}>

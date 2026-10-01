@@ -2,6 +2,7 @@ const assert = require('node:assert/strict');
 const { randomUUID } = require('node:crypto');
 const { readDatabaseSource } = require('../scripts/sql-source');
 const { migrate } = require('../scripts/database-tools');
+const quizAnswer = require('./quiz-answer.cjs');
 
 // Chạy trong database riêng do bộ test tạo và sở hữu.
 async function verifyUpgrade(connection, database) {
@@ -217,16 +218,12 @@ async function verifyBehavior(t, { api, connection, admin }) {
         await api('GET', '/api/quiz/' + quiz.phien_hoc_tap_id, undefined, token),
         quiz
       );
-      const [[question]] = await connection.execute(
-        'SELECT dap_an_dung_id FROM cau_hoi_trac_nghiem WHERE id = ?',
-        [quiz.cau_hoi.id]
-      );
       await api(
         'POST',
         '/api/quiz/' + quiz.phien_hoc_tap_id + '/answers',
         {
           cau_hoi_id: quiz.cau_hoi.id,
-          lua_chon_id: question.dap_an_dung_id,
+          ...(await quizAnswer(connection, quiz.cau_hoi.id)),
           ma_yeu_cau: randomUUID(),
         },
         token

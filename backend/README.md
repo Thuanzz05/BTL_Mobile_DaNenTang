@@ -87,14 +87,13 @@ Quản trị:
 - Migration `008-achievement-admin.js` thêm trạng thái huy hiệu. Tắt cấp mới giữ huy hiệu/điểm/ngày nhận đã có; bật lại được xét ở `GET /api/achievements`. Huy hiệu đã trao không được xóa hoặc sửa điều kiện/mốc/điểm (409); vẫn sửa được thông tin mô tả. Giao dịch khóa huy hiệu khi xét cấp và khi sửa/xóa để bảo vệ lịch sử trước yêu cầu đồng thời.
 - `PUT /api/admin/words/:id` nhận `vi_du` để thay toàn bộ ví dụ; bỏ trường này thì giữ nguyên, gửi `[]` để xóa ví dụ.
 - `POST /api/admin/upload/image`: JPG/PNG, tối đa 2 MB.
-- `POST /api/admin/upload/audio`: MP3, tối đa 5 MB.
 - Upload dùng multipart với trường `file`, trả đường dẫn tại `data.url`.
 
 Trắc nghiệm được server chấm và web admin:
 
 - `POST /api/quiz/start`, `POST /api/quiz/review/start`.
 - `GET /api/quiz/:sessionId`, `POST /api/quiz/:sessionId/answers`, `POST /api/quiz/:sessionId/stop`.
-- Phiên quiz lưu từng lượt trả lời, chụp nội dung câu hỏi, chống ghi lặp và tự hoàn thành; các endpoint `/learning` cũ tiếp tục hoạt động.
+- Phiên quiz lưu từng lượt trả lời, chụp nội dung câu hỏi, chọn ngẫu nhiên 20% từ để nhập đáp án tiếng Anh, chống ghi lặp và tự hoàn thành; các endpoint `/learning` cũ tiếp tục hoạt động.
 - `GET /api/admin/quiz-statistics?from=YYYY-MM-DD&to=YYYY-MM-DD&minAttempts=5`.
 - `POST /api/web-auth/login`, `/api/web-auth/refresh`, `/api/web-auth/logout`: cookie HttpOnly, header `X-Wordleaf-Client: admin-web`, kiểm tra Origin. API JSON token của mobile không thay đổi.
 
@@ -129,5 +128,5 @@ Các tình huống chính: đăng ký/đăng nhập, validation, phân quyền, 
 ## Công việc còn lại ngoài đợt sửa backend này
 
 - Bản mobile đã dùng `/api/quiz`, lưu ID phiên để khôi phục và đồng bộ ngăn Leitner khi hoàn thành từng từ.
-- Đăng nhập Google cần bổ sung luồng xác minh token Google và cấu hình OAuth.
+- `POST /api/auth/google` xác minh Google ID token bằng `GOOGLE_CLIENT_ID`, sau đó cấp access/refresh token Wordleaf. Không đưa Client Secret vào mobile hoặc Git.
 - Thành tích/điểm thưởng vẫn là phần mở rộng, chưa có API nghiệp vụ hoàn chỉnh.

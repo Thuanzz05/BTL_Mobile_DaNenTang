@@ -42,7 +42,7 @@ Script dùng lại chủ đề trùng tên, chỉ thêm từ chưa có ở bất
 
 Toàn bộ ghi dữ liệu nằm trong một giao dịch; nếu lỗi sẽ hoàn tác toàn bộ lần nạp. Chạy lại không thêm trùng. Trước lần ghi có từ mới, CLI lưu bản chụp ba bảng danh mục `chu_de`, `tu_vung`, `vi_du` trong `backend/backups/`; thư mục này không đưa lên Git. Đây là bản chụp danh mục, không phải bản sao lưu toàn bộ database.
 
-Không tạo URL ảnh/âm thanh giả. Ứng dụng có thể dùng chức năng đọc từ hiện có; ảnh và tệp âm thanh có thể bổ sung qua admin.
+Không tạo URL ảnh hoặc âm thanh giả. Ứng dụng phát âm bằng giọng đọc tiếng Anh của thiết bị.
 
 ## Định dạng dữ liệu
 

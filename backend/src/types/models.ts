@@ -38,7 +38,6 @@ export interface TuVung {
   phien_am?: string;
   loai_tu: LoaiTu;
   nghia_tieng_viet: string;
-  url_am_thanh?: string;
   url_hinh_anh?: string;
   trang_thai: 'active' | 'inactive';
   thu_tu_hien_thi: number;

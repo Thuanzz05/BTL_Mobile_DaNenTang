@@ -18,17 +18,17 @@ Các dependency native được đồng bộ theo `expo/bundledNativeModules.jso
 - Mở lại app: refresh token rồi gọi `/auth/me`. Request được bảo vệ tự làm mới access token một lần khi nhận 401. Mất mạng không xóa refresh token đã lưu; có nút thử khôi phục tại Tài khoản.
 - Đăng xuất gọi `/auth/logout` và xóa phiên trên thiết bị. Nếu máy chủ không phản hồi, giao diện thông báo việc thu hồi từ xa chưa được xác nhận.
 - Trang chủ khi đăng nhập gọi `/home/dashboard`; dữ liệu cập nhật khi quay lại màn hình hoặc kéo xuống. Flashcard tạo phiên từ chưa học theo mục tiêu 5/10/20; xem hết mới lưu từ mới vào ngăn 1 và hẹn ôn sau 1 ngày. Trắc nghiệm chỉ chọn từ đã đến hạn.
-- Quên mật khẩu đã có luồng mã xác nhận; làm theo [hướng dẫn cấu hình email](../docs/CAU_HINH_EMAIL.md) để gửi thư thật. Google OAuth chưa tích hợp.
+- Quên mật khẩu đã có luồng mã xác nhận; làm theo [hướng dẫn cấu hình email](../docs/CAU_HINH_EMAIL.md) để gửi thư thật. Google Login Android dùng development build và `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`; Expo Go không chứa native module này.
 
 Kiểm thử logic phiên đăng nhập: `npm test`. Kiểm tra mobile cuối cùng bằng Expo Go SDK 57 hoặc development build trên Android/iOS; web preview không thay thế kiểm thử thiết bị thật.
 
 Các kiểm thử tự động bao gồm phiên đăng nhập, khôi phục quiz, gửi lại câu trả lời đang chờ, dừng bài và bảo vệ dữ liệu giữa các tài khoản. Trước khi bàn giao, kiểm tra thêm trên Android/iOS thật: mất mạng, đóng/mở app và nút Back của Android.
 
-## Học flashcard và ôn trắc nghiệm
+## Học flashcard và ôn tập
 
-Khách được học thử tối đa 5 thẻ mỗi lượt, không lưu kết quả. Người học đăng nhập có phiên flashcard trên server, tiếp tục được thẻ chưa xem; mặt sau gồm nghĩa, phiên âm, từ loại và ví dụ, không có ảnh. Phát âm ưu tiên file đã tải lên, thiếu file dùng giọng đọc thiết bị. Expo Audio chỉ dùng phát âm, không xin quyền micro hay phát nền.
+Khách được học thử tối đa 5 thẻ mỗi lượt, không lưu kết quả. Người học đăng nhập có phiên flashcard trên server, tiếp tục được thẻ chưa xem; mặt sau gồm nghĩa, phiên âm, từ loại và ví dụ, không có ảnh. Phát âm dùng giọng đọc tiếng Anh của thiết bị qua Expo Speech, không cần file MP3.
 
-Trắc nghiệm chủ đề và ôn tổng hợp đều lấy từ đã học, đã đến hạn. Backend chấm đáp án đã chụp nội dung: đúng ngay thì tăng một ngăn (tối đa 5) và hoàn thành từ; sai lần đầu hạ ngăn 1 ngay, đưa xuống cuối hàng đợi đến khi đúng. Đúng lại sau sai giữ ngăn 1 trong phiên đó. Lịch ngăn 1–5: 1, 2, 4, 7, 14 ngày. Gửi lại yêu cầu không ghi trùng.
+Ôn theo chủ đề và ôn tổng hợp đều lấy từ đã học, đã đến hạn. Khi tạo phiên, backend chọn ngẫu nhiên `ceil(số từ × 20%)` câu nhập từ; các câu còn lại là trắc nghiệm và dạng câu được giữ nguyên khi từ xuất hiện lại. Câu nhập từ cho nghĩa tiếng Việt và yêu cầu viết từ tiếng Anh chính xác; hệ thống bỏ khoảng trắng thừa và không phân biệt chữ hoa/thường. Đúng ngay thì tăng một ngăn (tối đa 5) và hoàn thành từ; sai lần đầu hạ ngăn 1 ngay, đưa xuống cuối hàng đợi đến khi đúng. Đúng lại sau sai giữ ngăn 1 trong phiên đó. Lịch ngăn 1–5: 1, 2, 4, 7, 14 ngày. Gửi lại yêu cầu không ghi trùng.
 
 Phiên mới dùng leitner-queue-v2; phiên v1 đang học tiếp tục quy tắc cũ. Không tạo mới phiên tự đánh giá qua /learning/start (trả 410). Chi tiết nghiệp vụ, ngoại lệ, endpoint và các điểm báo cáo cần chỉnh: [NGHIEP_VU_CHI_TIET.md](../NGHIEP_VU_CHI_TIET.md).
 
