@@ -84,7 +84,7 @@ Web dùng `/web-auth/login`, `/web-auth/refresh`, `/web-auth/logout`; refresh to
 
 Admin quản lý chủ đề, từ, người học, thành tích và thống kê. Ẩn nội dung chỉ loại khỏi danh mục/phiên mới; lịch sử và phiên đã bắt đầu được giữ. Thành tích đã trao không được xóa hoặc đổi điều kiện/điểm. Xóa người học có xác nhận và xóa dữ liệu liên quan; không xóa tài khoản admin.
 
-Quên mật khẩu đã có API, nhưng gửi email thật cần cấu hình theo [hướng dẫn email](CAU_HINH_EMAIL.md). Google OAuth chưa triển khai.
+Quên mật khẩu đã có API, nhưng gửi email thật cần cấu hình theo [hướng dẫn email](CAU_HINH_EMAIL.md). Google Login Android gửi ID token đến `POST /auth/google`; backend xác minh token rồi cấp phiên Wordleaf. Chức năng cần development build, không chạy trong Expo Go. iOS cần OAuth Client và URL scheme riêng.
 
 ## Kiểm thử trước demo
 

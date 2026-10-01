@@ -5,6 +5,7 @@ export interface User {
   anh_dai_dien?: string | null;
   muc_tieu_hang_ngay: 5 | 10 | 20;
   vai_tro: "user" | "admin";
+  phuong_thuc_dang_nhap: "local" | "google";
 }
 export interface Session {
   user: User;
@@ -46,6 +47,16 @@ export class AuthClient {
     const result = await this.request<Session>(
       "/auth/login",
       post({ email: email.trim().toLowerCase(), mat_khau: password }),
+    );
+    await this.storage.write(result.refreshToken);
+    this.generation++;
+    this.session = result;
+    this.changed(result.user);
+  }
+  async loginWithGoogle(idToken: string) {
+    const result = await this.request<Session>(
+      "/auth/google",
+      post({ id_token: idToken }),
     );
     await this.storage.write(result.refreshToken);
     this.generation++;

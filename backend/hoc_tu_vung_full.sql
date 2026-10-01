@@ -34,6 +34,7 @@ CREATE TABLE nguoi_dung (
     ngay_cap_nhat TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     
     INDEX idx_email (email),
+    UNIQUE KEY unique_login_provider (phuong_thuc_dang_nhap, provider_id),
     INDEX idx_trang_thai (trang_thai)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 

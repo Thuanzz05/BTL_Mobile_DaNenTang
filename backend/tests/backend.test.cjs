@@ -71,6 +71,7 @@ test('Backend HTTP and real MySQL regression tests', { timeout: 120000 }, async 
     process.env.UPLOAD_DIR = uploadDirectory;
     process.env.NODE_ENV = 'test';
     process.env.RATE_LIMIT_MAX_REQUESTS = '10000';
+    process.env.GOOGLE_CLIENT_ID = 'wordleaf-test.apps.googleusercontent.com';
     delete process.env.RESEND_API_KEY;
     delete process.env.PASSWORD_RESET_FROM;
     const app = require('../dist/app').default;
@@ -152,6 +153,45 @@ test('Backend HTTP and real MySQL regression tests', { timeout: 120000 }, async 
         undefined,
         401
       );
+      const { AuthService } = require('../dist/services/auth.service');
+      const googleClient = AuthService.google;
+      AuthService.google = {
+        verifyIdToken: async ({ idToken, audience }) => {
+          assert.equal(audience, process.env.GOOGLE_CLIENT_ID);
+          if (idToken === 'invalid-google-token') throw new Error('invalid');
+          const conflict = idToken === 'local-email-google-token';
+          return {
+            getPayload: () => ({
+              sub: conflict ? 'google-local-conflict' : 'google-user-1',
+              email: conflict ? 'learner@test.local' : 'google@test.local',
+              email_verified: true,
+              name: 'Người dùng Google',
+              picture: 'https://example.com/avatar.png',
+            }),
+          };
+        },
+      };
+      try {
+        const google = await api('POST', '/api/auth/google', {
+          id_token: 'valid-google-token',
+        });
+        assert.equal(google.user.email, 'google@test.local');
+        assert.equal(google.user.phuong_thuc_dang_nhap, 'google');
+        const repeated = await api('POST', '/api/auth/google', {
+          id_token: 'valid-google-token',
+        });
+        assert.equal(repeated.user.id, google.user.id);
+        await api(
+          'POST',
+          '/api/auth/google',
+          { id_token: 'local-email-google-token' },
+          undefined,
+          409
+        );
+        await api('POST', '/api/auth/google', { id_token: 'invalid-google-token' }, undefined, 401);
+      } finally {
+        AuthService.google = googleClient;
+      }
       assert.equal(
         (await api('GET', '/api/auth/me', undefined, learner.accessToken)).id,
         learnerId

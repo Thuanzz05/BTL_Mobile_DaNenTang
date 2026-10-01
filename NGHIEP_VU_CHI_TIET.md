@@ -23,7 +23,7 @@ Hệ thống gồm ứng dụng người học React Native/Expo SDK 57, web qu�
 | Quản lý người dùng | Danh sách, xem, khóa/mở khóa | Bổ sung xóa người học có xác nhận; không cho khóa hoặc xóa quản trị viên |
 | Trùng tên | Chưa có ràng buộc đủ | Tên chủ đề, tiêu đề thành tích duy nhất; từ tiếng Anh duy nhất trong cùng chủ đề |
 | Ảnh từ vựng | Web quản trị có ô ảnh và chỉ báo ảnh | Ẩn ô ảnh và chỉ báo ảnh trong quản lý từ vựng; không hiển thị ảnh trên flashcard; giữ dữ liệu ảnh cũ |
-| Đăng nhập Google | Báo cáo có nêu nhưng chưa có luồng tích hợp | **Chưa triển khai**. Cần OAuth client và cấu hình ứng dụng trước khi nghiệm thu chức năng này |
+| Đăng nhập Google | Mobile Android gửi Google ID token để backend xác minh và cấp phiên Wordleaf | **Đã tích hợp mã nguồn**, cần nghiệm thu trên development build Android; iOS chưa cấu hình OAuth Client |
 
 ### 1.1. Các điểm báo cáo cần chỉnh hoặc làm rõ
 
@@ -87,7 +87,7 @@ Backend lấy ID người dùng từ JWT đã xác thực. Không tin `userId` d
 - Đổi mật khẩu: nhập đúng mật khẩu cũ; sau thay đổi thu hồi các phiên đăng nhập cũ.
 - Quên mật khẩu: yêu cầu mã qua email; mã 6 chữ số có hạn 10 phút và giới hạn số lần thử; mã đã dùng không dùng lại được. Khi chạy phát triển chưa cấu hình gửi email, mã thử nghiệm có thể được trả về theo cấu hình; không coi đây là gửi email thành công.
 - Đăng xuất: thu hồi refresh token và xóa phiên phía client. Các API kiểm tra tài khoản bị khóa và phiên bị thu hồi.
-- Google OAuth là hạng mục chưa tích hợp, không nằm trong danh sách chức năng đã nghiệm thu.
+- Google OAuth đã có luồng Android và backend; chỉ ghi đã nghiệm thu sau khi thử development build bằng tài khoản Google thật.
 
 ### 4.2. Học flashcard
 
@@ -331,4 +331,4 @@ Migration `010-report-learning.js` bổ sung phương thức `flashcard`, kết 
 8. Admin: kiểm tra không có ô ảnh từ; sửa ví dụ vẫn hiện mặt sau thẻ; tạo trùng bị từ chối; không xóa được admin; hộp xóa người học phải nêu rõ dữ liệu bị xóa.
 9. Bộ test backend tạo database tên ngẫu nhiên riêng và dọn đúng database đó. Lệnh chuẩn (Node 24 trở lên): `npm test` trong backend. Frontend: `npm run typecheck`, `npm run lint`, `npm test`; admin: `npm run build`.
 
-Chưa nghiệm thu trên thiết bị iOS/Android thật trong đợt đối chiếu này. Google OAuth còn cần cấu hình và tích hợp; không ghi là đã hoàn thành trong báo cáo bảo vệ.
+Chưa nghiệm thu trên thiết bị iOS/Android thật trong đợt đối chiếu này. Google OAuth Android đã tích hợp mã nguồn nhưng vẫn cần thử development build; iOS cần tạo thêm OAuth Client trước khi nghiệm thu.

@@ -44,6 +44,15 @@ export class AuthController {
     }
   }
 
+  static async googleLogin(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await AuthService.loginWithGoogle(req.body.id_token);
+      return ResponseUtil.success(res, result, 'Đăng nhập Google thành công');
+    } catch (error) {
+      return next(error);
+    }
+  }
+
   /**
    * Lấy thông tin hồ sơ người dùng hiện tại
    */

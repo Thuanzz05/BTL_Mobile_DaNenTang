@@ -129,5 +129,5 @@ Các tình huống chính: đăng ký/đăng nhập, validation, phân quyền, 
 ## Công việc còn lại ngoài đợt sửa backend này
 
 - Bản mobile đã dùng `/api/quiz`, lưu ID phiên để khôi phục và đồng bộ ngăn Leitner khi hoàn thành từng từ.
-- Đăng nhập Google cần bổ sung luồng xác minh token Google và cấu hình OAuth.
+- `POST /api/auth/google` xác minh Google ID token bằng `GOOGLE_CLIENT_ID`, sau đó cấp access/refresh token Wordleaf. Không đưa Client Secret vào mobile hoặc Git.
 - Thành tích/điểm thưởng vẫn là phần mở rộng, chưa có API nghiệp vụ hoàn chỉnh.
