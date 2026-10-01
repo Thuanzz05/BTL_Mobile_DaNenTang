@@ -1,7 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Modal,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -13,34 +12,12 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
 import { router } from "expo-router";
 import { palette as c } from "@/constants/palette";
-import { Fonts } from "@/constants/theme";
 import { useAuth } from "@/contexts/auth-context";
-
-interface StudySession {
-  id: string;
-  topic_name: string | null;
-  tong_so_tu: number;
-  bat_dau_luc: string;
-  trang_thai: "dang-hoc" | "hoan-thanh" | "bo-do";
-  phuong_thuc?: "flashcard" | "trac_nghiem" | "danh_gia";
-  chu_de_id?: string;
-  loai_phien?: "hoc_moi" | "on_tap";
-  total_results: number;
-}
-
-interface HistoryResponse {
-  items: StudySession[];
-  pagination: { total: number };
-}
-
-interface SessionDetail extends StudySession {
-  results: {
-    id: string;
-    tu_tieng_anh: string;
-    phien_am: string | null;
-    nghia_tieng_viet: string;
-  }[];
-}
+import { useStudyHistory } from "@/hooks/use-study-history";
+import { HistorySessionDetail } from "@/components/history-session-detail";
+import { FlashcardPreview } from "@/components/flashcard-preview";
+import type { StudySession } from "@/types/history";
+import type { QuizResume } from "@/types/quiz";
 
 const dateFormatter = new Intl.DateTimeFormat("vi-VN", {
   day: "2-digit",
@@ -48,6 +25,7 @@ const dateFormatter = new Intl.DateTimeFormat("vi-VN", {
   year: "numeric",
   hour: "2-digit",
   minute: "2-digit",
+  timeZone: "Asia/Ho_Chi_Minh",
 });
 
 function sessionStatus(status: StudySession["trang_thai"]) {
@@ -57,77 +35,50 @@ function sessionStatus(status: StudySession["trang_thai"]) {
 }
 
 export default function HistoryScreen() {
-  const { client, ready, user } = useAuth();
-  const [sessions, setSessions] = useState<StudySession[]>([]);
-  const [total, setTotal] = useState(0);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [selected, setSelected] = useState<StudySession | null>(null);
-  const [detail, setDetail] = useState<SessionDetail | null>(null);
-  const [detailLoading, setDetailLoading] = useState(false);
-  const [detailError, setDetailError] = useState("");
-
-  const load = useCallback(async () => {
-    if (!user) return;
-    setLoading(true);
-    setError("");
-    try {
-      const result = await client.authorized<HistoryResponse>(
-        "/history?page=1&limit=50",
-      );
-      setSessions(result.items);
-      setTotal(result.pagination.total);
-    } catch (loadError) {
-      setError((loadError as Error).message);
-    } finally {
-      setLoading(false);
-    }
-  }, [client, user]);
-
+  const { ready, user } = useAuth();
   useEffect(() => {
-    if (!ready) return;
-    if (!user) {
-      router.replace("/login");
-      return;
-    }
-    let active = true;
-    client
-      .authorized<HistoryResponse>("/history?page=1&limit=50")
-      .then((result) => {
-        if (!active) return;
-        setSessions(result.items);
-        setTotal(result.pagination.total);
-      })
-      .catch((loadError) => {
-        if (active) setError((loadError as Error).message);
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, [client, ready, user]);
+    if (ready && !user) router.replace("/login");
+  }, [ready, user]);
 
+  if (!ready || !user) {
+    return (
+      <SafeAreaView style={s.page}>
+        <ActivityIndicator color={c.green} />
+      </SafeAreaView>
+    );
+  }
+  return <HistoryContent key={user.id} />;
+}
+
+function HistoryContent() {
+  const history = useStudyHistory();
+  const [selected, setSelected] = useState<StudySession | null>(null);
+  const [quiz, setQuiz] = useState<QuizResume>();
   const wordCount = useMemo(
     () =>
-      sessions.reduce((sum, session) => sum + Number(session.total_results), 0),
-    [sessions],
+      history.sessions.reduce(
+        (sum, session) => sum + Number(session.total_results),
+        0,
+      ),
+    [history.sessions],
   );
 
-  async function openSession(session: StudySession) {
-    setSelected(session);
-    setDetail(null);
-    setDetailError("");
-    setDetailLoading(true);
-    try {
-      setDetail(
-        await client.authorized<SessionDetail>(`/history/${session.id}`),
-      );
-    } catch (loadError) {
-      setDetailError((loadError as Error).message);
-    } finally {
-      setDetailLoading(false);
+  function resumeSession() {
+    if (!selected) return;
+    setSelected(null);
+    if (selected.phuong_thuc === "flashcard" && selected.chu_de_id) {
+      router.push({
+        pathname: "/study",
+        params: {
+          topicId: selected.chu_de_id,
+          topicName: selected.topic_name || "Từ vựng",
+        },
+      });
+    } else {
+      setQuiz({
+        id: selected.id,
+        title: selected.topic_name || "Ôn tập tổng hợp",
+      });
     }
   }
 
@@ -147,55 +98,51 @@ export default function HistoryScreen() {
           <Text style={s.heading}>Lịch sử học tập</Text>
         </View>
       </View>
-
       <ScrollView
         contentContainerStyle={s.content}
         refreshControl={
           <RefreshControl
-            refreshing={loading}
-            onRefresh={load}
+            refreshing={history.loading}
+            onRefresh={history.reload}
             tintColor={c.green}
           />
         }
       >
         <View style={s.summary}>
           <View style={s.summaryItem}>
-            <Text style={s.summaryNumber}>{total}</Text>
+            <Text style={s.summaryNumber}>{history.total}</Text>
             <Text style={s.summaryLabel}>buổi học</Text>
           </View>
           <View style={s.divider} />
           <View style={s.summaryItem}>
             <Text style={s.summaryNumber}>{wordCount}</Text>
-            <Text style={s.summaryLabel}>lượt luyện từ</Text>
+            <Text style={s.summaryLabel}>lượt từ đang hiển thị</Text>
           </View>
         </View>
-
-        {!!error && (
+        {!!history.error && (
           <View style={s.message}>
             <Text accessibilityRole="alert" style={s.error}>
-              {error}
+              {history.error}
             </Text>
             <Pressable
               accessibilityRole="button"
-              onPress={load}
+              onPress={history.reload}
               style={s.retry}
             >
-              <Text style={s.link}>Thử lại</Text>
+              <Text style={s.link}>Tải lại lịch sử</Text>
             </Pressable>
           </View>
         )}
-
-        {loading && sessions.length === 0 ? (
+        {history.loading && !history.sessions.length ? (
           <ActivityIndicator size="large" color={c.green} />
-        ) : sessions.length === 0 && !error ? (
+        ) : !history.sessions.length && !history.error ? (
           <View style={s.empty}>
             <View style={s.emptyIcon}>
               <Feather name="clock" size={34} color={c.green} />
             </View>
             <Text style={s.emptyTitle}>Chưa có buổi học nào</Text>
             <Text style={s.body}>
-              Hoàn thành một buổi luyện tập để hành trình của bạn xuất hiện tại
-              đây.
+              Bắt đầu học để ghi lại hành trình của bạn tại đây.
             </Text>
             <Pressable
               accessibilityRole="button"
@@ -206,17 +153,18 @@ export default function HistoryScreen() {
             </Pressable>
           </View>
         ) : (
-          sessions.map((session) => {
+          history.sessions.map((session) => {
             const completed = Number(session.total_results);
             const goal = Number(session.tong_so_tu);
-            const status = sessionStatus(session.trang_thai);
             return (
               <Pressable
                 key={session.id}
                 accessibilityRole="button"
-                accessibilityLabel={`Xem chi tiết ${session.topic_name || "buổi ôn tập"}`}
+                accessibilityLabel={
+                  "Xem chi tiết " + (session.topic_name || "buổi ôn tập")
+                }
                 style={s.card}
-                onPress={() => openSession(session)}
+                onPress={() => setSelected(session)}
               >
                 <View style={s.cardTop}>
                   <View style={s.sessionIcon}>
@@ -244,11 +192,13 @@ export default function HistoryScreen() {
                       session.trang_thai === "hoan-thanh" && s.badgeDone,
                     ]}
                   >
-                    <Text style={s.badgeText}>{status}</Text>
+                    <Text style={s.badgeText}>
+                      {sessionStatus(session.trang_thai)}
+                    </Text>
                   </View>
                 </View>
                 <View style={s.progressRow}>
-                  <Text style={s.progressLabel}>Đã luyện</Text>
+                  <Text style={s.progressLabel}>Từ có kết quả</Text>
                   <Text style={s.progressValue}>
                     {completed}/{goal} từ
                   </Text>
@@ -263,61 +213,58 @@ export default function HistoryScreen() {
                     ]}
                   />
                 </View>
-                <Text style={s.detailLink}>Xem chi tiết</Text>
+                <Text style={s.detailLink}>
+                  {session.trang_thai === "dang-hoc"
+                    ? "Xem chi tiết và tiếp tục"
+                    : "Xem chi tiết"}
+                </Text>
               </Pressable>
             );
           })
         )}
+        {!!history.sessions.length && (
+          <Text style={s.body}>
+            Đang hiển thị {history.sessions.length}/{history.total} phiên
+          </Text>
+        )}
+        {history.hasMore && (
+          <Pressable
+            accessibilityRole="button"
+            disabled={history.loading || history.loadingMore}
+            onPress={history.loadMore}
+            style={s.button}
+          >
+            <Text style={s.white}>
+              {history.loadingMore ? "Đang tải…" : "Tải thêm lịch sử"}
+            </Text>
+          </Pressable>
+        )}
       </ScrollView>
-      <Modal
-        visible={!!selected}
-        animationType="slide"
-        onRequestClose={() => setSelected(null)}
-      >
-        <SafeAreaView style={s.page}>
-          <View style={s.header}>
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel="Đóng chi tiết"
-              style={s.back}
-              onPress={() => setSelected(null)}
-            >
-              <Feather name="x" size={23} color={c.ink} />
-            </Pressable>
-            <View style={s.headerText}>
-              <Text style={s.eyebrow}>Chi tiết buổi học</Text>
-              <Text style={s.heading}>
-                {selected?.topic_name || "Ôn tập tổng hợp"}
-              </Text>
-            </View>
-          </View>
-          <ScrollView contentContainerStyle={s.content}>
-            {detailLoading ? (
-              <ActivityIndicator size="large" color={c.green} />
-            ) : detailError ? (
-              <Text accessibilityRole="alert" style={s.error}>
-                {detailError}
-              </Text>
-            ) : (
-              detail?.results.map((result) => (
-                <View key={result.id} style={s.wordCard}>
-                  <View style={s.wordText}>
-                    <Text style={s.word}>{result.tu_tieng_anh}</Text>
-                    {!!result.phien_am && (
-                      <Text style={s.date}>{result.phien_am}</Text>
-                    )}
-                    <Text style={s.meaning}>{result.nghia_tieng_viet}</Text>
-                  </View>
-                  <Feather name="book-open" size={20} color={c.green} />
-                </View>
-              ))
-            )}
-            {!detailLoading && !detailError && detail?.results.length === 0 && (
-              <Text style={s.body}>Buổi học này chưa có kết quả.</Text>
-            )}
-          </ScrollView>
-        </SafeAreaView>
-      </Modal>
+      {selected && (
+        <HistorySessionDetail
+          key={selected.id}
+          session={selected}
+          onClose={() => setSelected(null)}
+          onResume={resumeSession}
+          onStopped={() => {
+            setSelected(null);
+            void history.reload();
+          }}
+        />
+      )}
+      {quiz && (
+        <FlashcardPreview
+          topic={null}
+          savedSession={quiz}
+          onClose={() => {
+            setQuiz(undefined);
+            void history.reload();
+          }}
+          onCompleted={() => {
+            void history.reload();
+          }}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -407,24 +354,6 @@ const s = StyleSheet.create({
   },
   progressFill: { height: "100%", borderRadius: 4, backgroundColor: c.green },
   detailLink: { color: c.green, fontSize: 13, fontWeight: "700" },
-  wordCard: {
-    padding: 17,
-    borderRadius: 10,
-    backgroundColor: c.surface,
-    borderWidth: 1,
-    borderColor: c.line,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  wordText: { flex: 1, gap: 4 },
-  word: {
-    color: c.ink,
-    fontFamily: Fonts.serif,
-    fontSize: 21,
-    fontWeight: "700",
-  },
-  meaning: { color: c.ink, fontSize: 14 },
   empty: { paddingVertical: 54, alignItems: "center", gap: 16 },
   emptyIcon: {
     width: 76,
