@@ -1,6 +1,7 @@
 import type {
   AnswerResponse,
   QuizDraft,
+  QuizResume,
   QuizSession,
   QuizStart,
 } from "../types/quiz";
@@ -47,8 +48,7 @@ function parseDraft(raw: string, userId: string): QuizDraft {
       start.kind === "review" ||
       (start.kind === "topic" &&
         typeof start.topicId === "string" &&
-        start.topicId.length > 0 &&
-        start.count >= 5)
+        start.topicId.length > 0)
     ) ||
     (pending !== null &&
       (!value.sessionId ||
@@ -134,9 +134,39 @@ export class QuizSessionClient {
   }
 
   /** Dùng lại cả mã khởi tạo nếu app đóng trước khi nhận được ID phiên. */
-  open(start?: QuizStart) {
+  open(start?: QuizStart, resume?: QuizResume) {
     if (!this.opening) {
       this.opening = this.exclusive(async () => {
+        if (resume) {
+          if (!uuid(resume.id)) throw new Error("Mã phiên học không hợp lệ.");
+          if (this.draft && this.draft.sessionId !== resume.id) {
+            throw new Error(
+              `Máy đang giữ bài “${this.draft.start.title}”. Hãy về trang chủ tiếp tục hoặc dừng bài đó trước để giữ các câu trả lời đang chờ.`,
+            );
+          }
+          if (!this.draft) {
+            // Kiểm tra quyền và trạng thái trên server trước khi nhận phiên từ lịch sử.
+            const session = await this.request<QuizSession>(
+              `/quiz/${resume.id}`,
+            );
+            if (session.trang_thai !== "dang-hoc") {
+              return { session, title: resume.title };
+            }
+            await this.save({
+              version: 1,
+              userId: this.userId,
+              start: {
+                kind: "review",
+                count: session.tong_so_tu,
+                title: resume.title.slice(0, 120),
+                requestId: requestId(),
+              },
+              sessionId: resume.id,
+              pending: null,
+              stopping: false,
+            });
+          }
+        }
         if (!this.draft) {
           if (!start)
             throw new Error(

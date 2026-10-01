@@ -36,6 +36,11 @@ export interface QuizStart {
   title: string;
 }
 
+export interface QuizResume {
+  id: string;
+  title: string;
+}
+
 export interface QuizDraft {
   version: 1;
   userId: string;
