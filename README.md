@@ -1,50 +1,54 @@
-# Welcome to your Expo app 👋
+# Wordleaf — học từ vựng tiếng Anh
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Dự án gồm `backend` (Express/TypeScript/MySQL), `frontend` (Expo/React Native) và `admin-web` (React/Vite). Mỗi phần có thư viện và lệnh chạy riêng.
 
-## Get started
+## Sau khi pull
 
-1. Install dependencies
+Chạy các lệnh sau **từ thư mục gốc của repo**:
 
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```powershell
+npm --prefix backend ci
+npm --prefix frontend ci
+npm --prefix admin-web ci
+npm --prefix backend run db:migrate
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Backend cần cấu hình `backend/.env` và MySQL đang chạy. Migration giữ dữ liệu hiện có; không chạy lại file SQL tạo bảng thủ công. Nếu migration báo dữ liệu trùng, kiểm tra các bản ghi liên quan trước khi chạy lại, không xóa database.
 
-## Learn more
+## Chạy dự án
 
-To learn more about developing your project with Expo, look at the following resources:
+Mỗi lệnh ở một terminal riêng, từ thư mục gốc:
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+```powershell
+npm --prefix backend run dev
+npm --prefix admin-web run dev
+npm --prefix frontend start
+```
 
-## Join the community
+- Backend: `http://localhost:5000`; tài liệu API: `http://localhost:5000/api-docs`.
+- Admin: `http://localhost:5173`.
+- Mobile: mở bằng Expo; nhấn `w` trong terminal Expo để xem trên web.
+- Điện thoại thật: đặt `EXPO_PUBLIC_API_URL` trong `frontend/.env.local` thành `http://<IP-LAN-máy-tính>:5000/api`; hai máy cùng mạng. Khởi động lại Expo sau khi đổi cấu hình.
+- Nếu báo cổng đang được sử dụng, dùng phiên server đã chạy hoặc dừng đúng terminal cũ bằng Ctrl+C trước khi mở lại.
 
-Join our community of developers creating universal apps.
+Nếu đã đứng trong `backend`, dùng `npm run dev` trực tiếp, không thêm `--prefix backend` lần nữa.
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## Tài liệu
+
+- [Nghiệp vụ hiện tại](NGHIEP_VU_CHI_TIET.md)
+- [Hợp đồng tích hợp mobile, backend và admin](docs/TICH_HOP_BACKEND_MOBILE.md)
+- [Cấu hình email đặt lại mật khẩu](docs/CAU_HINH_EMAIL.md)
+- [Backend](backend/README.md), [Mobile](frontend/README.md), [Admin](admin-web/README.md)
+
+## Kiểm tra
+
+```powershell
+npm --prefix backend test
+npm --prefix frontend test
+npm --prefix frontend run typecheck
+npm --prefix frontend run lint
+npm --prefix admin-web test
+npm --prefix admin-web run build
+```
+
+Backend test dùng database tạm có tên riêng, tự dọn sau kiểm thử. Tài khoản MySQL cho test cần quyền tạo/xóa database tạm; không trỏ test vào máy production. GitHub Actions trong `.github/workflows/checks.yml` thực hiện kiểm tra cho cả ba ứng dụng bằng MySQL riêng của CI.
