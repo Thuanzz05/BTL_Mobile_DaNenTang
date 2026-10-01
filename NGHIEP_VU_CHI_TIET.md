@@ -110,7 +110,7 @@ Backend lấy ID người dùng từ JWT đã xác thực. Không tin `userId` d
 - Xem lại bộ thẻ sau khi đã hoàn thành trên cùng màn hình: không tạo thêm kết quả và không hạ ngăn của từ đã học.
 - Thêm yêu thích từ flashcard: ghi yêu thích riêng, không tự tạo tiến độ “đã học”.
 
-### 4.3. Ôn tập trắc nghiệm theo Leitner
+### 4.3. Ôn tập theo Leitner
 
 **Nguồn từ:** từ có `da_hoc = TRUE`, `ngay_on_tap_tiep_theo <= thời điểm hiện tại`, từ và chủ đề đều bật. Có thể chọn ôn trong một chủ đề hoặc ôn tất cả chủ đề. Không lấy từ chưa học để thay thế khi hết từ đến hạn.
 
@@ -119,18 +119,20 @@ Backend lấy ID người dùng từ JWT đã xác thực. Không tin `userId` d
 - Mỗi yêu cầu chọn từ 1–50, UI thường chọn tối đa 20; số thực nhận không vượt số từ đủ điều kiện.
 - Ưu tiên hạn ôn cũ nhất. Từ đang thuộc một phiên trắc nghiệm chưa kết thúc của chính người học không được đưa vào phiên mới khác.
 - Nếu không có từ phù hợp, trả `NO_REVIEW_WORDS` và không tạo phiên trống.
-- Chụp nội dung từ và tập đáp án tại lúc tạo phiên. Việc admin sửa nghĩa sau đó không làm đổi đáp án của câu đã tạo.
-- Cần ít nhất hai nghĩa khác nhau để tạo câu hỏi; tối đa bốn lựa chọn, một đáp án đúng. Các đáp án được xáo trộn; thứ tự từ ôn không được mô tả là chọn ngẫu nhiên hoàn toàn.
+- Chụp nội dung từ, dạng câu hỏi và đáp án tại lúc tạo phiên. Việc admin sửa nghĩa sau đó không làm đổi câu đã tạo.
+- Chọn ngẫu nhiên `ceil(số từ thực nhận × 20%)` từ làm câu nhập đáp án; các từ còn lại là trắc nghiệm. Ví dụ phiên 5, 10 và 20 từ lần lượt có 1, 2 và 4 câu nhập. Dạng câu của mỗi từ được giữ nguyên trong suốt phiên.
+- Câu trắc nghiệm cần ít nhất hai nghĩa khác nhau; có tối đa bốn lựa chọn và một đáp án đúng. Các đáp án được xáo trộn; thứ tự từ ôn vẫn ưu tiên hạn cũ, không chọn ngẫu nhiên hoàn toàn.
+- Câu nhập từ hiển thị nghĩa tiếng Việt và từ loại, không gửi từ tiếng Anh hoặc phiên âm trước khi chấm.
 - `ma_yeu_cau` khởi tạo giúp thử lại sau mất mạng nhận cùng phiên, không tạo phiên trùng.
 
 **Mỗi lượt trả lời:**
 
-1. Server trả câu hỏi, các ID lựa chọn và nội dung lựa chọn; chưa gửi ID đáp án đúng.
-2. Người học chọn đáp án, client gửi ID phiên, ID câu hỏi, ID lựa chọn và mã yêu cầu duy nhất.
-3. Backend kiểm tra quyền sở hữu, phiên còn mở, câu chưa được chấm và lựa chọn thuộc câu hỏi; tự xác định đúng/sai.
+1. Server trả loại câu hỏi. Câu trắc nghiệm có các lựa chọn; câu nhập từ có nghĩa tiếng Việt. Chưa gửi đáp án đúng.
+2. Người học chọn một lựa chọn hoặc nhập từ tiếng Anh; client gửi ID câu hỏi, một trong hai trường `lua_chon_id`/`cau_tra_loi` và mã yêu cầu duy nhất.
+3. Backend kiểm tra quyền sở hữu, phiên còn mở, câu chưa được chấm và dữ liệu đúng với loại câu. Câu nhập từ được chuẩn hóa Unicode, bỏ khoảng trắng thừa và không phân biệt chữ hoa/thường, sau đó so khớp chính xác với từ tiếng Anh.
 4. Lưu lịch sử lượt trả lời. Gửi lặp đúng mã và đúng nội dung trả lại phản hồi cũ; cùng mã nhưng nội dung khác bị từ chối.
 5. Đúng ngay: hoàn thành từ trong phiên, tăng một ngăn, tối đa ngăn 5; từ không hỏi lại trong phiên đó.
-6. Sai: lần sai đầu tiên trong phiên hạ từ về ngăn 1 ngay và hẹn ôn sau 1 ngày; đưa từ xuống cuối hàng đợi. Nếu chỉ còn một từ, có thể hỏi lại ngay.
+6. Sai: lần sai đầu tiên trong phiên hạ từ về ngăn 1 ngay và hẹn ôn sau 1 ngày; đưa từ xuống cuối hàng đợi với cùng dạng câu hỏi. Nếu chỉ còn một từ, có thể hỏi lại ngay.
 7. Sai tiếp: tiếp tục đưa xuống cuối; không tăng số lần ôn/ngăn nhiều lần cho cùng từ trong cùng phiên.
 8. Đúng sau một hoặc nhiều lần sai: hoàn thành từ, nhưng **giữ ngăn 1** trong phiên đó.
 9. Khi mọi từ đều đã trả lời đúng ít nhất một lần, phiên tự hoàn thành. Kết quả có số từ hoàn thành, số từ đúng ngay, số từ phải luyện lại, tổng lượt trả lời, lượt đúng và tỷ lệ đúng.
@@ -243,15 +245,15 @@ else [Không có từ mới]
 end
 ```
 
-### Ôn tập trắc nghiệm
+### Ôn tập từ vựng
 
 ```text
 Người học -> Form_OnTap: Chọn ôn chủ đề hoặc ôn các từ đến hạn
-Form -> Ctrl_OnTap -> CSDL: Tạo phiên từ đã học và đến hạn, chụp nội dung câu hỏi
+Form -> Ctrl_OnTap -> CSDL: Tạo phiên từ đã học và đến hạn, chọn 20% câu nhập từ, chụp nội dung
 alt [Có từ phù hợp]
   loop [Còn từ chưa hoàn thành]
-    Ctrl --> Form --> Người học: Câu hỏi và lựa chọn
-    Người học -> Form -> Ctrl: Chọn đáp án
+    Ctrl --> Form --> Người học: Câu trắc nghiệm hoặc câu nhập từ
+    Người học -> Form -> Ctrl: Chọn đáp án hoặc nhập từ tiếng Anh
     Ctrl -> CSDL: Chấm và lưu lượt trả lời, cập nhật tiến độ
     alt [Đúng ngay]
       Ctrl -> CSDL: Tăng một ngăn (tối đa 5), lập lịch; loại từ khỏi hàng đợi
@@ -289,7 +291,7 @@ Trong biểu đồ UML thực tế, `Ctrl -> CSDL` có thể thay bằng các li
 | Trắc nghiệm | `POST /quiz/start` | Body: `{"chu_de_id":"<topicId>","tong_so_tu":5,"ma_yeu_cau":"<UUID>"}`; ôn từ đến hạn trong chủ đề |
 | Trắc nghiệm | `POST /quiz/review/start` | Body: `{"tong_so_tu":20,"ma_yeu_cau":"<UUID>"}`; ôn đến hạn mọi chủ đề |
 | Trắc nghiệm | `GET /quiz/:sessionId` | Lấy câu đang làm, không lộ đáp án đúng trước khi chấm |
-| Trắc nghiệm | `POST /quiz/:sessionId/answers` | Body: `{"cau_hoi_id":"<UUID>","lua_chon_id":"<UUID>","ma_yeu_cau":"<UUID>"}` |
+| Ôn tập | `POST /quiz/:sessionId/answers` | Trắc nghiệm gửi `lua_chon_id`; câu nhập từ gửi `cau_tra_loi`; luôn kèm `cau_hoi_id` và `ma_yeu_cau` |
 | Trắc nghiệm | `POST /quiz/:sessionId/stop` | Dừng phiên, giữ lượt đã chấm |
 | Cá nhân | `GET /progress`, `GET /progress/topics`, `GET /learning/review` | Thống kê, theo chủ đề, danh sách từ đến hạn |
 | Cá nhân | `GET /history`, `GET /history/:sessionId`, `GET /learning/result/:sessionId` | Lịch sử, kết quả và thẻ đã xem |
@@ -327,7 +329,7 @@ Migration `010-report-learning.js` bổ sung phương thức `flashcard`, kết 
 4. Mở khách: thử 5 flashcard và tra từ; các API ghi phiên/yêu thích phải trả 401 nếu không có token.
 5. Đăng nhập, chọn mục tiêu 5: học phiên tối đa 5 từ mới. Thoát giữa chừng rồi vào lại phải tiếp tục cùng phiên. Học xong mới tăng tiến độ, mới có lịch ôn +1 ngày.
 6. Từ chưa đến hạn không được đưa vào quiz. Khi kiểm thử tự động, dùng database riêng để đặt ngày đến hạn quá khứ; không sửa ngày dữ liệu người dùng thật chỉ để demo.
-7. Ôn: đúng một lần hoàn thành từ; sai đưa về ngăn 1 và hỏi lại cuối hàng đợi; đúng sau sai không nâng ngăn. Thử mất mạng/gửi lại không cộng trùng.
+7. Ôn: kiểm tra đúng tỷ lệ 20% câu nhập từ; đúng một lần hoàn thành từ; sai đưa về ngăn 1 và hỏi lại cuối hàng đợi với cùng dạng câu; đúng sau sai không nâng ngăn. Thử mất mạng/gửi lại không cộng trùng.
 8. Admin: kiểm tra không có ô ảnh từ; sửa ví dụ vẫn hiện mặt sau thẻ; tạo trùng bị từ chối; không xóa được admin; hộp xóa người học phải nêu rõ dữ liệu bị xóa.
 9. Bộ test backend tạo database tên ngẫu nhiên riêng và dọn đúng database đó. Lệnh chuẩn (Node 24 trở lên): `npm test` trong backend. Frontend: `npm run typecheck`, `npm run lint`, `npm test`; admin: `npm run build`.
 

@@ -26,9 +26,12 @@ export interface SessionDetail extends StudySession {
     id: string;
     thu_tu: number;
     tu_tieng_anh: string;
+    loai_cau_hoi: "trac-nghiem" | "nhap-tu";
     dung: boolean | number;
-    dap_an_chon_id: string;
-    dap_an_dung_id: string;
+    dap_an_chon_id: string | null;
+    dap_an_dung_id: string | null;
+    dap_an_chon_text: string | null;
+    dap_an_dung_text: string | null;
     lua_chon: { id: string; noi_dung: string }[];
   }[];
 }

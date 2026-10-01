@@ -2,13 +2,15 @@ import { PoolConnection } from 'mysql2/promise';
 import { transaction } from '../config/database';
 import { PhienHocTap } from '../types/models';
 import { AppError } from '../utils/app-error';
-import { QUIZ_VERSION, quizState, shuffled } from '../utils/quiz.util';
+import { QUIZ_VERSION, normalizeTypedAnswer, quizState, shuffled } from '../utils/quiz.util';
 import { UuidUtil } from '../utils/uuid.util';
 import { LearningService, lockUser, sessionForUser } from './learning.service';
 
 interface Snapshot {
+  loai_cau_hoi?: 'trac-nghiem' | 'nhap-tu';
   tu_tieng_anh: string;
   phien_am: string | null;
+  loai_tu?: string | null;
   url_hinh_anh: string | null;
   nghia_tieng_viet: string;
   lua_chon: string[];
@@ -23,9 +25,12 @@ interface Question {
   id: string;
   tu_vung_id: string;
   thu_tu: number;
+  loai_cau_hoi: 'trac-nghiem' | 'nhap-tu';
   lua_chon: { id: string; noi_dung: string }[];
-  dap_an_dung_id: string;
+  dap_an_dung_id: string | null;
+  dap_an_dung_text: string | null;
   dap_an_chon_id: string | null;
+  dap_an_chon_text: string | null;
   dung: number | null;
   ma_yeu_cau: string | null;
   thoi_gian_tra_loi_ms: number | null;
@@ -34,7 +39,8 @@ interface Question {
 
 export interface QuizAnswer {
   cau_hoi_id: string;
-  lua_chon_id: string;
+  lua_chon_id?: string;
+  cau_tra_loi?: string;
   ma_yeu_cau: string;
   thoi_gian_tra_loi_ms?: number;
 }
@@ -79,19 +85,26 @@ export class QuizService {
     if (!question && state.next && session.trang_thai === 'dang-hoc') {
       const word = members.find((member) => member.tu_vung_id === state.next.id)!;
       const snapshot = word.noi_dung_trac_nghiem;
-      const options = shuffled(snapshot.lua_chon).map((meaning) => ({
-        id: UuidUtil.generate(),
-        noi_dung: meaning,
-      }));
-      const correct = options.find((option) => option.noi_dung === snapshot.nghia_tieng_viet)!;
+      const questionType = snapshot.loai_cau_hoi || 'trac-nghiem';
+      const options =
+        questionType === 'trac-nghiem'
+          ? shuffled(snapshot.lua_chon).map((meaning) => ({
+              id: UuidUtil.generate(),
+              noi_dung: meaning,
+            }))
+          : [];
+      const correct = options.find((option) => option.noi_dung === snapshot.nghia_tieng_viet);
 
       question = {
         id: UuidUtil.generate(),
         tu_vung_id: word.tu_vung_id,
         thu_tu: answers.length + 1,
+        loai_cau_hoi: questionType,
         lua_chon: options,
-        dap_an_dung_id: correct.id,
+        dap_an_dung_id: correct?.id || null,
+        dap_an_dung_text: questionType === 'nhap-tu' ? snapshot.tu_tieng_anh : null,
         dap_an_chon_id: null,
+        dap_an_chon_text: null,
         dung: null,
         ma_yeu_cau: null,
         thoi_gian_tra_loi_ms: null,
@@ -100,15 +113,18 @@ export class QuizService {
 
       await connection.execute(
         `INSERT INTO cau_hoi_trac_nghiem
-         (id, phien_hoc_tap_id, tu_vung_id, thu_tu, lua_chon, dap_an_dung_id)
-         VALUES (?, ?, ?, ?, ?, ?)`,
+         (id, phien_hoc_tap_id, tu_vung_id, thu_tu, loai_cau_hoi, lua_chon,
+          dap_an_dung_id, dap_an_dung_text)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         [
           question.id,
           session.id,
           question.tu_vung_id,
           question.thu_tu,
+          question.loai_cau_hoi,
           JSON.stringify(options),
-          correct.id,
+          question.dap_an_dung_id,
+          question.dap_an_dung_text,
         ]
       );
     }
@@ -134,8 +150,12 @@ export class QuizService {
               id: question.id,
               tu_vung_id: question.tu_vung_id,
               thu_tu: question.thu_tu,
-              tu_tieng_anh: word.tu_tieng_anh,
-              phien_am: word.phien_am,
+              loai_cau_hoi: question.loai_cau_hoi,
+              tu_tieng_anh: question.loai_cau_hoi === 'trac-nghiem' ? word.tu_tieng_anh : null,
+              phien_am: question.loai_cau_hoi === 'trac-nghiem' ? word.phien_am : null,
+              ...(question.loai_cau_hoi === 'nhap-tu'
+                ? { nghia_tieng_viet: word.nghia_tieng_viet, loai_tu: word.loai_tu }
+                : {}),
               url_hinh_anh: word.url_hinh_anh,
               lua_chon: question.lua_chon,
             }
@@ -160,7 +180,8 @@ export class QuizService {
       if (repeated) {
         if (
           repeated.id !== data.cau_hoi_id ||
-          repeated.dap_an_chon_id !== data.lua_chon_id ||
+          repeated.dap_an_chon_id !== (data.lua_chon_id ?? null) ||
+          repeated.dap_an_chon_text !== (data.cau_tra_loi ?? null) ||
           repeated.thoi_gian_tra_loi_ms !== (data.thoi_gian_tra_loi_ms ?? null)
         ) {
           throw new AppError(
@@ -184,15 +205,34 @@ export class QuizService {
       if (question.dung !== null) {
         throw new AppError('Câu hỏi đã được trả lời', 409, 'QUESTION_ALREADY_ANSWERED');
       }
-      if (!question.lua_chon.some((option) => option.id === data.lua_chon_id)) {
-        throw new AppError('Đáp án không thuộc câu hỏi', 400, 'INVALID_CHOICE');
+      if (question.loai_cau_hoi === 'trac-nghiem') {
+        if (
+          !data.lua_chon_id ||
+          !question.lua_chon.some((option) => option.id === data.lua_chon_id)
+        ) {
+          throw new AppError('Đáp án không thuộc câu hỏi', 400, 'INVALID_CHOICE');
+        }
+      } else if (!data.cau_tra_loi) {
+        throw new AppError('Câu trả lời nhập tay không hợp lệ', 400, 'INVALID_TYPED_ANSWER');
       }
 
-      const correct = data.lua_chon_id === question.dap_an_dung_id;
+      const correct =
+        question.loai_cau_hoi === 'trac-nghiem'
+          ? data.lua_chon_id === question.dap_an_dung_id
+          : normalizeTypedAnswer(data.cau_tra_loi!) ===
+            normalizeTypedAnswer(question.dap_an_dung_text!);
       await connection.execute(
-        `UPDATE cau_hoi_trac_nghiem SET dap_an_chon_id = ?, dung = ?, ma_yeu_cau = ?,
+        `UPDATE cau_hoi_trac_nghiem SET dap_an_chon_id = ?, dap_an_chon_text = ?,
+         dung = ?, ma_yeu_cau = ?,
          thoi_gian_tra_loi_ms = ?, tra_loi_luc = CURRENT_TIMESTAMP(3) WHERE id = ?`,
-        [data.lua_chon_id, correct, data.ma_yeu_cau, data.thoi_gian_tra_loi_ms ?? null, question.id]
+        [
+          data.lua_chon_id ?? null,
+          data.cau_tra_loi ?? null,
+          correct,
+          data.ma_yeu_cau,
+          data.thoi_gian_tra_loi_ms ?? null,
+          question.id,
+        ]
       );
 
       const answers = questions
@@ -235,6 +275,8 @@ export class QuizService {
           cau_hoi_id: question.id,
           dung: correct,
           dap_an_dung_id: question.dap_an_dung_id,
+          dap_an_dung_text: question.dap_an_dung_text,
+          cau_tra_loi: data.cau_tra_loi ?? null,
           nghia_tieng_viet: members.find((member) => member.tu_vung_id === word.id)!
             .noi_dung_trac_nghiem.nghia_tieng_viet,
           tu_da_hoan_thanh: word.done,

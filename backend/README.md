@@ -93,7 +93,7 @@ Trắc nghiệm được server chấm và web admin:
 
 - `POST /api/quiz/start`, `POST /api/quiz/review/start`.
 - `GET /api/quiz/:sessionId`, `POST /api/quiz/:sessionId/answers`, `POST /api/quiz/:sessionId/stop`.
-- Phiên quiz lưu từng lượt trả lời, chụp nội dung câu hỏi, chống ghi lặp và tự hoàn thành; các endpoint `/learning` cũ tiếp tục hoạt động.
+- Phiên quiz lưu từng lượt trả lời, chụp nội dung câu hỏi, chọn ngẫu nhiên 20% từ để nhập đáp án tiếng Anh, chống ghi lặp và tự hoàn thành; các endpoint `/learning` cũ tiếp tục hoạt động.
 - `GET /api/admin/quiz-statistics?from=YYYY-MM-DD&to=YYYY-MM-DD&minAttempts=5`.
 - `POST /api/web-auth/login`, `/api/web-auth/refresh`, `/api/web-auth/logout`: cookie HttpOnly, header `X-Wordleaf-Client: admin-web`, kiểm tra Origin. API JSON token của mobile không thay đổi.
 

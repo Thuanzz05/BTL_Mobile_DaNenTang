@@ -28,6 +28,8 @@ const codeOf = (error: unknown) => (error as { code?: string })?.code;
 const uuid = (value: unknown) =>
   typeof value === "string" &&
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+const typedAnswer = (value: unknown) =>
+  typeof value === "string" && value.trim().length > 0 && value.trim().length <= 120;
 
 function parseDraft(raw: string, userId: string): QuizDraft {
   const value = JSON.parse(raw) as QuizDraft;
@@ -53,8 +55,11 @@ function parseDraft(raw: string, userId: string): QuizDraft {
     (pending !== null &&
       (!value.sessionId ||
         !uuid(pending?.cau_hoi_id) ||
-        !uuid(pending?.lua_chon_id) ||
-        !uuid(pending?.ma_yeu_cau)))
+        !uuid(pending?.ma_yeu_cau) ||
+        !(
+          (uuid(pending?.lua_chon_id) && pending?.cau_tra_loi === undefined) ||
+          (typedAnswer(pending?.cau_tra_loi) && pending?.lua_chon_id === undefined)
+        )))
   ) {
     throw new Error(
       "Bản lưu bài học không hợp lệ. Chưa gửi thêm dữ liệu lên máy chủ.",
@@ -262,15 +267,25 @@ export class QuizSessionClient {
     return response;
   }
 
-  answer(questionId: string, choiceId: string) {
+  answer(questionId: string, value: string, type: "choice" | "text" = "choice") {
     return this.exclusive(async () => {
       const draft = this.draft;
       if (!draft?.sessionId || draft.stopping)
         throw new Error("Hãy mở lại bài học để đồng bộ tiến trình.");
+      const answer =
+        type === "text"
+          ? { cau_tra_loi: value.trim() }
+          : { lua_chon_id: value };
+      if (
+        (type === "text" && !typedAnswer(answer.cau_tra_loi)) ||
+        (type === "choice" && !uuid(answer.lua_chon_id))
+      )
+        throw new Error("Câu trả lời không hợp lệ.");
       if (
         draft.pending &&
         (draft.pending.cau_hoi_id !== questionId ||
-          draft.pending.lua_chon_id !== choiceId)
+          draft.pending.lua_chon_id !== answer.lua_chon_id ||
+          draft.pending.cau_tra_loi !== answer.cau_tra_loi)
       ) {
         throw new Error(
           "Cần gửi xong câu trả lời đang chờ trước khi chọn đáp án khác.",
@@ -281,7 +296,7 @@ export class QuizSessionClient {
           ...draft,
           pending: {
             cau_hoi_id: questionId,
-            lua_chon_id: choiceId,
+            ...answer,
             ma_yeu_cau: requestId(),
           },
         });

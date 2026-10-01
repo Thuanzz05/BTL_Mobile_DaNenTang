@@ -1,8 +1,11 @@
 export interface QuizQuestion {
   id: string;
   tu_vung_id: string;
-  tu_tieng_anh: string;
+  loai_cau_hoi: "trac-nghiem" | "nhap-tu";
+  tu_tieng_anh: string | null;
   phien_am: string | null;
+  nghia_tieng_viet?: string;
+  loai_tu?: string | null;
   lua_chon: { id: string; noi_dung: string }[];
 }
 
@@ -22,7 +25,9 @@ export interface QuizSession {
 export interface AnswerResponse {
   ket_qua: {
     dung: boolean;
-    dap_an_dung_id: string;
+    dap_an_dung_id: string | null;
+    dap_an_dung_text: string | null;
+    cau_tra_loi: string | null;
     nghia_tieng_viet: string;
     tu_da_hoan_thanh: boolean;
   } | null;
@@ -48,7 +53,8 @@ export interface QuizDraft {
   sessionId: string | null;
   pending: {
     cau_hoi_id: string;
-    lua_chon_id: string;
+    lua_chon_id?: string;
+    cau_tra_loi?: string;
     ma_yeu_cau: string;
   } | null;
   stopping: boolean;

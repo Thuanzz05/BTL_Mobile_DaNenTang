@@ -12,6 +12,7 @@ test('Leitner, business calendar and JWT validation', () => {
   const { leitnerStatus, nextLeitnerBox, nextReviewDate } = require('../dist/utils/srs.util');
   const { learningPeriodStarts, learningStreak } = require('../dist/utils/calendar.util');
   const { JwtUtil } = require('../dist/utils/jwt.util');
+  const { normalizeTypedAnswer, typedQuestionIds } = require('../dist/utils/quiz.util');
   const now = new Date('2026-09-13T10:00:00Z');
   assert.equal(nextLeitnerBox(1, true), 2);
   assert.equal(nextLeitnerBox(5, true), 5);
@@ -26,6 +27,13 @@ test('Leitner, business calendar and JWT validation', () => {
     'da-nho',
     'thuoc-long',
   ]);
+  assert.deepEqual(
+    [5, 10, 20].map(
+      (count) => typedQuestionIds(Array.from({ length: count }, (_, index) => String(index))).size
+    ),
+    [1, 2, 4]
+  );
+  assert.equal(normalizeTypedAnswer('  APPLE  PIE '), 'apple pie');
   const dates = learningPeriodStarts(new Date('2026-09-13T18:00:00Z'));
   assert.equal(dates.today.toISOString(), '2026-09-13T17:00:00.000Z');
   assert.equal(dates.week.toISOString(), dates.today.toISOString());

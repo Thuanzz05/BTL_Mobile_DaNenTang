@@ -9,6 +9,7 @@ import {
   Pressable,
   ScrollView,
   Text,
+  TextInput,
   View,
 } from "react-native";
 import { Feather } from "@expo/vector-icons";
@@ -37,6 +38,7 @@ export function ServerQuiz({
   const [session, setSession] = useState(initial);
   const [nextSession, setNextSession] = useState<QuizSession | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
+  const [typed, setTyped] = useState("");
   const [feedback, setFeedback] = useState<AnswerResponse["ket_qua"] | null>(
     null,
   );
@@ -60,13 +62,14 @@ export function ServerQuiz({
   }
   useImperativeHandle(ref, () => ({ requestClose }));
 
-  async function answer(choiceId: string) {
+  async function answer(value: string, type: "choice" | "text" = "choice") {
     if (!question || busy || feedback) return;
-    setSelected(choiceId);
+    if (type === "text" && !value.trim()) return;
+    setSelected(value);
     setBusy(true);
     setError("");
     try {
-      const response = await quizClient.answer(question.id, choiceId);
+      const response = await quizClient.answer(question.id, value, type);
       setFeedback(response.ket_qua);
       if (response.ket_qua) setNextSession(response.phien);
       else {
@@ -87,6 +90,7 @@ export function ServerQuiz({
     setSession(nextSession);
     setNextSession(null);
     setSelected(null);
+    setTyped("");
     setFeedback(null);
     setError("");
   }
@@ -138,7 +142,7 @@ export function ServerQuiz({
           <Feather name="x" size={23} color={c.ink} />
         </Pressable>
         <View style={s.headerText}>
-          <Text style={s.overline}>Ôn tập trắc nghiệm</Text>
+          <Text style={s.overline}>Ôn tập từ vựng</Text>
           <Text style={s.topic}>{title}</Text>
         </View>
         <View style={s.counter}>
@@ -232,46 +236,90 @@ export function ServerQuiz({
         <>
           <View style={s.row}>
             <Text style={s.body}>Lượt {session.so_luot_tra_loi + 1}</Text>
-            <Text style={s.small}>Anh → Việt</Text>
-          </View>
-          <View style={s.card}>
-            <Text style={s.overline}>TỪ NÀY CÓ NGHĨA LÀ GÌ?</Text>
-            <Text style={s.word}>{question.tu_tieng_anh}</Text>
-            <Text style={s.phonetic}>
-              {question.phien_am || "Chọn nghĩa phù hợp bên dưới"}
+            <Text style={s.small}>
+              {question.loai_cau_hoi === "nhap-tu"
+                ? "Việt → Anh"
+                : "Anh → Việt"}
             </Text>
           </View>
-          <Text style={s.prompt}>Chọn một đáp án</Text>
-          <View style={s.answers}>
-            {question.lua_chon.map((choice, index) => {
-              const right = feedback?.dap_an_dung_id === choice.id;
-              const wrong = !!feedback && selected === choice.id && !right;
-              return (
-                <Pressable
-                  key={choice.id}
-                  accessibilityRole="button"
-                  accessibilityLabel={choice.noi_dung}
-                  disabled={busy || selected !== null}
-                  onPress={() => answer(choice.id)}
-                  style={[s.option, right && s.right, wrong && s.wrong]}
-                >
-                  <View style={s.letter}>
-                    <Text style={s.link}>
-                      {String.fromCharCode(65 + index)}
-                    </Text>
-                  </View>
-                  <Text style={s.optionText}>{choice.noi_dung}</Text>
-                  {(right || wrong) && (
-                    <Feather
-                      name={right ? "check-circle" : "x-circle"}
-                      size={22}
-                      color={right ? c.green : c.danger}
-                    />
-                  )}
-                </Pressable>
-              );
-            })}
+          <View style={s.card}>
+            <Text style={s.overline}>
+              {question.loai_cau_hoi === "nhap-tu"
+                ? "NHẬP TỪ TIẾNG ANH"
+                : "TỪ NÀY CÓ NGHĨA LÀ GÌ?"}
+            </Text>
+            <Text style={s.word}>
+              {question.loai_cau_hoi === "nhap-tu"
+                ? question.nghia_tieng_viet
+                : question.tu_tieng_anh}
+            </Text>
+            <Text style={s.phonetic}>
+              {question.loai_cau_hoi === "nhap-tu"
+                ? "Tự nhớ và viết đúng chính tả"
+                : question.phien_am || "Chọn nghĩa phù hợp bên dưới"}
+            </Text>
           </View>
+          {question.loai_cau_hoi === "nhap-tu" ? (
+            <View style={s.answers}>
+              <Text style={s.prompt}>Nhập câu trả lời</Text>
+              <TextInput
+                accessibilityLabel="Nhập từ tiếng Anh"
+                autoCapitalize="none"
+                autoCorrect={false}
+                editable={!busy && !feedback}
+                maxLength={120}
+                onChangeText={setTyped}
+                onSubmitEditing={() => answer(typed, "text")}
+                placeholder="Từ tiếng Anh"
+                placeholderTextColor={c.muted}
+                returnKeyType="done"
+                style={s.textInput}
+                value={typed}
+              />
+              <Pressable
+                accessibilityRole="button"
+                disabled={busy || !!feedback || !typed.trim()}
+                onPress={() => answer(typed, "text")}
+                style={[s.button, !typed.trim() && s.disabled]}
+              >
+                <Text style={s.white}>Kiểm tra</Text>
+              </Pressable>
+            </View>
+          ) : (
+            <>
+              <Text style={s.prompt}>Chọn một đáp án</Text>
+              <View style={s.answers}>
+                {question.lua_chon.map((choice, index) => {
+                  const right = feedback?.dap_an_dung_id === choice.id;
+                  const wrong = !!feedback && selected === choice.id && !right;
+                  return (
+                    <Pressable
+                      key={choice.id}
+                      accessibilityRole="button"
+                      accessibilityLabel={choice.noi_dung}
+                      disabled={busy || selected !== null}
+                      onPress={() => answer(choice.id)}
+                      style={[s.option, right && s.right, wrong && s.wrong]}
+                    >
+                      <View style={s.letter}>
+                        <Text style={s.link}>
+                          {String.fromCharCode(65 + index)}
+                        </Text>
+                      </View>
+                      <Text style={s.optionText}>{choice.noi_dung}</Text>
+                      {(right || wrong) && (
+                        <Feather
+                          name={right ? "check-circle" : "x-circle"}
+                          size={22}
+                          color={right ? c.green : c.danger}
+                        />
+                      )}
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </>
+          )}
           {busy && <ActivityIndicator color={c.green} />}
           {!!error && (
             <View style={[s.feedback, s.feedbackWrong]}>
@@ -283,7 +331,12 @@ export function ServerQuiz({
                   accessibilityRole="button"
                   style={s.retryAnswer}
                   disabled={busy}
-                  onPress={() => answer(pending.lua_chon_id)}
+                  onPress={() =>
+                    answer(
+                      pending.lua_chon_id || pending.cau_tra_loi || "",
+                      pending.cau_tra_loi === undefined ? "choice" : "text",
+                    )
+                  }
                 >
                   <Text style={s.link}>Thử gửi lại</Text>
                 </Pressable>
@@ -301,7 +354,9 @@ export function ServerQuiz({
                   : "Chưa đúng, mình thử lại nhé."}
               </Text>
               <Text style={s.body}>
-                {question.tu_tieng_anh} = {feedback.nghia_tieng_viet}
+                {question.loai_cau_hoi === "nhap-tu"
+                  ? `Đáp án đúng: ${feedback.dap_an_dung_text}`
+                  : `${question.tu_tieng_anh} = ${feedback.nghia_tieng_viet}`}
               </Text>
               <Text style={s.small}>
                 {feedback.tu_da_hoan_thanh
