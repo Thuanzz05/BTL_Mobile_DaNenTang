@@ -158,7 +158,9 @@ test('Backend HTTP and real MySQL regression tests', { timeout: 120000 }, async 
       AuthService.google = {
         verifyIdToken: async ({ idToken, audience }) => {
           assert.equal(audience, process.env.GOOGLE_CLIENT_ID);
-          if (idToken === 'invalid-google-token') throw new Error('invalid');
+          if (idToken === 'invalid-google-token') {
+            throw new Error('invalid');
+          }
           const conflict = idToken === 'local-email-google-token';
           return {
             getPayload: () => ({

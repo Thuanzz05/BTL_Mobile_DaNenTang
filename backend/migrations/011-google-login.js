@@ -3,7 +3,9 @@ module.exports = async function migrate(connection) {
   const [indexes] = await connection.query(
     "SELECT 1 FROM information_schema.STATISTICS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'nguoi_dung' AND INDEX_NAME = 'unique_login_provider'"
   );
-  if (indexes.length) return;
+  if (indexes.length) {
+    return;
+  }
 
   const [duplicates] = await connection.query(
     `SELECT 1 FROM nguoi_dung
