@@ -104,6 +104,16 @@ module.exports = async function quizIntegration(
       );
       const sessionId = start.phien_hoc_tap_id;
       const route = '/api/quiz/' + sessionId;
+      assert.deepEqual(
+        await api(
+          'POST',
+          '/api/quiz/review/start',
+          { tong_so_tu: 5, ma_yeu_cau: randomUUID() },
+          other.accessToken,
+          201
+        ),
+        start
+      );
       assert.equal(start.phien_ban_thuat_toan, 'leitner-queue-v2');
       assert.ok(['trac-nghiem', 'nhap-tu'].includes(start.cau_hoi.loai_cau_hoi));
       assert.equal(start.cau_hoi.lua_chon.length, start.cau_hoi.loai_cau_hoi === 'nhap-tu' ? 0 : 4);

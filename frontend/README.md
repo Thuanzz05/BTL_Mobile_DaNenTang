@@ -35,6 +35,6 @@ Phiên mới dùng leitner-queue-v2; phiên v1 đang học tiếp tục quy tắ
 ## Lịch sử và tiếp tục bài học
 
 - Lịch sử tải 20 phiên mỗi trang, có nút tải thêm và chi tiết từng lượt trả lời đúng/sai.
-- Phiên đang học có thể mở lại từ lịch sử, kể cả khi thiết bị chưa lưu bản nháp. Phiên flashcard tiếp tục từ thẻ chưa xem; quiz tiếp tục hàng đợi đã lưu trên máy chủ.
+- Phiên đang học có thể mở lại từ lịch sử, kể cả khi thiết bị chưa lưu bản nháp. Phiên flashcard tiếp tục từ thẻ chưa xem; nút Ôn ngay cũng mở lại quiz đang dở và tiếp tục hàng đợi đã lưu trên máy chủ.
 - Nếu thiết bị đang giữ một quiz khác, ứng dụng yêu cầu tiếp tục hoặc dừng bài đó trước. Câu trả lời đang chờ gửi được giữ lại và đồng bộ trước khi dừng phiên.
 - Tiến trình ở trang chủ, khám phá, chủ đề và thống kê tự tải lại khi quay về màn hình.

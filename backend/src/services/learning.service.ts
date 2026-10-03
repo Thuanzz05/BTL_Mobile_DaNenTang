@@ -399,6 +399,28 @@ export class LearningService {
       if (replay) {
         return replay;
       }
+      if (!topicId) {
+        const [activeSessions]: any = await connection.execute(
+          `SELECT p.*, c.ten AS chu_de_ten, c.hinh_anh AS chu_de_hinh_anh
+           FROM phien_hoc_tap p LEFT JOIN chu_de c ON c.id = p.chu_de_id
+           WHERE p.nguoi_dung_id = ? AND p.phuong_thuc = ?
+             AND p.loai_phien = 'on_tap' AND p.trang_thai = 'dang-hoc'
+           ORDER BY p.bat_dau_luc, p.id LIMIT 1`,
+          [userId, method]
+        );
+        if (activeSessions.length) {
+          const [activeWords]: any = await connection.execute(
+            `SELECT t.* FROM phien_hoc_tu p JOIN tu_vung t ON t.id = p.tu_vung_id
+             WHERE p.phien_hoc_tap_id = ? ORDER BY p.thu_tu`,
+            [activeSessions[0].id]
+          );
+          return {
+            phien_hoc_tap_id: activeSessions[0].id as string,
+            phien_hoc_tap: activeSessions[0],
+            danh_sach_tu: await withExamples(activeWords, connection),
+          };
+        }
+      }
       const [words]: any = await connection.query(
         'SELECT t.* ' +
           dueSql +
