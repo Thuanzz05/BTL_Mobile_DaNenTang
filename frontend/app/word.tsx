@@ -8,7 +8,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Feather } from "@expo/vector-icons";
+import { Feather, FontAwesome } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import { usePronunciation } from "@/hooks/use-pronunciation";
 import { palette as c } from "@/constants/palette";
@@ -113,8 +113,8 @@ export default function WordScreen() {
           {saving ? (
             <ActivityIndicator color={c.green} />
           ) : (
-            <Feather
-              name="heart"
+            <FontAwesome
+              name={word?.da_yeu_thich ? "heart" : "heart-o"}
               size={24}
               color={word?.da_yeu_thich ? c.green : c.ink}
             />
@@ -151,6 +151,11 @@ export default function WordScreen() {
           />
         ) : word ? (
           <>
+            {!!error && (
+              <Text accessibilityRole="alert" style={s.inlineError}>
+                {error}
+              </Text>
+            )}
             <View style={s.hero}>
               <View style={s.heroTop}>
                 <View style={s.typeBadge}>
@@ -228,12 +233,6 @@ export default function WordScreen() {
                 </View>
               )}
             </View>
-
-            {!!error && (
-              <Text accessibilityRole="alert" style={s.inlineError}>
-                {error}
-              </Text>
-            )}
           </>
         ) : null}
       </ScrollView>

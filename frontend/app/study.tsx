@@ -16,6 +16,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  useWindowDimensions,
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -92,6 +93,7 @@ function StudyCards({
   const [error, setError] = useState("");
   const [attempt, setAttempt] = useState(0);
   const reduceMotion = useReducedMotion();
+  const { width: screenWidth } = useWindowDimensions();
   const [flip] = useState(() => new Animated.Value(0));
 
   useEffect(() => {
@@ -144,6 +146,12 @@ function StudyCards({
   }, [attempt, client, topicId, userId, flip]);
 
   const word = words[index];
+  const wordLength = Math.max(Array.from(word?.tu_tieng_anh.trim() || "").length, 1);
+  const availableWordWidth = Math.max(120, Math.min(screenWidth, 580) - 112);
+  const webWordFontSize = Math.max(
+    8,
+    Math.min(52, Math.floor(availableWordWidth / (wordLength * 0.8))),
+  );
   const { pronounce, audioMessage } = usePronunciation(word?.tu_tieng_anh);
   const message = !topicId
     ? "Không tìm thấy chủ đề."
@@ -384,7 +392,20 @@ function StudyCards({
                   <Text style={s.cardLabel}>
                     {wordTypes[word.loai_tu] || word.loai_tu}
                   </Text>
-                  <Text style={s.english}>{word.tu_tieng_anh}</Text>
+                  <Text
+                    style={[
+                      s.english,
+                      Platform.OS === "web" && {
+                        fontSize: webWordFontSize,
+                        lineHeight: Math.ceil(webWordFontSize * 1.2),
+                      },
+                    ]}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.55}
+                  >
+                    {word.tu_tieng_anh}
+                  </Text>
                   {!!word.phien_am && (
                     <Text style={s.phonetic}>{word.phien_am}</Text>
                   )}
@@ -421,7 +442,19 @@ function StudyCards({
                   </Text>
                   <Text style={s.meaning}>{word.nghia_tieng_viet}</Text>
                   <View style={s.rule} />
-                  <Text style={s.englishSmall}>{word.tu_tieng_anh}</Text>
+                  <Text
+                    style={[
+                      s.englishSmall,
+                      Platform.OS === "web" && {
+                        fontSize: Math.min(23, webWordFontSize),
+                      },
+                    ]}
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    minimumFontScale={0.55}
+                  >
+                    {word.tu_tieng_anh}
+                  </Text>
                   {!!word.phien_am && (
                     <Text style={s.phonetic}>{word.phien_am}</Text>
                   )}
@@ -629,6 +662,8 @@ const s = StyleSheet.create({
   },
   cardLabelBack: { color: studyColors.rust },
   english: {
+    width: "100%",
+    flexShrink: 1,
     color: studyColors.ink,
     fontFamily: Fonts.serif,
     fontSize: 52,
@@ -637,6 +672,8 @@ const s = StyleSheet.create({
     letterSpacing: -1.2,
   },
   englishSmall: {
+    width: "100%",
+    flexShrink: 1,
     color: studyColors.ink,
     fontFamily: Fonts.serif,
     fontSize: 23,
