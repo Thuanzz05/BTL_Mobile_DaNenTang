@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { Feather } from "@expo/vector-icons";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { palette as c } from "@/constants/palette";
 import { Fonts } from "@/constants/theme";
 import { useAuth } from "@/contexts/auth-context";
@@ -43,25 +43,27 @@ export default function DictionaryScreen() {
     [client, term, user],
   );
 
-  useEffect(() => {
-    let active = true;
-    request(1)
-      .then((data) => {
-        if (active) {
-          setResult(data);
-          setError("");
-        }
-      })
-      .catch((loadError) => {
-        if (active) setError((loadError as Error).message);
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, [request]);
+  useFocusEffect(
+    useCallback(() => {
+      let active = true;
+      request(1)
+        .then((data) => {
+          if (active) {
+            setResult(data);
+            setError("");
+          }
+        })
+        .catch((loadError) => {
+          if (active) setError((loadError as Error).message);
+        })
+        .finally(() => {
+          if (active) setLoading(false);
+        });
+      return () => {
+        active = false;
+      };
+    }, [request]),
+  );
 
   async function loadMore() {
     if (
