@@ -91,16 +91,18 @@ export class LearningService {
         'SELECT muc_tieu_hang_ngay FROM nguoi_dung WHERE id = ?',
         [userId]
       );
-      const [words]: any = await connection.query(
-        "SELECT t.* FROM tu_vung t LEFT JOIN tien_do_tu_vung p ON p.tu_vung_id = t.id AND p.nguoi_dung_id = ? WHERE t.chu_de_id = ? AND t.trang_thai = 'active' AND COALESCE(p.da_hoc, FALSE) = FALSE ORDER BY t.thu_tu_hien_thi, t.id LIMIT ? FOR SHARE",
+      let [words]: any = await connection.query(
+        "SELECT t.* FROM tu_vung t LEFT JOIN tien_do_tu_vung p ON p.tu_vung_id = t.id AND p.nguoi_dung_id = ? WHERE t.chu_de_id = ? AND t.trang_thai = 'active' AND COALESCE(p.da_hoc, FALSE) = FALSE ORDER BY RAND() LIMIT ? FOR SHARE",
         [userId, topicId, Number(users[0].muc_tieu_hang_ngay)]
       );
       if (!words.length) {
-        throw new AppError(
-          'Bạn đã học hết từ mới trong chủ đề. Hãy ôn các từ đến hạn.',
-          404,
-          'NO_NEW_WORDS'
+        [words] = await connection.query(
+          "SELECT * FROM tu_vung WHERE chu_de_id = ? AND trang_thai = 'active' ORDER BY RAND() LIMIT ? FOR SHARE",
+          [topicId, Number(users[0].muc_tieu_hang_ngay)]
         );
+      }
+      if (!words.length) {
+        throw new AppError('Chủ đề chưa có từ vựng để học', 404, 'NO_WORDS');
       }
       return this.createSession(connection, userId, topicId, words, 'hoc_moi', 'flashcard');
     });

@@ -95,7 +95,7 @@ Backend lấy ID người dùng từ JWT đã xác thực. Không tin `userId` d
 
 1. Người học chọn Học bằng flashcard.
 2. Backend tìm phiên flashcard đang học của chính người dùng trong chủ đề. Nếu có, trả lại danh sách/thứ tự và dấu đã xem để tiếp tục; không tạo phiên mới vì tải lại màn hình.
-3. Nếu chưa có phiên, chọn **chỉ từ chưa học**, đang hiển thị, theo thứ tự nội dung. Số từ tối đa bằng mục tiêu cá nhân 5, 10 hoặc 20. Nếu còn ít hơn, học số từ còn lại; không yêu cầu chủ đề phải có ít nhất 5 từ.
+3. Nếu chưa có phiên, chọn ngẫu nhiên **chỉ từ chưa học** và đang hiển thị. Số từ tối đa bằng mục tiêu cá nhân 5, 10 hoặc 20; ví dụ mục tiêu 20 và còn 50 từ thì phiên mới lấy ngẫu nhiên 20 từ. Nếu còn từ chưa học nhưng ít hơn mục tiêu, học số từ còn lại. Khi tất cả từ trong chủ đề đã được học, phiên mới chọn ngẫu nhiên trong toàn bộ từ đang hiển thị để người học có thể tiếp tục xem flashcard.
 4. Lưu `phien_hoc_tap` với phương thức `flashcard` và danh sách `phien_hoc_tu` cố định.
 5. Mặt trước: từ tiếng Anh, phiên âm, từ loại. Mặt sau: nghĩa, từ loại, từ tiếng Anh, phiên âm và các ví dụ Anh–Việt; **không có ảnh minh họa từ**. Lật thẻ có hiệu ứng, hai mặt khác màu; hỗ trợ giảm chuyển động.
 6. Người học phải lật thẻ trước khi bấm Tiếp theo/Học xong. Nút này ghi dấu đã xem vào server theo thứ tự. Gửi lại cùng thẻ không ghi trùng; có thể quay lại thẻ đã xem.
@@ -229,7 +229,7 @@ Lịch tính từ thời điểm ghi nhận kết quả, theo khoảng thời gi
 ```text
 Người học -> Form_HocFlashcard: Chọn chủ đề
 Form -> Ctrl_HocFlashcard: Tạo/tiếp tục phiên(topicId)
-Ctrl -> CSDL: Lấy phiên cũ hoặc chọn từ chưa học, lưu phiên và danh sách
+Ctrl -> CSDL: Lấy phiên cũ; nếu tạo phiên mới thì chọn ngẫu nhiên từ chưa học hoặc toàn bộ từ khi đã học hết
 CSDL --> Ctrl --> Form: Danh sách từ, ví dụ, vị trí đã xem
 alt [Có từ]
   loop [Các thẻ trong phiên]
