@@ -212,7 +212,7 @@ router.get('/progress', authMiddleware, ProgressController.getProgress);
  * @swagger
  * /api/learning/flashcards/start:
  *   post:
- *     summary: Tạo hoặc tiếp tục phiên flashcard từ chưa học theo mục tiêu 5, 10, 20 từ
+ *     summary: Tạo hoặc tiếp tục phiên flashcard ngẫu nhiên theo mục tiêu 5, 10, 20 từ
  *     tags: [Learning]
  *     security: [{ bearerAuth: [] }]
  *     requestBody:
@@ -226,7 +226,7 @@ router.get('/progress', authMiddleware, ProgressController.getProgress);
  *               chu_de_id: { type: string }
  *     responses:
  *       201: { description: ID phiên và danh sách từ kèm ví dụ, da_xem_luc }
- *       404: { description: Chủ đề không hiển thị hoặc không còn từ mới }
+ *       404: { description: Chủ đề không hiển thị hoặc chưa có từ vựng }
  * /api/learning/flashcards/view:
  *   post:
  *     summary: Lưu thẻ đã xem theo thứ tự, gửi lại không ghi trùng
