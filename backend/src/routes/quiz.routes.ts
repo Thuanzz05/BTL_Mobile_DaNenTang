@@ -28,6 +28,24 @@ router.use(authMiddleware);
  *               tong_so_tu: { type: integer, minimum: 1, maximum: 50, default: 50 }
  *     responses:
  *       201: { description: Phiên và câu hỏi đầu tiên; không trả đáp án đúng }
+ * /api/quiz/topic/start:
+ *   post:
+ *     summary: Ôn ngay các từ đã học trong một chủ đề, không cần chờ đến hạn
+ *     tags: [Quiz]
+ *     security: [{ bearerAuth: [] }]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: [chu_de_id]
+ *             properties:
+ *               chu_de_id: { type: string }
+ *               ma_yeu_cau: { type: string, format: uuid }
+ *               tong_so_tu: { type: integer, minimum: 1, maximum: 50, default: 20 }
+ *     responses:
+ *       201: { description: Phiên ôn tập theo chủ đề }
  * /api/quiz/review/start:
  *   post:
  *     summary: Ôn từ đến hạn, hỗ trợ cả phiên chỉ có một từ
@@ -49,6 +67,11 @@ router.post(
   '/start',
   validate(schemas.review.extend({ chu_de_id: identifier, ...startRequest })),
   QuizController.start
+);
+router.post(
+  '/topic/start',
+  validate(schemas.review.extend({ chu_de_id: identifier, ...startRequest })),
+  QuizController.topicPractice
 );
 router.post('/review/start', validate(schemas.review.extend(startRequest)), QuizController.review);
 router.use('/:sessionId', validate(z.object({ sessionId: identifier }), 'params'));

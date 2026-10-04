@@ -104,6 +104,12 @@ module.exports = async function quizIntegration(
       );
       const sessionId = start.phien_hoc_tap_id;
       const route = '/api/quiz/' + sessionId;
+
+      // Phiên quiz được tạo bởi bản cũ có thể bị ghi nhãn hoc_moi. Nút ôn
+      // tổng hợp vẫn phải tiếp tục phiên đó thay vì báo không còn từ đến hạn.
+      await connection.execute("UPDATE phien_hoc_tap SET loai_phien = 'hoc_moi' WHERE id = ?", [
+        sessionId,
+      ]);
       assert.deepEqual(
         await api(
           'POST',
@@ -114,6 +120,9 @@ module.exports = async function quizIntegration(
         ),
         start
       );
+      await connection.execute("UPDATE phien_hoc_tap SET loai_phien = 'on_tap' WHERE id = ?", [
+        sessionId,
+      ]);
       assert.equal(start.phien_ban_thuat_toan, 'leitner-queue-v2');
       assert.ok(['trac-nghiem', 'nhap-tu'].includes(start.cau_hoi.loai_cau_hoi));
       assert.equal(start.cau_hoi.lua_chon.length, start.cau_hoi.loai_cau_hoi === 'nhap-tu' ? 0 : 4);

@@ -1,16 +1,19 @@
 import { Fonts } from "@/constants/theme";
 import { palette as c } from "@/constants/palette";
 import { useAuth } from "@/contexts/auth-context";
-import { getWords, Word } from "@/services/catalog";
+import { FlashcardPreview } from "@/components/flashcard-preview";
+import { getWords, Topic, Word } from "@/services/catalog";
 import { Feather } from "@expo/vector-icons";
 import { router, useLocalSearchParams } from "expo-router";
 import { usePronunciation } from "@/hooks/use-pronunciation";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useReducedMotion } from "react-native-reanimated";
 import {
   ActivityIndicator,
   Animated,
+  BackHandler,
   Easing,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -85,6 +88,8 @@ function StudyCards({
   const [saved, setSaved] = useState<Set<string>>(() => new Set());
   const [busy, setBusy] = useState(false);
   const [saveError, setSaveError] = useState("");
+  const [confirmExit, setConfirmExit] = useState(false);
+  const [quizOpen, setQuizOpen] = useState(false);
   const [completed, setCompleted] = useState(false);
   const [index, setIndex] = useState(0);
   const [flipped, setFlipped] = useState(false);
@@ -95,6 +100,8 @@ function StudyCards({
   const reduceMotion = useReducedMotion();
   const { width: screenWidth } = useWindowDimensions();
   const [flip] = useState(() => new Animated.Value(0));
+  const persistedViews = useRef(new Set<string>());
+  const pendingViews = useRef(new Map<string, Promise<void>>());
 
   useEffect(() => {
     if (!topicId) return;
@@ -124,6 +131,8 @@ function StudyCards({
             .filter((item) => item.da_xem_luc)
             .map((item) => item.id),
         );
+        persistedViews.current = new Set(viewed);
+        pendingViews.current.clear();
         setSeen(viewed);
         const nextIndex = data.danh_sach_tu.findIndex(
           (item) => !viewed.has(item.id),
@@ -146,7 +155,10 @@ function StudyCards({
   }, [attempt, client, topicId, userId, flip]);
 
   const word = words[index];
-  const wordLength = Math.max(Array.from(word?.tu_tieng_anh.trim() || "").length, 1);
+  const wordLength = Math.max(
+    Array.from(word?.tu_tieng_anh.trim() || "").length,
+    1,
+  );
   const availableWordWidth = Math.max(120, Math.min(screenWidth, 580) - 112);
   const webWordFontSize = Math.max(
     8,
@@ -165,11 +177,55 @@ function StudyCards({
     inputRange: [0, 1],
     outputRange: ["180deg", "360deg"],
   });
+  const resumeIndex = words.findIndex((item) => !seen.has(item.id));
+  const resumeWord = resumeIndex < 0 ? undefined : words[resumeIndex];
+  const quizTopic: Topic | null = topicId
+    ? {
+        id: topicId,
+        ten: topicName,
+        mo_ta: null,
+        word_count: words.length,
+      }
+    : null;
+
+  const persistView = useCallback(
+    (wordId: string) => {
+      if (!sessionId || completed || persistedViews.current.has(wordId)) {
+        return Promise.resolve();
+      }
+      const pending = pendingViews.current.get(wordId);
+      if (pending) return pending;
+
+      const request = client
+        .authorized("/learning/flashcards/view", {
+          method: "POST",
+          body: JSON.stringify({
+            phien_hoc_tap_id: sessionId,
+            tu_vung_id: wordId,
+          }),
+        })
+        .then(() => {
+          persistedViews.current.add(wordId);
+        })
+        .finally(() => {
+          pendingViews.current.delete(wordId);
+        });
+      pendingViews.current.set(wordId, request);
+      return request;
+    },
+    [client, completed, sessionId],
+  );
 
   function flipCard() {
     const nextValue = flipped ? 0 : 1;
     setFlipped(!flipped);
-    if (!flipped && word) setSeen((current) => new Set(current).add(word.id));
+    if (!flipped && word) {
+      setSeen((current) => new Set(current).add(word.id));
+      setSaveError("");
+      void persistView(word.id).catch((failure) => {
+        setSaveError((failure as Error).message);
+      });
+    }
     Animated.timing(flip, {
       toValue: nextValue,
       duration: reduceMotion ? 0 : 420,
@@ -196,13 +252,7 @@ function StudyCards({
     setSaveError("");
     try {
       if (sessionId && !completed) {
-        await client.authorized("/learning/flashcards/view", {
-          method: "POST",
-          body: JSON.stringify({
-            phien_hoc_tap_id: sessionId,
-            tu_vung_id: word.id,
-          }),
-        });
+        await persistView(word.id);
         if (index === words.length - 1) {
           await client.authorized("/learning/flashcards/complete", {
             method: "POST",
@@ -222,6 +272,39 @@ function StudyCards({
       setBusy(false);
     }
   }
+
+  const leaveStudy = useCallback(async () => {
+    if (busy) return;
+    setBusy(true);
+    setSaveError("");
+    try {
+      if (word && seen.has(word.id)) await persistView(word.id);
+      router.back();
+    } catch (failure) {
+      setSaveError((failure as Error).message);
+      setBusy(false);
+    }
+  }, [busy, persistView, seen, word]);
+
+  const requestExit = useCallback(() => {
+    if (busy) return;
+    setSaveError("");
+    setConfirmExit(true);
+  }, [busy]);
+
+  useEffect(() => {
+    if (Platform.OS !== "android") return;
+    const subscription = BackHandler.addEventListener(
+      "hardwareBackPress",
+      () => {
+        if (busy) return true;
+        if (confirmExit) setConfirmExit(false);
+        else requestExit();
+        return true;
+      },
+    );
+    return () => subscription.remove();
+  }, [busy, confirmExit, requestExit]);
 
   async function saveWord() {
     if (!word || busy) return;
@@ -248,7 +331,8 @@ function StudyCards({
             accessibilityRole="button"
             accessibilityLabel="Về trang chủ"
             style={s.iconButton}
-            onPress={() => router.back()}
+            disabled={busy}
+            onPress={requestExit}
           >
             <Feather name="arrow-left" size={22} color={studyColors.ink} />
           </Pressable>
@@ -300,16 +384,16 @@ function StudyCards({
             </Text>
             <Text style={s.muted}>
               {user
-                ? "Đã lưu phiên học. Từ mới ở ngăn 1, đến hạn ôn sau 1 ngày. Bạn có thể ôn các từ khác đã đến hạn."
+                ? "Đã lưu phiên học. Bạn có thể luyện ngay các từ vừa học; lịch ôn hằng ngày vẫn theo phương pháp Leitner."
                 : "Đây là lượt học thử nên kết quả không được lưu. Đăng nhập để ôn trắc nghiệm và theo dõi tiến độ."}
             </Text>
             {user ? (
               <Pressable
                 accessibilityRole="button"
                 style={s.primary}
-                onPress={() => router.replace("/(tabs)/explore")}
+                onPress={() => setQuizOpen(true)}
               >
-                <Text style={s.primaryText}>Xem từ đến hạn</Text>
+                <Text style={s.primaryText}>Ôn tập chủ đề ngay</Text>
                 <Feather name="arrow-right" size={20} color="white" />
               </Pressable>
             ) : (
@@ -320,6 +404,15 @@ function StudyCards({
               >
                 <Text style={s.primaryText}>Đăng nhập để ôn tập</Text>
                 <Feather name="log-in" size={19} color="white" />
+              </Pressable>
+            )}
+            {user && (
+              <Pressable
+                accessibilityRole="button"
+                style={s.secondary}
+                onPress={() => router.replace("/(tabs)/explore")}
+              >
+                <Text style={s.secondaryText}>Xem lịch ôn hằng ngày</Text>
               </Pressable>
             )}
             <Pressable
@@ -338,7 +431,7 @@ function StudyCards({
           <>
             <Text style={s.sessionNote}>
               {user
-                ? "Các thẻ đã xem được lưu khi bấm Tiếp theo. Học hết phiên để ghi nhận từ mới vào ngăn 1."
+                ? "Thẻ được lưu khi bạn lật xem nghĩa. Học hết phiên để ghi nhận từ mới vào ngăn 1."
                 : "Học thử tối đa 5 từ. Kết quả không được lưu."}
             </Text>
             <View style={s.track}>
@@ -537,6 +630,75 @@ function StudyCards({
           </>
         )}
       </ScrollView>
+
+      <Modal
+        visible={confirmExit}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        onRequestClose={() => {
+          if (!busy) setConfirmExit(false);
+        }}
+      >
+        <View style={s.modalOverlay}>
+          <View
+            accessibilityRole="alert"
+            accessibilityLabel="Xác nhận thoát bài học"
+            style={s.modalCard}
+          >
+            <View style={s.modalIcon}>
+              <Feather name="bookmark" size={25} color={studyColors.blue} />
+            </View>
+            <Text style={s.modalTitle}>Thoát bài học?</Text>
+            <Text style={s.modalProgress}>
+              Đã học {seen.size}/{words.length} thẻ
+            </Text>
+            <Text style={s.modalBody}>
+              {resumeWord
+                ? `Tiến trình sẽ được lưu. Khi mở lại, bạn sẽ tiếp tục từ “${resumeWord.tu_tieng_anh}” (thẻ ${resumeIndex + 1}/${words.length}).`
+                : "Bạn đã xem tất cả thẻ. Khi mở lại, hãy xác nhận hoàn thành phiên học."}
+            </Text>
+            {!!saveError && (
+              <Text accessibilityRole="alert" style={s.modalError}>
+                {saveError}. Vui lòng thử lại để lưu trước khi thoát.
+              </Text>
+            )}
+            <View style={s.modalActions}>
+              <Pressable
+                accessibilityRole="button"
+                disabled={busy}
+                style={[s.modalStay, busy && s.disabled]}
+                onPress={() => setConfirmExit(false)}
+              >
+                <Text style={s.modalStayText}>Ở lại học</Text>
+              </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                disabled={busy}
+                style={[s.modalLeave, busy && s.disabled]}
+                onPress={() => void leaveStudy()}
+              >
+                {busy ? (
+                  <ActivityIndicator size="small" color="white" />
+                ) : (
+                  <Feather name="log-out" size={18} color="white" />
+                )}
+                <Text style={s.primaryText}>
+                  {busy ? "Đang lưu…" : "Thoát và lưu"}
+                </Text>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {quizOpen && user && quizTopic && (
+        <FlashcardPreview
+          topic={quizTopic}
+          onClose={() => setQuizOpen(false)}
+          onCompleted={() => undefined}
+        />
+      )}
     </SafeAreaView>
   );
 }
@@ -791,5 +953,85 @@ const s = StyleSheet.create({
     fontWeight: "800",
     letterSpacing: -0.7,
     textAlign: "center",
+  },
+  modalOverlay: {
+    flex: 1,
+    padding: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "rgba(22, 39, 34, 0.58)",
+  },
+  modalCard: {
+    width: "100%",
+    maxWidth: 420,
+    padding: 24,
+    gap: 13,
+    borderRadius: 14,
+    backgroundColor: studyColors.paper,
+    borderWidth: 1,
+    borderColor: studyColors.line,
+  },
+  modalIcon: {
+    width: 48,
+    height: 48,
+    marginBottom: 2,
+    borderRadius: 24,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: studyColors.paleBlue,
+  },
+  modalTitle: {
+    color: studyColors.ink,
+    fontSize: 23,
+    lineHeight: 30,
+    fontWeight: "800",
+  },
+  modalProgress: {
+    color: studyColors.blue,
+    fontSize: 15,
+    fontWeight: "700",
+  },
+  modalBody: {
+    color: studyColors.muted,
+    fontSize: 14,
+    lineHeight: 22,
+  },
+  modalError: {
+    padding: 12,
+    borderRadius: 8,
+    color: studyColors.rust,
+    fontSize: 13,
+    lineHeight: 20,
+    backgroundColor: "#FBEDE7",
+  },
+  modalActions: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 8,
+  },
+  modalStay: {
+    flex: 1,
+    minHeight: 50,
+    borderRadius: 9,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: studyColors.line,
+  },
+  modalStayText: {
+    color: studyColors.ink,
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  modalLeave: {
+    flex: 1.35,
+    minHeight: 50,
+    paddingHorizontal: 12,
+    borderRadius: 9,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: studyColors.blue,
   },
 });

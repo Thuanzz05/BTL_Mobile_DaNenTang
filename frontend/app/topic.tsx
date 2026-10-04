@@ -202,12 +202,12 @@ export default function TopicScreen() {
               {user ? (
                 <Pressable
                   accessibilityRole="button"
-                  disabled={!Number(progress?.due_words)}
+                  disabled={!learned}
                   style={({ pressed }) => [
                     s.modeCard,
                     s.quizCard,
                     pressed && s.pressed,
-                    !Number(progress?.due_words) && s.disabled,
+                    !learned && s.disabled,
                   ]}
                   onPress={() => setQuizOpen(true)}
                 >
@@ -215,10 +215,11 @@ export default function TopicScreen() {
                     <Feather name="help-circle" size={28} color={c.rust} />
                   </View>
                   <View style={s.modeText}>
-                    <Text style={s.modeTitle}>Ôn từ đến hạn</Text>
+                    <Text style={s.modeTitle}>Ôn tập theo chủ đề</Text>
                     <Text style={s.modeBody}>
-                      {Number(progress?.due_words) || 0} từ đến hạn. Từ sai sẽ
-                      quay lại cuối hàng đợi.
+                      {learned
+                        ? `${learned} từ đã học sẵn sàng luyện tập. ${Number(progress?.due_words) || 0} từ đang đến hạn.`
+                        : "Hãy học flashcard trước để mở bài ôn tập của chủ đề."}
                     </Text>
                   </View>
                   <Feather name="arrow-right" size={20} color={c.rust} />
@@ -235,8 +236,8 @@ export default function TopicScreen() {
                   <View style={s.modeText}>
                     <Text style={s.modeTitle}>Đăng nhập để ôn tập</Text>
                     <Text style={s.modeBody}>
-                      Ôn tập và kết quả Leitner chỉ dành cho người học đã
-                      đăng nhập.
+                      Ôn tập và kết quả Leitner chỉ dành cho người học đã đăng
+                      nhập.
                     </Text>
                   </View>
                   <Feather name="log-in" size={20} color={c.rust} />

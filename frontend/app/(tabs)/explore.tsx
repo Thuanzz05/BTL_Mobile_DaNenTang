@@ -209,8 +209,8 @@ export default function ReviewScreen() {
                   </View>
                   <Text style={s.cardTitle}>Bạn đã hoàn thành hôm nay</Text>
                   <Text style={s.body}>
-                    Học thêm flashcard ở trang chủ; hệ thống sẽ đưa từ trở lại
-                    đúng lịch ôn tiếp theo.
+                    Chưa có từ đến hạn. Từ mới ở ngăn 1 sẽ xuất hiện tại đây sau
+                    1 ngày; các ngăn sau lần lượt là 2, 4, 7 và 14 ngày.
                   </Text>
                 </View>
               ) : (

@@ -36,6 +36,21 @@ export class QuizController {
     }
   }
 
+  static async topicPractice(req: Request, res: Response, next: NextFunction) {
+    try {
+      const session = await LearningService.startTopicPracticeSession(
+        req.user!.id,
+        req.body.chu_de_id,
+        req.body.tong_so_tu,
+        req.body.ma_yeu_cau
+      );
+      const data = await QuizService.getSession(req.user!.id, session.phien_hoc_tap_id);
+      return ResponseUtil.success(res, data, 'Bắt đầu ôn tập chủ đề thành công', 201);
+    } catch (error) {
+      return next(error);
+    }
+  }
+
   static async getSession(req: Request, res: Response, next: NextFunction) {
     try {
       const data = await QuizService.getSession(req.user!.id, req.params.sessionId);
