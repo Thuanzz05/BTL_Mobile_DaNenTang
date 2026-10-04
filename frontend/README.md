@@ -17,7 +17,7 @@ Các dependency native được đồng bộ theo `expo/bundledNativeModules.jso
 - Đăng nhập dùng `/auth/login`, nhận hồ sơ và cặp JWT. Access token giữ trong bộ nhớ; refresh token lưu bằng Expo SecureStore trên mobile. Web preview dùng sessionStorage, chỉ giữ trong tab hiện tại.
 - Mở lại app: refresh token rồi gọi `/auth/me`. Request được bảo vệ tự làm mới access token một lần khi nhận 401. Mất mạng không xóa refresh token đã lưu; có nút thử khôi phục tại Tài khoản.
 - Đăng xuất gọi `/auth/logout` và xóa phiên trên thiết bị. Nếu máy chủ không phản hồi, giao diện thông báo việc thu hồi từ xa chưa được xác nhận.
-- Trang chủ khi đăng nhập gọi `/home/dashboard`; dữ liệu cập nhật khi quay lại màn hình hoặc kéo xuống. Flashcard tạo phiên từ chưa học theo mục tiêu 5/10/20; xem hết mới lưu từ mới vào ngăn 1 và hẹn ôn sau 1 ngày. Trắc nghiệm chỉ chọn từ đã đến hạn.
+- Trang chủ khi đăng nhập gọi `/home/dashboard`; dữ liệu cập nhật khi quay lại màn hình hoặc kéo xuống. Flashcard chọn ngẫu nhiên từ chưa học theo mục tiêu 5/10/20 cho mỗi phiên mới; khi đã học hết chủ đề thì chọn ngẫu nhiên lại trong toàn bộ từ. Xem hết mới lưu từ mới vào ngăn 1 và hẹn ôn sau 1 ngày. Trắc nghiệm chỉ chọn từ đã đến hạn.
 - Quên mật khẩu đã có luồng mã xác nhận; làm theo [hướng dẫn cấu hình email](../docs/CAU_HINH_EMAIL.md) để gửi thư thật. Google Login Android dùng development build và `EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID`; Expo Go không chứa native module này.
 
 Kiểm thử logic phiên đăng nhập: `npm test`. Kiểm tra mobile cuối cùng bằng Expo Go SDK 57 hoặc development build trên Android/iOS; web preview không thay thế kiểm thử thiết bị thật.
@@ -35,6 +35,6 @@ Phiên mới dùng leitner-queue-v2; phiên v1 đang học tiếp tục quy tắ
 ## Lịch sử và tiếp tục bài học
 
 - Lịch sử tải 20 phiên mỗi trang, có nút tải thêm và chi tiết từng lượt trả lời đúng/sai.
-- Phiên đang học có thể mở lại từ lịch sử, kể cả khi thiết bị chưa lưu bản nháp. Phiên flashcard tiếp tục từ thẻ chưa xem; quiz tiếp tục hàng đợi đã lưu trên máy chủ.
+- Phiên đang học có thể mở lại từ lịch sử, kể cả khi thiết bị chưa lưu bản nháp. Phiên flashcard tiếp tục từ thẻ chưa xem; nút Ôn ngay cũng mở lại quiz đang dở và tiếp tục hàng đợi đã lưu trên máy chủ.
 - Nếu thiết bị đang giữ một quiz khác, ứng dụng yêu cầu tiếp tục hoặc dừng bài đó trước. Câu trả lời đang chờ gửi được giữ lại và đồng bộ trước khi dừng phiên.
 - Tiến trình ở trang chủ, khám phá, chủ đề và thống kê tự tải lại khi quay về màn hình.

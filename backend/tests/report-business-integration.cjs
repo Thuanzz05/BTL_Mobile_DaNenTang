@@ -84,6 +84,7 @@ module.exports = async function reportBusiness(t, { api, connection, admin }) {
       const [flash, duplicate] = await Promise.all([start(), start()]);
       assert.equal(flash.phien_hoc_tap_id, duplicate.phien_hoc_tap_id);
       assert.equal(flash.danh_sach_tu.length, 5);
+      assert.equal(new Set(flash.danh_sach_tu.map((word) => word.id)).size, 5);
       assert.equal(flash.danh_sach_tu[0].vi_du.length, 1);
       const id = flash.phien_hoc_tap_id;
       const view = (word, owner = token, status = 200) =>
@@ -137,8 +138,10 @@ module.exports = async function reportBusiness(t, { api, connection, admin }) {
       assert.equal((await api('GET', '/api/progress', undefined, token)).moi_hoc, 5);
       assert.equal((await api('GET', '/api/progress', undefined, token)).chuoi_ngay_hoc, 1);
       const nextFlash = await start();
+      const learnedIds = new Set(flash.danh_sach_tu.map((word) => word.id));
+      const remainingWord = allWords.find((word) => !learnedIds.has(word.id));
       assert.equal(nextFlash.danh_sach_tu.length, 1);
-      assert.equal(nextFlash.danh_sach_tu[0].id, allWords[5].id);
+      assert.equal(nextFlash.danh_sach_tu[0].id, remainingWord.id);
       await api('POST', '/api/quiz/start', { chu_de_id: topic.id }, token, 404);
       for (const [index, word] of flash.danh_sach_tu.slice(0, 3).entries()) {
         await connection.execute(
@@ -221,6 +224,27 @@ module.exports = async function reportBusiness(t, { api, connection, admin }) {
       );
       assert.equal(afterStop.ngan_leitner, 1);
       assert.equal(afterStop.so_lan_on_tap, 2);
+      await api(
+        'POST',
+        '/api/learning/flashcards/view',
+        {
+          phien_hoc_tap_id: nextFlash.phien_hoc_tap_id,
+          tu_vung_id: nextFlash.danh_sach_tu[0].id,
+        },
+        token
+      );
+      await api(
+        'POST',
+        '/api/learning/flashcards/complete',
+        { phien_hoc_tap_id: nextFlash.phien_hoc_tap_id },
+        token
+      );
+      const repeatedFlash = await start();
+      assert.equal(repeatedFlash.danh_sach_tu.length, 5);
+      assert.equal(new Set(repeatedFlash.danh_sach_tu.map((word) => word.id)).size, 5);
+      assert.ok(
+        repeatedFlash.danh_sach_tu.every((word) => allWords.some(({ id }) => id === word.id))
+      );
       await api('DELETE', '/api/admin/users/' + uid, undefined, token, 403);
       await api('DELETE', '/api/admin/users/' + admin.user.id, undefined, admin.accessToken, 403);
       await api('DELETE', '/api/admin/users/' + uid, undefined, admin.accessToken);
