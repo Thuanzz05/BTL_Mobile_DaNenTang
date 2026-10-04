@@ -79,6 +79,7 @@ module.exports = async function reportBusiness(t, { api, connection, admin }) {
       await api('POST', '/api/learning/flashcards/start', { chu_de_id: topic.id }, undefined, 401);
       await api('POST', '/api/learning/start', { chu_de_id: topic.id }, token, 410);
       await api('POST', '/api/quiz/start', { chu_de_id: topic.id }, token, 404);
+      await api('POST', '/api/quiz/topic/start', { chu_de_id: topic.id }, token, 404);
       const start = () =>
         api('POST', '/api/learning/flashcards/start', { chu_de_id: topic.id }, token, 201);
       const [flash, duplicate] = await Promise.all([start(), start()]);
@@ -109,19 +110,44 @@ module.exports = async function reportBusiness(t, { api, connection, admin }) {
       );
       await Promise.all([view(flash.danh_sach_tu[0]), view(flash.danh_sach_tu[0])]);
       assert.ok((await start()).danh_sach_tu[0].da_xem_luc);
-      assert.equal((await api('GET', '/api/progress', undefined, token)).tong_so_tu_da_hoc, 0);
-      for (const word of flash.danh_sach_tu.slice(1)) {
-        await view(word);
-      }
+      assert.equal((await api('GET', '/api/progress', undefined, token)).tong_so_tu_da_hoc, 1);
+      const topicPractice = await api(
+        'POST',
+        '/api/quiz/topic/start',
+        { chu_de_id: topic.id, tong_so_tu: 1 },
+        token,
+        201
+      );
+      assert.equal(topicPractice.tong_so_tu, 1);
+      await api('POST', '/api/quiz/' + topicPractice.phien_hoc_tap_id + '/stop', {}, token);
+
+      // Lưu trạng thái xem và tiến độ từ vựng trong cùng một giao dịch.
+      const secondWord = flash.danh_sach_tu[1];
       await connection.query(
         "CREATE TRIGGER fail_flash_result BEFORE INSERT ON ket_qua_hoc FOR EACH ROW SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT = 'test flash rollback'"
       );
       try {
-        await complete(500);
+        await view(secondWord, token, 500);
       } finally {
         await connection.query('DROP TRIGGER fail_flash_result');
       }
-      assert.equal((await api('GET', '/api/progress', undefined, token)).tong_so_tu_da_hoc, 0);
+      const [[rolledBackView]] = await connection.execute(
+        'SELECT da_xem_luc FROM phien_hoc_tu WHERE phien_hoc_tap_id = ? AND tu_vung_id = ?',
+        [id, secondWord.id]
+      );
+      assert.equal(rolledBackView.da_xem_luc, null);
+      assert.equal((await api('GET', '/api/progress', undefined, token)).tong_so_tu_da_hoc, 1);
+
+      for (const word of flash.danh_sach_tu.slice(1)) {
+        await view(word);
+      }
+      const partialProgress = await api('GET', '/api/progress', undefined, token);
+      assert.equal(partialProgress.tong_so_tu_da_hoc, 5);
+      assert.equal(partialProgress.hom_nay, 5);
+      assert.equal(
+        (await api('GET', '/api/home/dashboard', undefined, token)).tien_do_hom_nay.da_hoc,
+        5
+      );
       const completed = await Promise.all([complete(), complete()]);
       assert.deepEqual(completed[0], completed[1]);
       const [progress] = await connection.execute(

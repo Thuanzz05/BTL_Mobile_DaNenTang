@@ -29,7 +29,9 @@ const uuid = (value: unknown) =>
   typeof value === "string" &&
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 const typedAnswer = (value: unknown) =>
-  typeof value === "string" && value.trim().length > 0 && value.trim().length <= 120;
+  typeof value === "string" &&
+  value.trim().length > 0 &&
+  value.trim().length <= 120;
 
 function parseDraft(raw: string, userId: string): QuizDraft {
   const value = JSON.parse(raw) as QuizDraft;
@@ -58,7 +60,8 @@ function parseDraft(raw: string, userId: string): QuizDraft {
         !uuid(pending?.ma_yeu_cau) ||
         !(
           (uuid(pending?.lua_chon_id) && pending?.cau_tra_loi === undefined) ||
-          (typedAnswer(pending?.cau_tra_loi) && pending?.lua_chon_id === undefined)
+          (typedAnswer(pending?.cau_tra_loi) &&
+            pending?.lua_chon_id === undefined)
         )))
   ) {
     throw new Error(
@@ -197,7 +200,7 @@ export class QuizSessionClient {
             session = await this.request<QuizSession>(
               draft.start.kind === "review"
                 ? "/quiz/review/start"
-                : "/quiz/start",
+                : "/quiz/topic/start",
               post({
                 ...(draft.start.kind === "topic"
                   ? { chu_de_id: draft.start.topicId }
@@ -212,6 +215,7 @@ export class QuizSessionClient {
               [
                 "TOPIC_NOT_FOUND",
                 "NO_REVIEW_WORDS",
+                "NO_LEARNED_WORDS",
                 "INSUFFICIENT_WORDS",
                 "INSUFFICIENT_CHOICES",
               ].includes(codeOf(error) || "")
@@ -267,7 +271,11 @@ export class QuizSessionClient {
     return response;
   }
 
-  answer(questionId: string, value: string, type: "choice" | "text" = "choice") {
+  answer(
+    questionId: string,
+    value: string,
+    type: "choice" | "text" = "choice",
+  ) {
     return this.exclusive(async () => {
       const draft = this.draft;
       if (!draft?.sessionId || draft.stopping)

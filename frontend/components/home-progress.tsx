@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useIsFocused } from "expo-router";
+import { router, useIsFocused } from "expo-router";
 import {
   ActivityIndicator,
   Pressable,
@@ -100,16 +100,26 @@ export function HomeProgress({
             </Text>
             <Text style={s.body}>{data.so_tu_can_on} từ đến hạn ôn</Text>
           </View>
-          {data.so_tu_can_on > 0 && (
-            <Pressable
-              accessibilityRole="button"
-              style={s.review}
-              onPress={() => onReview(data.so_tu_can_on)}
-            >
-              <Text style={s.reviewText}>Ôn từ đến hạn</Text>
-              <Feather name="refresh-cw" size={17} color="white" />
-            </Pressable>
-          )}
+          <Pressable
+            accessibilityRole="button"
+            style={s.review}
+            onPress={() =>
+              data.so_tu_can_on > 0
+                ? onReview(data.so_tu_can_on)
+                : router.push("/(tabs)/explore")
+            }
+          >
+            <Text style={s.reviewText}>
+              {data.so_tu_can_on > 0
+                ? "Ôn từ đến hạn"
+                : "Xem lịch ôn hằng ngày"}
+            </Text>
+            <Feather
+              name={data.so_tu_can_on > 0 ? "refresh-cw" : "calendar"}
+              size={17}
+              color="white"
+            />
+          </Pressable>
         </>
       )}
     </View>
