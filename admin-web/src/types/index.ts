@@ -106,4 +106,5 @@ export interface QuizReport {
     ty_le_sai: number;
     so_nguoi: number;
   }[];
+  hoat_dong: { ngay: string; so_luot: number; so_luot_dung: number }[];
 }
