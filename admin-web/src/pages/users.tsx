@@ -121,6 +121,7 @@ export function UsersPage() {
                 <table>
                   <thead>
                     <tr>
+                      <th>STT</th>
                       <th>Người học</th>
                       <th>Ngày tham gia</th>
                       <th>Phiên học</th>
@@ -129,8 +130,13 @@ export function UsersPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {query.data.items.map((user) => (
+                    {query.data.items.map((user, index) => (
                       <tr key={user.id}>
+                        <td>
+                          {(query.data!.pagination.page - 1) * query.data!.pagination.limit +
+                            index +
+                            1}
+                        </td>
                         <td>
                           <div className="entity-cell">
                             <span className="avatar learner-avatar">

@@ -152,6 +152,7 @@ export function AchievementsPage() {
                 <table>
                   <thead>
                     <tr>
+                      <th>STT</th>
                       <th>Huy hiệu</th>
                       <th>Điều kiện</th>
                       <th>Điểm</th>
@@ -161,8 +162,13 @@ export function AchievementsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {query.data.items.map((item) => (
+                    {query.data.items.map((item, index) => (
                       <tr key={item.id}>
+                        <td>
+                          {(query.data!.pagination.page - 1) * query.data!.pagination.limit +
+                            index +
+                            1}
+                        </td>
                         <td>
                           <div className="entity-cell">
                             <AchievementIcon value={item.bieu_tuong} />

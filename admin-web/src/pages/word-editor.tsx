@@ -1,11 +1,11 @@
-import { useState } from 'react';
-import type { FormEvent } from 'react';
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Plus, Save, Trash2 } from 'lucide-react';
+import type { FormEvent } from 'react';
+import { useState } from 'react';
+import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
+import { Empty, Notice, PageHeader, QueryState } from '../components/ui';
+import { useQuery } from '../hooks/use-query';
 import { api, jsonBody } from '../services/api';
 import type { Example, Topic, Word } from '../types';
-import { useQuery } from '../hooks/use-query';
-import { Empty, Notice, PageHeader, QueryState } from '../components/ui';
 import { wordTypes } from './words';
 
 function WordForm({

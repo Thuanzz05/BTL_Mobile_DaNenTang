@@ -83,14 +83,20 @@ export function AchievementRecipientsPage() {
                 <table>
                   <thead>
                     <tr>
+                      <th>STT</th>
                       <th>Người học</th>
                       <th>Email</th>
                       <th>Ngày nhận (giờ Việt Nam)</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {query.data.items.map((person) => (
+                    {query.data.items.map((person, index) => (
                       <tr key={person.id}>
+                        <td>
+                          {(query.data!.pagination.page - 1) * query.data!.pagination.limit +
+                            index +
+                            1}
+                        </td>
                         <td>
                           <strong>{person.ho_ten}</strong>
                         </td>

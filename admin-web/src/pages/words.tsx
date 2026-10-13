@@ -181,6 +181,7 @@ export function WordsPage() {
                 <table>
                   <thead>
                     <tr>
+                      <th>STT</th>
                       <th>Từ tiếng Anh</th>
                       <th>Nghĩa tiếng Việt</th>
                       <th>Chủ đề</th>
@@ -189,8 +190,13 @@ export function WordsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {query.data.items.map((word) => (
+                    {query.data.items.map((word, index) => (
                       <tr key={word.id}>
+                        <td>
+                          {(query.data!.pagination.page - 1) * query.data!.pagination.limit +
+                            index +
+                            1}
+                        </td>
                         <td>
                           <Link className="word-link" to={'/words/' + word.id + '/edit'}>
                             {word.tu_tieng_anh}
