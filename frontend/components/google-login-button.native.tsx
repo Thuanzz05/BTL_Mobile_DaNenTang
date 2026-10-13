@@ -1,17 +1,28 @@
 import { useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text } from "react-native";
+import {
+  ActivityIndicator,
+  Pressable,
+  StyleSheet,
+  Text,
+  TurboModuleRegistry,
+} from "react-native";
 import { FontAwesome } from "@expo/vector-icons";
 import { router } from "expo-router";
-import {
-  GoogleOneTapSignIn,
-  isNoSavedCredentialFoundResponse,
-  isSuccessResponse,
-} from "react-native-nitro-google-signin";
 import { useAuth } from "@/contexts/auth-context";
 import { palette as c } from "@/constants/palette";
 
 const webClientId = process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID;
-if (webClientId) GoogleOneTapSignIn.configure({ webClientId });
+type GoogleSignInModule = typeof import("react-native-nitro-google-signin");
+let googleSignIn: GoogleSignInModule | null | undefined;
+
+function getGoogleSignIn() {
+  if (googleSignIn !== undefined) return googleSignIn;
+  if (!TurboModuleRegistry.get("NitroModules")) return (googleSignIn = null);
+
+  googleSignIn = require("react-native-nitro-google-signin");
+  if (webClientId) googleSignIn!.GoogleOneTapSignIn.configure({ webClientId });
+  return googleSignIn;
+}
 
 export function GoogleLoginButton({
   disabled,
@@ -28,6 +39,16 @@ export function GoogleLoginButton({
       onError("Đăng nhập Google chưa được cấu hình.");
       return;
     }
+    const google = getGoogleSignIn();
+    if (!google) {
+      onError("Đăng nhập Google cần bản development build. Expo Go chỉ hỗ trợ đăng nhập email.");
+      return;
+    }
+    const {
+      GoogleOneTapSignIn,
+      isNoSavedCredentialFoundResponse,
+      isSuccessResponse,
+    } = google;
     setBusy(true);
     onError("");
     try {

@@ -32,9 +32,16 @@ export function WordsPage() {
   const topicId = params.get('topicId') || '';
   const status = params.get('status') || '';
   const page = Math.max(1, Math.min(1000000, Number(params.get('page')) || 1));
+  const pageSize = 15;
+  const pageOffset = (page - 1) * pageSize;
   const [draft, setDraft] = useState(search);
   const topics = useQuery('word-topics', () => api<Topic[]>('/admin/topics'));
-  const queryString = new URLSearchParams({ search, topicId, page: String(page), limit: '15' });
+  const queryString = new URLSearchParams({
+    search,
+    topicId,
+    page: String(page),
+    limit: String(pageSize),
+  });
   if (!topicId) {
     queryString.delete('topicId');
   }
@@ -181,6 +188,7 @@ export function WordsPage() {
                 <table>
                   <thead>
                     <tr>
+                      <th>STT</th>
                       <th>Từ tiếng Anh</th>
                       <th>Nghĩa tiếng Việt</th>
                       <th>Chủ đề</th>
@@ -189,8 +197,9 @@ export function WordsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {query.data.items.map((word) => (
+                    {query.data.items.map((word, index) => (
                       <tr key={word.id}>
+                        <td>{pageOffset + index + 1}</td>
                         <td>
                           <Link className="word-link" to={'/words/' + word.id + '/edit'}>
                             {word.tu_tieng_anh}

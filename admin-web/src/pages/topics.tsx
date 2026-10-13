@@ -1,12 +1,11 @@
 import { useMemo, useState } from 'react';
 import type { FormEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { FolderOpen, Pencil, Plus, Search, Trash2 } from 'lucide-react';
-import { api, jsonBody, mediaUrl } from '../services/api';
+import { Pencil, Plus, Search, Trash2 } from 'lucide-react';
+import { api, jsonBody } from '../services/api';
 import type { Topic } from '../types';
 import { useQuery } from '../hooks/use-query';
 import { Confirm, Empty, Modal, Notice, PageHeader, QueryState, Status } from '../components/ui';
-import { UploadField } from '../components/upload-field';
 
 function TopicForm({
   topic,
@@ -19,16 +18,14 @@ function TopicForm({
 }) {
   const [name, setName] = useState(topic?.ten || '');
   const [description, setDescription] = useState(topic?.mo_ta || '');
-  const [image, setImage] = useState(topic?.hinh_anh || '');
   const [status, setStatus] = useState(topic?.trang_thai || 'active');
   const [order, setOrder] = useState(topic?.thu_tu_hien_thi || 0);
   const [busy, setBusy] = useState(false);
-  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState('');
 
   async function submit(event: FormEvent) {
     event.preventDefault();
-    if (busy || uploading) {
+    if (busy) {
       return;
     }
     setBusy(true);
@@ -40,7 +37,7 @@ function TopicForm({
         jsonBody(topic ? 'PUT' : 'POST', {
           ten: name.trim(),
           mo_ta: description.trim() || null,
-          hinh_anh: image.trim() || null,
+          hinh_anh: topic?.hinh_anh || null,
           trang_thai: status,
           thu_tu_hien_thi: order,
         })
@@ -54,11 +51,7 @@ function TopicForm({
   }
 
   return (
-    <Modal
-      title={topic ? 'Chỉnh sửa chủ đề' : 'Thêm chủ đề mới'}
-      onClose={onClose}
-      busy={busy || uploading}
-    >
+    <Modal title={topic ? 'Chỉnh sửa chủ đề' : 'Thêm chủ đề mới'} onClose={onClose} busy={busy}>
       <form onSubmit={submit}>
         <label>
           Tên chủ đề <span className="required">*</span>
@@ -103,18 +96,12 @@ function TopicForm({
             />
           </label>
         </div>
-        <UploadField label="Ảnh chủ đề" value={image} onChange={setImage} onBusy={setUploading} />
         {error && <Notice>{error}</Notice>}
         <div className="form-actions">
-          <button
-            type="button"
-            className="button secondary"
-            disabled={busy || uploading}
-            onClick={onClose}
-          >
+          <button type="button" className="button secondary" disabled={busy} onClick={onClose}>
             Hủy
           </button>
-          <button className="button" disabled={busy || uploading}>
+          <button className="button" disabled={busy}>
             {busy ? 'Đang lưu…' : 'Lưu chủ đề'}
           </button>
         </div>
@@ -204,6 +191,7 @@ export function TopicsPage() {
               <table>
                 <thead>
                   <tr>
+                    <th>STT</th>
                     <th>Chủ đề</th>
                     <th>Nội dung</th>
                     <th>Trạng thái</th>
@@ -212,17 +200,11 @@ export function TopicsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {topics.map((topic) => (
+                  {topics.map((topic, index) => (
                     <tr key={topic.id}>
+                      <td>{index + 1}</td>
                       <td>
                         <div className="entity-cell">
-                          {mediaUrl(topic.hinh_anh) ? (
-                            <img className="entity-image" src={mediaUrl(topic.hinh_anh)} alt="" />
-                          ) : (
-                            <span className="entity-image placeholder">
-                              <FolderOpen size={23} />
-                            </span>
-                          )}
                           <div>
                             <strong>{topic.ten}</strong>
                             <p className="cell-description">{topic.mo_ta || 'Chưa có mô tả'}</p>

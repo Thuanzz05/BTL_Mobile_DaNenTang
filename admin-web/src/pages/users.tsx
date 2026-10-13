@@ -26,7 +26,8 @@ export function UsersPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
-  const params = new URLSearchParams({ search, page: String(page), limit: '15' });
+  const pageSize = 15;
+  const params = new URLSearchParams({ search, page: String(page), limit: String(pageSize) });
   if (status) {
     params.set('status', status);
   }
@@ -121,6 +122,7 @@ export function UsersPage() {
                 <table>
                   <thead>
                     <tr>
+                      <th>STT</th>
                       <th>Người học</th>
                       <th>Ngày tham gia</th>
                       <th>Phiên học</th>
@@ -129,8 +131,9 @@ export function UsersPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {query.data.items.map((user) => (
+                    {query.data.items.map((user, index) => (
                       <tr key={user.id}>
+                        <td>{(page - 1) * pageSize + index + 1}</td>
                         <td>
                           <div className="entity-cell">
                             <span className="avatar learner-avatar">

@@ -22,6 +22,8 @@ export function AchievementsPage() {
   const type = params.get('type') || '';
   const status = params.get('status') || '';
   const page = Math.max(1, Math.min(1000000, Math.floor(Number(params.get('page')) || 1)));
+  const pageSize = 15;
+  const pageOffset = (page - 1) * pageSize;
   const [draft, setDraft] = useState(search);
   useEffect(() => setDraft(search), [search]);
   const [editing, setEditing] = useState<Achievement | null | undefined>();
@@ -31,7 +33,7 @@ export function AchievementsPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
-  const queryString = new URLSearchParams({ search, page: String(page), limit: '15' });
+  const queryString = new URLSearchParams({ search, page: String(page), limit: String(pageSize) });
   if (type) {
     queryString.set('type', type);
   }
@@ -152,6 +154,7 @@ export function AchievementsPage() {
                 <table>
                   <thead>
                     <tr>
+                      <th>STT</th>
                       <th>Huy hiệu</th>
                       <th>Điều kiện</th>
                       <th>Điểm</th>
@@ -161,8 +164,9 @@ export function AchievementsPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {query.data.items.map((item) => (
+                    {query.data.items.map((item, index) => (
                       <tr key={item.id}>
+                        <td>{pageOffset + index + 1}</td>
                         <td>
                           <div className="entity-cell">
                             <AchievementIcon value={item.bieu_tuong} />
