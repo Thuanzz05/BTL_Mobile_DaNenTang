@@ -28,9 +28,11 @@ const icons: Record<string, keyof typeof Feather.glyphMap> = {
 
 export function TopicCard({
   topic,
+  number,
   onPress,
 }: {
   topic: Topic;
+  number?: number;
   onPress: () => void;
 }) {
   return (
@@ -46,7 +48,10 @@ export function TopicCard({
         style={s.icon}
       />
       <View style={s.copy}>
-        <Text style={s.title}>{topic.ten}</Text>
+        <Text style={s.title}>
+          {number ? `${number}. ` : ""}
+          {topic.ten}
+        </Text>
         <Text style={s.count}>{topic.word_count} từ vựng</Text>
       </View>
       <Feather name="chevron-right" size={18} color={c.muted} />
