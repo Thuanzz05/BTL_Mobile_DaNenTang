@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import type { FormEvent } from 'react';
+import { useRef, useState } from 'react';
+import type { ChangeEvent, FormEvent } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { Eye, EyeOff, Pencil, Plus, Search, Trash2 } from 'lucide-react';
+import { Eye, EyeOff, Pencil, Plus, Search, Trash2, Upload } from 'lucide-react';
 import { api, jsonBody } from '../services/api';
 import type { Page, Topic, Word } from '../types';
 import { useQuery } from '../hooks/use-query';
@@ -56,6 +56,29 @@ export function WordsPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
+  const csvInput = useRef<HTMLInputElement>(null);
+
+  async function importCsv(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setError('');
+    setNotice('');
+    setBusy(true);
+    try {
+      if (file.size > 2_000_000) throw new Error('File CSV tối đa 2 MB.');
+      const result = await api<{ added: number; skipped: number }>(
+        '/admin/words/import-csv',
+        jsonBody('POST', { csv: await file.text() })
+      );
+      setNotice(`Đã thêm ${result.added} từ; bỏ qua ${result.skipped} từ trùng.`);
+      query.reload();
+    } catch (failure) {
+      setError((failure as Error).message);
+    } finally {
+      setBusy(false);
+      event.target.value = '';
+    }
+  }
 
   function change(values: Record<string, string>) {
     const next = new URLSearchParams(params);
@@ -127,13 +150,39 @@ export function WordsPage() {
         title="Từ vựng"
         description="Quản lý từ, nghĩa, ví dụ và học liệu trong một nơi."
         action={
-          <Link className="button" to={'/words/new' + (topicId ? '?topicId=' + topicId : '')}>
-            <Plus size={18} />
-            Thêm từ vựng
-          </Link>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            <a
+              className="button secondary"
+              download="mau-nhap-tu-vung.csv"
+              href="data:text/csv;charset=utf-8,%EF%BB%BFchu_de%2Ctu_tieng_anh%2Cphien_am%2Cloai_tu%2Cnghia_tieng_viet%2Ccau_tieng_anh%2Ccau_tieng_viet%0D%0AGiao%20ti%E1%BA%BFp%20h%C3%A0ng%20ng%C3%A0y%2Chello%2C%2Fh%C9%99%CB%88lo%CA%8A%2F%2Ctham-tu%2Cxin%20ch%C3%A0o%2CHello%20there.%2CXin%20ch%C3%A0o."
+            >
+              Tải mẫu CSV
+            </a>
+            <input
+              ref={csvInput}
+              aria-label="Chọn file CSV từ vựng"
+              type="file"
+              accept=".csv,text/csv"
+              hidden
+              onChange={importCsv}
+            />
+            <button
+              className="button secondary"
+              disabled={busy}
+              onClick={() => csvInput.current?.click()}
+            >
+              <Upload size={17} />
+              Nhập CSV
+            </button>
+            <Link className="button" to={'/words/new' + (topicId ? '?topicId=' + topicId : '')}>
+              <Plus size={18} />
+              Thêm từ vựng
+            </Link>
+          </div>
         }
       />
       {notice && <Notice success>{notice}</Notice>}
+      {error && <Notice>{error}</Notice>}
       <section className="panel table-panel">
         <div className="toolbar">
           <form className="search-form" onSubmit={searchWords}>

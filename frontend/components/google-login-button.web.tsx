@@ -1,5 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, StyleSheet, View } from "react-native";
+import {
+  ActivityIndicator,
+  StyleSheet,
+  View,
+  type ViewInstance,
+} from "react-native";
 import { router } from "expo-router";
 import { useAuth } from "@/contexts/auth-context";
 import { palette as c } from "@/constants/palette";
@@ -52,7 +57,7 @@ export function GoogleLoginButton({
   onError: (message: string) => void;
 }) {
   const { client } = useAuth();
-  const container = useRef<View>(null);
+  const container = useRef<ViewInstance>(null);
   const submitting = useRef(false);
   const [busy, setBusy] = useState(false);
 

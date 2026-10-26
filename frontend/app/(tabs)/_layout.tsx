@@ -18,7 +18,11 @@ export default function TabLayout() {
         options={{
           title: "Trang chủ",
           tabBarIcon: ({ color }) => (
-            <Feather name="home" size={22} color={color} />
+            <Feather
+              name="home"
+              size={22}
+              color={typeof color === "string" ? color : c.green}
+            />
           ),
         }}
       />
@@ -27,7 +31,11 @@ export default function TabLayout() {
         options={{
           title: "Tra từ",
           tabBarIcon: ({ color }) => (
-            <Feather name="search" size={22} color={color} />
+            <Feather
+              name="search"
+              size={22}
+              color={typeof color === "string" ? color : c.green}
+            />
           ),
         }}
       />
@@ -36,7 +44,11 @@ export default function TabLayout() {
         options={{
           title: "Ôn tập",
           tabBarIcon: ({ color }) => (
-            <Feather name="refresh-cw" size={21} color={color} />
+            <Feather
+              name="refresh-cw"
+              size={21}
+              color={typeof color === "string" ? color : c.green}
+            />
           ),
         }}
       />
@@ -45,7 +57,11 @@ export default function TabLayout() {
         options={{
           title: "Tài khoản",
           tabBarIcon: ({ color }) => (
-            <Feather name="user" size={22} color={color} />
+            <Feather
+              name="user"
+              size={22}
+              color={typeof color === "string" ? color : c.green}
+            />
           ),
         }}
       />

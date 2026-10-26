@@ -2,8 +2,116 @@ import { query, transaction } from '../config/database';
 import { wordSchema, wordStatusSchema } from '../validations/request.schemas';
 import { AppError } from '../utils/app-error';
 import { UuidUtil } from '../utils/uuid.util';
+import { parseCsv } from '../utils/csv.util';
+import { schemas } from '../validations/request.schemas';
 
 export class WordService {
+  static async importCsv(input: unknown) {
+    const { csv } = schemas.bulkWordCsv.parse(input);
+    const rows = parseCsv(csv);
+    const headers = [
+      'chu_de',
+      'tu_tieng_anh',
+      'phien_am',
+      'loai_tu',
+      'nghia_tieng_viet',
+      'cau_tieng_anh',
+      'cau_tieng_viet',
+    ];
+    if (rows.length < 2 || rows[0].map((header) => header.trim()).join('|') !== headers.join('|')) {
+      throw new AppError(
+        `CSV cần có dòng tiêu đề theo mẫu: ${headers.join(',')}`,
+        400,
+        'INVALID_CSV'
+      );
+    }
+    if (rows.length > 501) {
+      throw new AppError('Mỗi lần chỉ nhập tối đa 500 từ', 400, 'IMPORT_LIMIT');
+    }
+    const { words } = schemas.bulkWordRows.parse({
+      words: rows.slice(1).map((row, index) => {
+        if (row.length !== headers.length) {
+          throw new AppError(`Dòng ${index + 2} cần có đủ 7 cột`, 400, 'INVALID_CSV_ROW');
+        }
+        return Object.fromEntries(
+          headers.map((header, column) => [header, row[column].trim() || undefined])
+        );
+      }),
+    });
+
+    return transaction(async (connection) => {
+      const [topics]: any = await connection.query('SELECT id, ten FROM chu_de');
+      const normalize = (value: string) =>
+        value.normalize('NFKD').replace(/\p{M}/gu, '').trim().toLocaleLowerCase('vi');
+      const topicByName = new Map<string, any>(
+        topics.map((topic: any) => [normalize(topic.ten), topic])
+      );
+      const unknownTopics = [...new Set(words.map((word) => word.chu_de))].filter(
+        (name) => !topicByName.has(normalize(name))
+      );
+      if (unknownTopics.length) {
+        throw new AppError(
+          `Không tìm thấy chủ đề: ${unknownTopics.join(', ')}`,
+          400,
+          'TOPIC_NOT_FOUND'
+        );
+      }
+      const topicIds = [
+        ...new Set(words.map((word) => topicByName.get(normalize(word.chu_de)).id)),
+      ];
+      const [existing]: any = await connection.query(
+        'SELECT chu_de_id, tu_tieng_anh FROM tu_vung WHERE chu_de_id IN (?)',
+        [topicIds]
+      );
+      const key = (topicId: string, english: string) => `${topicId}:${normalize(english)}`;
+      const seen = new Set<string>(
+        existing.map((word: any) => key(word.chu_de_id, word.tu_tieng_anh))
+      );
+      const [orders]: any = await connection.query(
+        'SELECT chu_de_id, COALESCE(MAX(thu_tu_hien_thi), 0) AS max_order FROM tu_vung WHERE chu_de_id IN (?) GROUP BY chu_de_id',
+        [topicIds]
+      );
+      const nextOrder = new Map<string, number>(
+        orders.map((row: any) => [row.chu_de_id, Number(row.max_order)])
+      );
+      let added = 0;
+      let skipped = 0;
+      for (const word of words) {
+        const topic = topicByName.get(normalize(word.chu_de));
+        const duplicateKey = key(topic.id, word.tu_tieng_anh);
+        if (seen.has(duplicateKey)) {
+          skipped += 1;
+          continue;
+        }
+        const id = UuidUtil.generate();
+        const order = (nextOrder.get(topic.id) || 0) + 1;
+        nextOrder.set(topic.id, order);
+        await connection.execute(
+          `INSERT INTO tu_vung (id, chu_de_id, tu_tieng_anh, phien_am, loai_tu, nghia_tieng_viet, thu_tu_hien_thi, trang_thai)
+           VALUES (?, ?, ?, ?, ?, ?, ?, 'active')`,
+          [
+            id,
+            topic.id,
+            word.tu_tieng_anh,
+            word.phien_am || null,
+            word.loai_tu,
+            word.nghia_tieng_viet,
+            order,
+          ]
+        );
+        if (word.cau_tieng_anh && word.cau_tieng_viet) {
+          await connection.execute(
+            'INSERT INTO vi_du (id, tu_vung_id, cau_tieng_anh, cau_tieng_viet, thu_tu_hien_thi) VALUES (?, ?, ?, ?, 0)',
+            [UuidUtil.generate(), id, word.cau_tieng_anh, word.cau_tieng_viet]
+          );
+        }
+        seen.add(duplicateKey);
+        added += 1;
+      }
+      return { added, skipped };
+    });
+  }
+
   /**
    * Lấy từ vựng của chủ đề đang hiển thị, kèm trạng thái yêu thích và ví dụ
    */

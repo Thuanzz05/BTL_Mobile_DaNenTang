@@ -270,6 +270,7 @@ router.get('/words', WordController.getAll);
  *         description: Tạo thành công
  */
 router.post('/words', validate(wordSchema), WordController.create);
+router.post('/words/import-csv', WordController.importCsv);
 
 /**
  * @swagger

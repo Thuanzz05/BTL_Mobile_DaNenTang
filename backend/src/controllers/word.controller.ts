@@ -3,6 +3,15 @@ import { WordService } from '../services/word.service';
 import { ResponseUtil } from '../utils/response.util';
 
 export class WordController {
+  static async importCsv(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = await WordService.importCsv(req.body);
+      return ResponseUtil.success(res, result, 'Nhập từ vựng thành công');
+    } catch (error: any) {
+      return next(error);
+    }
+  }
+
   /**
    * Lấy danh sách từ vựng theo chủ đề
    */

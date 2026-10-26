@@ -57,6 +57,29 @@ export const wordSchema = z
     vi_du: z.array(example).max(20).optional(),
   })
   .strict();
+const importWordRow = z
+  .object({
+    chu_de: text(255),
+    tu_tieng_anh: text(120),
+    phien_am: z.string().trim().max(120).optional(),
+    loai_tu: z.enum([
+      'danh-tu',
+      'dong-tu',
+      'tinh-tu',
+      'trang-tu',
+      'gioi-tu',
+      'lien-tu',
+      'dai-tu',
+      'tham-tu',
+    ]),
+    nghia_tieng_viet: text(255),
+    cau_tieng_anh: z.string().trim().max(5000).optional(),
+    cau_tieng_viet: z.string().trim().max(5000).optional(),
+  })
+  .strict()
+  .refine((row) => Boolean(row.cau_tieng_anh) === Boolean(row.cau_tieng_viet), {
+    message: 'Mỗi ví dụ cần có cả câu tiếng Anh và câu tiếng Việt',
+  });
 export const schemas = {
   register: z
     .object({
@@ -114,6 +137,8 @@ export const schemas = {
     .strict(),
   complete: z.object({ phien_hoc_tap_id: identifier }).strict(),
   status: z.object({ trang_thai: z.enum(['active', 'inactive', 'locked']) }).strict(),
+  bulkWordCsv: z.object({ csv: z.string().min(1).max(2_000_000) }).strict(),
+  bulkWordRows: z.object({ words: z.array(importWordRow).min(1).max(500) }).strict(),
 };
 
 const positiveQueryNumber = (max: number) =>
